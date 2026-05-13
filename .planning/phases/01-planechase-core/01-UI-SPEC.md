@@ -61,10 +61,11 @@ Declared values (multiples of 4 only):
 | Display | Russo One | 28px | 400 (Russo One is inherently bold) | 1.2 | Plane name on Game Screen (hero text) |
 | Heading | Russo One | 20px | 400 | 1.2 | Screen titles, die result reveal (Planeswalk / Chaos / Blank) |
 | Body | Chakra Petch | 16px | 400 | 1.5 | Chaos ability text, disclaimer copy, general prose |
-| Label | Chakra Petch | 14px | 600 | 1.4 | Player names, chaos counter value, form labels, log entries |
-| Caption | Chakra Petch | 12px | 400 | 1.4 | Set name under plane card, metadata, secondary roll log details |
+| Label | Chakra Petch | 14px | 600 (emphasis) or 400 muted (secondary) | 1.4 | Player names, chaos counter value, form labels, log entries, set names under plane cards, log entry secondary text, WotC disclaimer, metadata |
 
-**Weight rule:** Russo One is single-weight (visually bold). Chakra Petch uses 400 (body/caption) and 600 (labels/emphasis) only — no other weights.
+**Weight rule:** Russo One is single-weight (visually bold). Chakra Petch uses 400 (body and secondary/muted label uses) and 600 (primary labels/emphasis) only — no other weights.
+
+**Caption role note:** There is no separate caption size. Elements previously at 12px (set names under plane cards, log entry secondary text, timestamps, WotC disclaimer, helper text) are rendered at 14px Chakra Petch weight 400 with `--color-text-muted` color.
 
 ---
 
@@ -79,8 +80,8 @@ Declared values (multiples of 4 only):
 | CTA | `#F43F5E` | `--color-cta` | Roll Die button background only |
 | CTA Hover | `#E11D48` | `--color-cta-hover` | Roll Die button on hover/press |
 | Text Primary | `#E2E8F0` | `--color-text` | All body text, headings |
-| Text Muted | `#94A3B8` | `--color-text-muted` | Secondary text, captions, disabled states |
-| Destructive | `#DC2626` | `--color-destructive` | "End Game" confirmation, abandon session button |
+| Text Muted | `#94A3B8` | `--color-text-muted` | Secondary text, metadata, disabled states |
+| Destructive | `#DC2626` | `--color-destructive` | "End Game" confirmation, abandon session button, Chaos die result label |
 | Border | `#2D2D5E` | `--color-border` | Panel borders, dividers, form field outlines |
 
 **Accent (`#7C3AED`) reserved for:**
@@ -132,15 +133,17 @@ These effects are part of the visual identity. All must respect `prefers-reduced
    - Email input — Chakra Petch 16px, height 48px, border `#2D2D5E`, focus border `#7C3AED`
    - Password input — same spec as email
    - "Sign In" button — full width, height 48px, background `#7C3AED`, Russo One 16px, white text
-   - OR divider — 1px `#2D2D5E` with "OR" label in Chakra Petch 12px muted
+   - OR divider — 1px `#2D2D5E` with "OR" label in Chakra Petch 14px muted
    - "Continue with Google" button — full width, height 48px, surface `#2D2D5E`, Chakra Petch 14px 600, Google icon (Lucide or SVG), white text
 4. "Create account" toggle — Chakra Petch 14px, accent color link below form card
-5. WotC disclaimer (first-launch only — AUTH-05) — bottom of screen, Chakra Petch 12px muted, auto-dismissed after 3 seconds or tap
+5. WotC disclaimer (first-launch only — AUTH-05) — bottom of screen, Chakra Petch 14px muted weight 400, auto-dismissed after 3 seconds or tap
 
 **WotC disclaimer copy:**
 > "PlaneChaser is unofficial Fan Content permitted under the Wizards of the Coast Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC."
 
-**States:** idle → loading (button spinner, opacity 0.7) → error (inline below input, Chakra Petch 14px `#F43F5E`) → success (redirect)
+**States:** idle → loading (button spinner, opacity 0.7) → error (inline below input, Chakra Petch 14px `#DC2626`) → success (redirect)
+
+**Logout surface (AUTH-04):** After sign-in, users are routed to Game Setup or Game Screen. A logout option is accessible from the Game Screen header user menu (see Screen 3). The Auth Screen itself is the logout destination — navigating here confirms sign-out.
 
 ---
 
@@ -149,11 +152,11 @@ These effects are part of the visual identity. All must respect `prefers-reduced
 **Layout:** Single-column, full-width, 16px horizontal padding. Header + scrollable form body.
 
 **Elements (top to bottom):**
-1. Header: "New Game" in Russo One 20px. Back arrow (Lucide `ChevronLeft`, 24px, 44×44px tap area) top-left.
+1. Header: "New Game" in Russo One 20px. Back arrow (Lucide `ChevronLeft`, 24px, 44×44px tap area) top-left with `aria-label="Go back"`.
 2. Form sections (each in a surface card `#1A1A3E`, 16px padding, 12px border-radius, 8px gap between cards):
    - **Players** — Chakra Petch 14px 600 label. Horizontal segmented control: "2" "3" "4" "5" "6". Each segment 44px tall, flex-grow equal. Active: accent fill `#7C3AED`. Inactive: surface `#2D2D5E`.
    - **Deck Size** — Chakra Petch 14px 600 label + current value (e.g. "40 cards") right-aligned. Slider input, full width. Track: `#2D2D5E`. Thumb: `#7C3AED`, 24×24px. Range: 10–86 (full Planechase corpus). Default: 40.
-   - **Exclude Visited Planes** — Chakra Petch 14px 600 label left, shadcn Toggle right. OFF state: `#2D2D5E`. ON state: `#7C3AED` (accent-designated). Helper text below: Chakra Petch 12px muted "Removes planes from your visit history (this session)."
+   - **Exclude Visited Planes** — Chakra Petch 14px 600 label left, shadcn Toggle right. OFF state: `#2D2D5E`. ON state: `#7C3AED` (accent-designated). Helper text below: Chakra Petch 14px muted weight 400 "Removes planes from your visit history (this session)."
    - **Win Condition** (optional, SETUP-03) — Chakra Petch 14px 600 label. Dropdown/Select: "None (open play)" / "First to 3 wins" / "Timed (60 min)". Default: "None."
 3. "Start Game" button — full width, height 64px (hero sizing), background `#7C3AED`, Russo One 20px, white text. Fixed to bottom with 16px margin + safe-area inset.
 
@@ -168,14 +171,14 @@ These effects are part of the visual identity. All must respect `prefers-reduced
 **Zone breakdown (375px wide, ~812px tall reference):**
 ```
 ┌─────────────────────────────┐
-│  Header bar (48px)          │  Player count badge · "End Game" button
+│  Header bar (48px)          │  Player count badge · History button · User menu · "End Game" button
 ├─────────────────────────────┤
 │                             │
 │   Plane Card (hero)         │  ~340px tall · full width · 16px horizontal margin
 │   Scryfall art fills area   │  border-radius 12px · accent glow border 1px
 │                             │
 │   Plane name (over card)    │  Russo One 28px · white · bottom of card · text-shadow
-│   Set name                  │  Chakra Petch 12px muted
+│   Set name                  │  Chakra Petch 14px muted weight 400
 ├─────────────────────────────┤
 │  Chaos Counter (56px)       │  Always-visible counter strip
 ├─────────────────────────────┤
@@ -186,11 +189,22 @@ These effects are part of the visual identity. All must respect `prefers-reduced
 └─────────────────────────────┘
 ```
 
+**Header bar elements (left to right):**
+- Player count badge (left)
+- History icon button: Lucide `ScrollText` 24px, 44×44px tap area, `aria-label="View roll history"` — opens Roll Log bottom sheet
+- User avatar/menu button (top-right): Lucide `UserCircle` 24px or initials avatar, 44×44px tap area, `aria-label="Account menu"` — opens a shadcn Sheet or Dropdown with a "Log Out" option (AUTH-04 surface)
+- "End Game" text button (adjacent to user menu)
+
+**User account menu (Sheet or DropdownMenu, triggered from header):**
+- "Log Out" — Chakra Petch 14px 600, full-width row, Lucide `LogOut` 18px icon left
+- Menu background: surface `#1A1A3E`, border `#2D2D5E`
+- Accessible from any game state; does not interrupt an in-progress roll
+
 **Plane Card:**
 - `next/image` component, `src` from `cards.scryfall.io` (normal size: 488×680px)
 - Aspect ratio: locked to Scryfall card proportions (approximately 5:7)
 - Loading state: `#1A1A3E` skeleton with Tailwind `animate-pulse`
-- Error state: dark card with plane name in Russo One, Lucide `ImageOff` icon center, Chakra Petch 12px muted "Art unavailable"
+- Error state: dark card with plane name in Russo One, Lucide `ImageOff` icon center, Chakra Petch 14px muted "Art unavailable"
 - Border: 1px `#7C3AED` with `box-shadow: 0 0 8px 2px #7C3AED40` (accent-designated)
 - `alt` text: `"{Plane Name} — {set name} plane card art"` (GAME-01 accessibility)
 
@@ -233,7 +247,7 @@ These effects are part of the visual identity. All must respect `prefers-reduced
 - On dismiss: trigger card transition animation (old plane exits, new plane enters via Framer Motion AnimatePresence)
 
 **Chaos:**
-- Result label: "CHAOS" — Russo One 28px `#F43F5E` (CTA color reused semantically for chaos danger) with glitch effect
+- Result label: "CHAOS" — Russo One 28px `#DC2626` (`--color-destructive`) with glitch effect
 - Chaos ability text: full oracle text from Scryfall, Chakra Petch 16px `#E2E8F0`, displayed in scroll region if long (max 200px, overflow-y auto)
 - Highlight: chaos text background `#2D2D5E`, 8px padding, 8px border-radius
 - Sub-label: "Resolve the chaos ability, then continue." — Chakra Petch 14px muted
@@ -252,15 +266,15 @@ These effects are part of the visual identity. All must respect `prefers-reduced
 
 ### Screen 5: Session Roll Log
 
-**Access:** Slide-up bottom sheet (shadcn Sheet, snap to 60% of viewport height). Triggered by tapping a "History" icon (Lucide `ScrollText`, 24px) in the header.
+**Access:** Slide-up bottom sheet (shadcn Sheet, snap to 60% of viewport height). Triggered by tapping the History icon button (`aria-label="View roll history"`) in the Game Screen header.
 
 **Layout:** Sheet header 48px ("Roll History" Russo One 20px + close X button). Scrollable list below.
 
 **Each log entry (56px row):**
-- Icon: die face result — custom SVG die icon or Lucide `Dices` (24×24px). Color: Planeswalk=`#A78BFA`, Chaos=`#F43F5E`, Blank=`#94A3B8`
+- Icon: die face result — custom SVG die icon or Lucide `Dices` (24×24px). Color: Planeswalk=`#A78BFA`, Chaos=`#DC2626`, Blank=`#94A3B8`
 - Primary text: result name ("Planeswalk" / "Chaos" / "Blank") — Chakra Petch 14px 600
-- Secondary text: plane name at time of roll — Chakra Petch 12px muted
-- Timestamp: relative ("2 rolls ago" or roll number "#3") — Chakra Petch 12px muted right-aligned
+- Secondary text: plane name at time of roll — Chakra Petch 14px muted weight 400
+- Timestamp: relative ("2 rolls ago" or roll number "#3") — Chakra Petch 14px muted weight 400, right-aligned
 - Divider: 1px `#2D2D5E`
 
 **Empty state:**
@@ -284,7 +298,7 @@ These effects are part of the visual identity. All must respect `prefers-reduced
 - Secondary action: "Start New Game" — full width, height 48px, border 1px `#2D2D5E`, Chakra Petch 14px 600 muted, no fill
 
 **Destructive confirmation for "Start New Game":**
-- Inline warning appears below "Start New Game" on first tap: "This will discard your current session. Tap again to confirm." — Chakra Petch 12px `#F43F5E`
+- Inline warning appears below "Start New Game" on first tap: "This will discard your current session. Tap again to confirm." — Chakra Petch 14px `#DC2626`
 - Second tap confirms and discards session (two-tap destructive pattern — no separate dialog needed)
 
 ---
@@ -313,6 +327,10 @@ These effects are part of the visual identity. All must respect `prefers-reduced
 | Chaos counter label | "Chaos Cost" |
 | Roll history sheet title | "Roll History" |
 | Setup screen title | "New Game" |
+| Account menu — logout action | "Log Out" |
+| Header history button aria-label | "View roll history" |
+| Header back arrow aria-label | "Go back" |
+| Header account menu aria-label | "Account menu" |
 
 ---
 
@@ -353,6 +371,9 @@ These effects are part of the visual identity. All must respect `prefers-reduced
 | Card image alt text | `"{Plane Name} — {set name} plane card art"` |
 | Die result announced | Use `aria-live="assertive"` on result overlay heading — screen reader announces result |
 | Roll Die disabled state | `aria-disabled="true"` + `aria-label="Die rolling, please wait"` during ROLLING state |
+| History icon button | `aria-label="View roll history"` on button wrapper (Lucide `ScrollText` is decorative, `aria-hidden="true"`) |
+| Back arrow button | `aria-label="Go back"` on button wrapper (Lucide `ChevronLeft` is decorative, `aria-hidden="true"`) |
+| Account menu button | `aria-label="Account menu"` on button wrapper; `aria-expanded` reflects open/closed state |
 | Chaos text reading | Chaos ability text in overlay is static text — screen reader reads naturally |
 | Reduced motion | `useReducedMotion()` Framer Motion hook gates all spring/glitch effects |
 | Scan line overlay | `aria-hidden="true"` — decorative only |
@@ -399,7 +420,8 @@ Components needed for Phase 1, sourced from shadcn (copy-in pattern) or custom:
 | Button | shadcn Button | Override with CTA/accent variants per color contract |
 | Input | shadcn Input | Dark theme override |
 | Dialog | shadcn Dialog | Die result overlay; Resume Game modal |
-| Sheet | shadcn Sheet | Roll log bottom sheet; snap to 60vh |
+| Sheet | shadcn Sheet | Roll log bottom sheet; snap to 60vh; user account menu (mobile) |
+| DropdownMenu | shadcn DropdownMenu | User account menu (desktop/tablet fallback) |
 | Toggle | shadcn Switch | Exclude Visited Planes toggle |
 | Select | shadcn Select | Win Condition dropdown |
 | Slider | shadcn Slider | Deck Size slider |
@@ -409,6 +431,7 @@ Components needed for Phase 1, sourced from shadcn (copy-in pattern) or custom:
 | ChaosCounter | custom | Always-visible strip with Russo One counter and accent ring |
 | RollLogEntry | custom | Icon + result + plane name + timestamp row |
 | DieResultOverlay | custom | Three variants (Planeswalk/Chaos/Blank) in Dialog shell |
+| UserAccountMenu | custom | Avatar button + Sheet/Dropdown with Log Out option (AUTH-04) |
 
 ---
 
@@ -416,7 +439,7 @@ Components needed for Phase 1, sourced from shadcn (copy-in pattern) or custom:
 
 | Registry | Blocks Used | Safety Gate |
 |----------|-------------|-------------|
-| shadcn official | Button, Input, Dialog, Sheet, Switch, Select, Slider, Skeleton | not required |
+| shadcn official | Button, Input, Dialog, Sheet, DropdownMenu, Switch, Select, Slider, Skeleton | not required |
 | third-party | none declared | not applicable |
 
 No third-party registries declared. shadcn official components only.
@@ -436,6 +459,7 @@ All design decisions pre-populated from upstream artifacts — no user questions
 | STATE.md | sessionStorage persistence model, zero server calls during gameplay |
 | ROADMAP.md (Phase 1 success criteria) | "Resume Game" prominence, chaos escalation always-visible, one-tap primary actions |
 | Defaults (no upstream conflict) | 8-point spacing scale, specific copywriting, two-tap destructive pattern |
+| Checker revision (2026-05-13) | Merged 12px caption into 14px label; added aria-labels on icon-only buttons; fixed Chaos result label to `--color-destructive`; added AUTH-04 logout surface to Game Screen header |
 
 ---
 

@@ -120,21 +120,58 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 – AUTH-05 | Phase 1 | Pending |
-| SETUP-01 – SETUP-03 | Phase 1 | Pending |
-| GAME-01 – GAME-08 | Phase 1 | Pending |
-| ARCH-01 – ARCH-04 | Phase 2 | Pending |
-| CONQ-01 – CONQ-07 | Phase 2 | Pending |
-| POD-01 – POD-06 | Phase 2 | Pending |
-| PROF-01 – PROF-04 | Phase 3 | Pending |
-| ACHV-01 – ACHV-08 | Phase 3 | Pending |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| AUTH-04 | Phase 1 | Pending |
+| AUTH-05 | Phase 1 | Pending |
+| SETUP-01 | Phase 1 | Pending |
+| SETUP-02 | Phase 1 | Pending |
+| SETUP-03 | Phase 1 | Pending |
+| GAME-01 | Phase 1 | Pending |
+| GAME-02 | Phase 1 | Pending |
+| GAME-03 | Phase 1 | Pending |
+| GAME-04 | Phase 1 | Pending |
+| GAME-05 | Phase 1 | Pending |
+| GAME-06 | Phase 1 | Pending |
+| GAME-07 | Phase 1 | Pending |
+| GAME-08 | Phase 1 | Pending |
+| CONQ-01 | Phase 2 | Pending |
+| CONQ-02 | Phase 2 | Pending |
+| CONQ-03 | Phase 2 | Pending |
+| CONQ-04 | Phase 2 | Pending |
+| CONQ-05 | Phase 2 | Pending |
+| CONQ-06 | Phase 2 | Pending |
+| CONQ-07 | Phase 2 | Pending |
+| POD-01 | Phase 2 | Pending |
+| POD-02 | Phase 2 | Pending |
+| POD-03 | Phase 2 | Pending |
+| POD-04 | Phase 2 | Pending |
+| POD-05 | Phase 2 | Pending |
+| POD-06 | Phase 2 | Pending |
+| ARCH-01 | Phase 3 | Pending |
+| ARCH-02 | Phase 3 | Pending |
+| ARCH-03 | Phase 3 | Pending |
+| ARCH-04 | Phase 3 | Pending |
+| PROF-01 | Phase 4 | Pending |
+| PROF-02 | Phase 4 | Pending |
+| PROF-03 | Phase 4 | Pending |
+| PROF-04 | Phase 4 | Pending |
+| ACHV-01 | Phase 5 | Pending |
+| ACHV-02 | Phase 5 | Pending |
+| ACHV-03 | Phase 5 | Pending |
+| ACHV-04 | Phase 5 | Pending |
+| ACHV-05 | Phase 5 | Pending |
+| ACHV-06 | Phase 5 | Pending |
+| ACHV-07 | Phase 5 | Pending |
+| ACHV-08 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 40 total
-- Mapped to phases: 39
+- Mapped to phases: 40
 - Unmapped: 0 ✓
 
 ---
 
 *Requirements defined: 2026-05-13*
-*Last updated: 2026-05-13 after initial definition*
+*Last updated: 2026-05-13 — traceability updated with 5-phase roadmap*

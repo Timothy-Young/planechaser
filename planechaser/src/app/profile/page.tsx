@@ -4,6 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store/app-store'
 import { useUserStats, useUserConquests, useUserPods, usePlaneVisitHistory } from '@/hooks/usePods'
+import { useUserAchievements } from '@/hooks/useAchievements'
+import { AchievementBadge } from '@/components/achievement-badge'
+import { ACHIEVEMENTS } from '@/lib/achievements/definitions'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 
@@ -18,6 +21,7 @@ export default function ProfilePage() {
   const { data: conquests } = useUserConquests()
   const { data: pods } = useUserPods()
   const { data: visitHistory } = usePlaneVisitHistory()
+  const { data: achievements } = useUserAchievements()
   const [tab, setTab] = useState<ProfileTab>('conquests')
 
   const activePod = pods?.find((p) => p.id === activePodId)
@@ -123,14 +127,27 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Achievement badges placeholder */}
+        {/* Achievements */}
         <div className="space-y-2">
-          <h2 className="text-[16px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-heading)' }}>
-            Achievements
-          </h2>
-          <p className="text-center text-[13px] text-[var(--color-text-muted)] py-4 rounded-[12px] border border-dashed border-[var(--color-border)]" style={{ fontFamily: 'var(--font-body)' }}>
-            Coming soon — badges will appear here
-          </p>
+          <div className="flex items-center justify-between">
+            <h2 className="text-[16px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-heading)' }}>
+              Achievements
+            </h2>
+            <span className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+              {achievements?.length ?? 0} / {ACHIEVEMENTS.length}
+            </span>
+          </div>
+          {achievements && achievements.length > 0 ? (
+            <div className="grid grid-cols-4 gap-2">
+              {achievements.map((a) => (
+                <AchievementBadge key={a.id} achievementKey={a.achievement_key} earnedAt={a.earned_at} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-[13px] text-[var(--color-text-muted)] py-4 rounded-[12px] border border-dashed border-[var(--color-border)]" style={{ fontFamily: 'var(--font-body)' }}>
+              No achievements yet. Play some games to earn badges!
+            </p>
+          )}
         </div>
 
         {/* Tabs: Conquests / History */}

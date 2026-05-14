@@ -10,7 +10,10 @@ import { EndGameDialog } from '@/components/end-game-dialog'
 import { ArchenemyEndDialog } from '@/components/archenemy-end-dialog'
 import { SchemeCard } from '@/components/scheme-card'
 import { Button } from '@/components/ui/button'
-import { useRecordGameSession } from '@/hooks/usePods'
+import { useRecordGameSession, useUserStats } from '@/hooks/usePods'
+import { useUserAchievements, useGrantAchievements } from '@/hooks/useAchievements'
+import { evaluateAchievements } from '@/lib/achievements/evaluator'
+import { AchievementToast } from '@/components/achievement-toast'
 import { useAppStore } from '@/store/app-store'
 import type { GameState, DieResult } from '@/lib/game/types'
 
@@ -22,7 +25,11 @@ export default function GamePage() {
   const [showChaos, setShowChaos] = useState(false)
   const [showEndGame, setShowEndGame] = useState(false)
   const [lastDrawnScheme, setLastDrawnScheme] = useState<string | null>(null)
+  const [newBadges, setNewBadges] = useState<string[]>([])
   const recordSession = useRecordGameSession()
+  const grantAchievements = useGrantAchievements()
+  const { data: userStats } = useUserStats()
+  const { data: earnedAchievements } = useUserAchievements()
   const user = useAppStore((s) => s.user)
   const activePodId = useAppStore((s) => s.activePodId)
 
@@ -82,10 +89,37 @@ export default function GamePage() {
         isArchenemy: !!state.archenemy,
         podId: activePodId ?? undefined,
       })
+
+      if (userStats && earnedAchievements) {
+        const updatedStats = {
+          ...userStats,
+          games_played: userStats.games_played + 1,
+          total_rolls: userStats.total_rolls + state.dieRollHistory.length,
+          planeswalk_rolls: userStats.planeswalk_rolls + state.dieRollHistory.filter((r) => r.result === 'planeswalk').length,
+          total_planes_visited: userStats.total_planes_visited + state.planesVisited,
+          archenemy_games: userStats.archenemy_games + (state.archenemy ? 1 : 0),
+        }
+
+        const alreadyEarned = new Set(earnedAchievements.map((a) => a.achievement_key))
+        const sessionContext = {
+          planesVisited: state.planesVisited,
+          dieRolls: state.dieRollHistory.length,
+          chaosRolls: state.dieRollHistory.filter((r) => r.result === 'chaos').length,
+          planeswalkRolls: state.dieRollHistory.filter((r) => r.result === 'planeswalk').length,
+          playerCount: state.config.playerCount,
+          isArchenemy: !!state.archenemy,
+        }
+
+        const newlyEarned = evaluateAchievements(updatedStats, sessionContext, alreadyEarned)
+        if (newlyEarned.length > 0) {
+          grantAchievements.mutate({ userId: user.id, keys: newlyEarned })
+          setNewBadges(newlyEarned)
+        }
+      }
     }
     clearGameState()
     router.push('/setup')
-  }, [router, state, user, activePodId, recordSession])
+  }, [router, state, user, activePodId, recordSession, userStats, earnedAchievements, grantAchievements])
 
   const handleDrawScheme = useCallback(() => {
     setState((prev) => {
@@ -146,6 +180,11 @@ export default function GamePage() {
           )}
         </div>
       </header>
+
+      {/* Achievement toast */}
+      {newBadges.length > 0 && (
+        <AchievementToast achievementKeys={newBadges} onDone={() => setNewBadges([])} />
+      )}
 
       {/* Chaos flash overlay */}
       {showChaos && (

@@ -7,6 +7,8 @@ import { loadGameState, saveGameState, clearGameState } from '@/lib/game/session
 import { PlaneCard } from '@/components/plane-card'
 import { DieRoller } from '@/components/die-roller'
 import { EndGameDialog } from '@/components/end-game-dialog'
+import { ArchenemyEndDialog } from '@/components/archenemy-end-dialog'
+import { SchemeCard } from '@/components/scheme-card'
 import { Button } from '@/components/ui/button'
 import type { GameState, DieResult } from '@/lib/game/types'
 
@@ -17,6 +19,7 @@ export default function GamePage() {
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('right')
   const [showChaos, setShowChaos] = useState(false)
   const [showEndGame, setShowEndGame] = useState(false)
+  const [lastDrawnScheme, setLastDrawnScheme] = useState<string | null>(null)
 
   useEffect(() => {
     const saved = loadGameState()
@@ -66,6 +69,24 @@ export default function GamePage() {
     router.push('/setup')
   }, [router])
 
+  const handleDrawScheme = useCallback(() => {
+    setState((prev) => {
+      if (!prev?.archenemy) return prev
+      const next = gameReducer(prev, { type: 'DRAW_SCHEME' })
+      const drawn = next.archenemy!.schemeDeck[prev.archenemy.currentSchemeIndex % prev.archenemy.schemeDeck.length]
+      setLastDrawnScheme(drawn.id)
+      setTimeout(() => setLastDrawnScheme(null), 3000)
+      return next
+    })
+  }, [])
+
+  const handleAbandonScheme = useCallback((schemeId: string) => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'ABANDON_SCHEME', schemeId })
+    })
+  }, [])
+
   if (!loaded || !state) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
@@ -77,22 +98,34 @@ export default function GamePage() {
   }
 
   const currentPlane = state.deck[state.currentPlaneIndex]
+  const isArchenemy = !!state.archenemy
+  const lastScheme = lastDrawnScheme && state.archenemy
+    ? state.archenemy.schemeDeck.find((s) => s.id === lastDrawnScheme)
+    : null
 
   return (
     <main className="min-h-screen flex flex-col bg-[var(--color-bg)]">
       {/* Top bar */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
-        <div>
+        <div className="flex items-center gap-2">
           <span
             className="text-[14px] text-[var(--color-accent)] font-bold"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             PlaneChaser
           </span>
+          {isArchenemy && (
+            <span className="text-[11px] text-[var(--color-cta)] font-bold px-2 py-0.5 rounded-full border border-[var(--color-cta)]/40" style={{ fontFamily: 'var(--font-heading)' }}>
+              ARCHENEMY
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-4 text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
           <span>Plane {state.planesVisited} / {state.deck.length}</span>
           <span>{state.dieRollHistory.length} rolls</span>
+          {state.archenemy && (
+            <span>{state.archenemy.schemesPlayed} schemes</span>
+          )}
         </div>
       </header>
 
@@ -105,7 +138,7 @@ export default function GamePage() {
       )}
 
       {/* End game dialog */}
-      {showEndGame && currentPlane && (
+      {showEndGame && currentPlane && !isArchenemy && (
         <EndGameDialog
           currentPlane={currentPlane}
           onClose={() => setShowEndGame(false)}
@@ -113,15 +146,59 @@ export default function GamePage() {
         />
       )}
 
+      {showEndGame && currentPlane && isArchenemy && state.archenemy && (
+        <ArchenemyEndDialog
+          currentPlane={currentPlane}
+          archenemyId={state.archenemy.archenemyId}
+          archenemyName={state.archenemy.archenemyName}
+          onClose={() => setShowEndGame(false)}
+          onConfirm={handleEndGame}
+        />
+      )}
+
       {/* Game content */}
-      <div className="flex-1 flex flex-col items-center justify-between py-4 px-4 gap-4 overflow-hidden">
-        <div className="flex-1 flex items-center justify-center w-full max-w-[400px]">
+      <div className="flex-1 flex flex-col items-center justify-between py-4 px-4 gap-3 overflow-hidden">
+        {/* Archenemy: active schemes bar */}
+        {isArchenemy && state.archenemy && state.archenemy.activeSchemes.length > 0 && (
+          <div className="w-full max-w-[400px] space-y-2">
+            <p className="text-[11px] text-[var(--color-cta)] uppercase tracking-wide font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
+              Active Schemes
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {state.archenemy.activeSchemes.map((s) => (
+                <div key={s.id} className="w-[140px] flex-shrink-0">
+                  <SchemeCard card={s} onAbandon={() => handleAbandonScheme(s.id)} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Last drawn scheme flash */}
+        {lastScheme && (
+          <div className="w-full max-w-[300px]">
+            <SchemeCard card={lastScheme} />
+          </div>
+        )}
+
+        {/* Plane card */}
+        <div className={`flex-1 flex items-center justify-center w-full max-w-[400px] ${isArchenemy && state.archenemy?.activeSchemes.length ? 'max-h-[300px]' : ''}`}>
           {currentPlane && (
             <PlaneCard card={currentPlane} direction={slideDirection} />
           )}
         </div>
 
-        <div className="pb-2">
+        {/* Controls */}
+        <div className="flex items-center gap-4 pb-2">
+          {isArchenemy && (
+            <Button
+              onClick={handleDrawScheme}
+              className="h-12 px-5 bg-[var(--color-cta)] hover:bg-[var(--color-cta-hover)] text-white"
+              style={{ fontFamily: 'var(--font-heading)', fontSize: '13px' }}
+            >
+              Draw Scheme
+            </Button>
+          )}
           <DieRoller
             rollCount={state.rollCountThisTurn}
             onRoll={handleRoll}

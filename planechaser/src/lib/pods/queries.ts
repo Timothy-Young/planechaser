@@ -153,6 +153,38 @@ export async function getPodLeaderboard(podId: string, threshold: number): Promi
     .sort((a, b) => b.conquered_count - a.conquered_count)
 }
 
+// --- Dethrone ---
+
+export async function stealConqueredPlane(
+  conquestId: string,
+  newOwnerId: string,
+  podId: string,
+): Promise<void> {
+  const { data: original, error: fetchError } = await supabase()
+    .from('conquered_planes')
+    .select()
+    .eq('id', conquestId)
+    .single()
+
+  if (fetchError || !original) throw new Error('Conquest not found')
+
+  await supabase()
+    .from('conquered_planes')
+    .insert({
+      user_id: newOwnerId,
+      pod_id: podId,
+      plane_scryfall_id: original.plane_scryfall_id,
+      plane_name: original.plane_name,
+      plane_image_uri: original.plane_image_uri,
+      game_session_id: null,
+    })
+
+  await supabase()
+    .from('conquered_planes')
+    .delete()
+    .eq('id', conquestId)
+}
+
 // --- Stats ---
 
 export async function getUserStats(userId: string) {

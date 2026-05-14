@@ -11,6 +11,7 @@ import {
   conquerPlane,
   getUserConquests,
   getUserStats,
+  stealConqueredPlane,
 } from '@/lib/pods/queries'
 import { useAppStore } from '@/store/app-store'
 
@@ -94,6 +95,19 @@ export function useConquerPlane() {
       plane: { id: string; name: string; image_uri: string }
       gameSessionId?: string
     }) => conquerPlane(params.userId, params.podId, params.plane, params.gameSessionId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['conquests'] })
+      qc.invalidateQueries({ queryKey: ['pod-leaderboard'] })
+      qc.invalidateQueries({ queryKey: ['user-stats'] })
+    },
+  })
+}
+
+export function useStealPlane() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { conquestId: string; newOwnerId: string; podId: string }) =>
+      stealConqueredPlane(params.conquestId, params.newOwnerId, params.podId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['conquests'] })
       qc.invalidateQueries({ queryKey: ['pod-leaderboard'] })

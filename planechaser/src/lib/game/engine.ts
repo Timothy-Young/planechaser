@@ -48,5 +48,39 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         lastDieResult: null,
         dieState: 'idle',
       }
+
+    case 'DRAW_SCHEME': {
+      if (!state.archenemy) return state
+      const { schemeDeck, currentSchemeIndex, activeSchemes, schemesPlayed } = state.archenemy
+      if (schemeDeck.length === 0) return state
+
+      const scheme = schemeDeck[currentSchemeIndex % schemeDeck.length]
+      const nextActive = scheme.isOngoing
+        ? [...activeSchemes, scheme]
+        : activeSchemes
+
+      return {
+        ...state,
+        archenemy: {
+          ...state.archenemy,
+          currentSchemeIndex: currentSchemeIndex + 1,
+          activeSchemes: nextActive,
+          schemesPlayed: schemesPlayed + 1,
+        },
+      }
+    }
+
+    case 'ABANDON_SCHEME': {
+      if (!state.archenemy) return state
+      return {
+        ...state,
+        archenemy: {
+          ...state.archenemy,
+          activeSchemes: state.archenemy.activeSchemes.filter(
+            (s) => s.id !== action.schemeId
+          ),
+        },
+      }
+    }
   }
 }

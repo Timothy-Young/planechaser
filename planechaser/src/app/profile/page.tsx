@@ -1,10 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store/app-store'
-import { useUserStats, useUserConquests, useUserPods } from '@/hooks/usePods'
+import { useUserStats, useUserConquests, useUserPods, usePlaneVisitHistory } from '@/hooks/usePods'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
+
+type ProfileTab = 'conquests' | 'history'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -14,6 +17,8 @@ export default function ProfilePage() {
   const { data: stats } = useUserStats()
   const { data: conquests } = useUserConquests()
   const { data: pods } = useUserPods()
+  const { data: visitHistory } = usePlaneVisitHistory()
+  const [tab, setTab] = useState<ProfileTab>('conquests')
 
   const activePod = pods?.find((p) => p.id === activePodId)
 
@@ -51,22 +56,57 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-center">
-            <p className="text-[28px] font-bold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+        {/* Stats grid */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-center">
+            <p className="text-[22px] font-bold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
               {stats?.planes_conquered ?? 0}
             </p>
-            <p className="text-[12px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
-              Planes Conquered
+            <p className="text-[10px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+              Conquered
             </p>
           </div>
-          <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-center">
-            <p className="text-[28px] font-bold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+          <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-center">
+            <p className="text-[22px] font-bold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
               {stats?.games_played ?? 0}
             </p>
-            <p className="text-[12px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
-              Games Played
+            <p className="text-[10px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+              Games
+            </p>
+          </div>
+          <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-center">
+            <p className="text-[22px] font-bold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+              {stats?.total_rolls ?? 0}
+            </p>
+            <p className="text-[10px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+              Die Rolls
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-center">
+            <p className="text-[22px] font-bold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+              {stats?.planeswalk_rolls ?? 0}
+            </p>
+            <p className="text-[10px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+              Planeswalks
+            </p>
+          </div>
+          <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-center">
+            <p className="text-[22px] font-bold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+              {stats?.total_planes_visited ?? 0}
+            </p>
+            <p className="text-[10px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+              Planes Visited
+            </p>
+          </div>
+          <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-center">
+            <p className="text-[22px] font-bold text-[var(--color-cta)]" style={{ fontFamily: 'var(--font-heading)' }}>
+              {stats?.archenemy_games ?? 0}
+            </p>
+            <p className="text-[10px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+              Archenemy
             </p>
           </div>
         </div>
@@ -83,38 +123,95 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Conquered planes gallery */}
-        <div className="space-y-3">
+        {/* Achievement badges placeholder */}
+        <div className="space-y-2">
           <h2 className="text-[16px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-heading)' }}>
-            Conquered Planes
+            Achievements
           </h2>
-          {conquests && conquests.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2">
-              {conquests.map((c) => (
-                <div key={c.id} className="rounded-[8px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)]">
-                  <img
-                    src={c.plane_image_uri}
-                    alt={c.plane_name}
-                    className="w-full aspect-[3/2] object-cover"
-                    loading="lazy"
-                  />
-                  <div className="px-2 py-2">
-                    <p className="text-[11px] font-semibold text-[var(--color-text)] truncate" style={{ fontFamily: 'var(--font-heading)' }}>
-                      {c.plane_name}
-                    </p>
-                    <p className="text-[10px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-                      {new Date(c.conquered_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-[13px] text-[var(--color-text-muted)] py-6" style={{ fontFamily: 'var(--font-body)' }}>
-              No conquests yet. Win a game and claim a plane!
-            </p>
-          )}
+          <p className="text-center text-[13px] text-[var(--color-text-muted)] py-4 rounded-[12px] border border-dashed border-[var(--color-border)]" style={{ fontFamily: 'var(--font-body)' }}>
+            Coming soon — badges will appear here
+          </p>
         </div>
+
+        {/* Tabs: Conquests / History */}
+        <div className="flex rounded-lg overflow-hidden border border-[var(--color-border)]">
+          <button
+            onClick={() => setTab('conquests')}
+            className={`flex-1 py-2 text-[13px] font-semibold transition-colors ${
+              tab === 'conquests'
+                ? 'bg-[var(--color-accent)] text-white'
+                : 'bg-[var(--color-surface)] text-[var(--color-text-muted)]'
+            }`}
+            style={{ fontFamily: 'var(--font-heading)' }}
+          >
+            Conquests
+          </button>
+          <button
+            onClick={() => setTab('history')}
+            className={`flex-1 py-2 text-[13px] font-semibold transition-colors ${
+              tab === 'history'
+                ? 'bg-[var(--color-accent)] text-white'
+                : 'bg-[var(--color-surface)] text-[var(--color-text-muted)]'
+            }`}
+            style={{ fontFamily: 'var(--font-heading)' }}
+          >
+            Visit History
+          </button>
+        </div>
+
+        {/* Conquests tab */}
+        {tab === 'conquests' && (
+          <div className="space-y-3">
+            {conquests && conquests.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {conquests.map((c) => (
+                  <div key={c.id} className="rounded-[8px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)]">
+                    <img
+                      src={c.plane_image_uri}
+                      alt={c.plane_name}
+                      className="w-full aspect-[3/2] object-cover"
+                      loading="lazy"
+                    />
+                    <div className="px-2 py-2">
+                      <p className="text-[11px] font-semibold text-[var(--color-text)] truncate" style={{ fontFamily: 'var(--font-heading)' }}>
+                        {c.plane_name}
+                      </p>
+                      <p className="text-[10px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+                        {new Date(c.conquered_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-[13px] text-[var(--color-text-muted)] py-6" style={{ fontFamily: 'var(--font-body)' }}>
+                No conquests yet. Win a game and claim a plane!
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Visit history tab */}
+        {tab === 'history' && (
+          <div className="space-y-1">
+            {visitHistory && visitHistory.length > 0 ? (
+              visitHistory.map((v, i) => (
+                <div key={i} className="flex items-center justify-between rounded-lg bg-[var(--color-surface)] px-4 py-3">
+                  <span className="text-[13px] text-[var(--color-text)]" style={{ fontFamily: 'var(--font-body)' }}>
+                    {v.planeName}
+                  </span>
+                  <span className="text-[11px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+                    {new Date(v.sessionDate).toLocaleDateString()}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-[13px] text-[var(--color-text-muted)] py-6" style={{ fontFamily: 'var(--font-body)' }}>
+                No visit history yet. Play a game to start tracking!
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Navigation + sign out */}
         <div className="space-y-3 pt-2">

@@ -12,6 +12,8 @@ import {
   getUserConquests,
   getUserStats,
   stealConqueredPlane,
+  recordGameSession,
+  getPlaneVisitHistory,
 } from '@/lib/pods/queries'
 import { useAppStore } from '@/store/app-store'
 
@@ -113,5 +115,31 @@ export function useStealPlane() {
       qc.invalidateQueries({ queryKey: ['pod-leaderboard'] })
       qc.invalidateQueries({ queryKey: ['user-stats'] })
     },
+  })
+}
+
+export function useRecordGameSession() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: {
+      hostUserId: string
+      planesVisited: string[]
+      dieRollHistory: { result: string; timestamp: number }[]
+      isArchenemy: boolean
+      podId?: string
+    }) => recordGameSession(params),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user-stats'] })
+      qc.invalidateQueries({ queryKey: ['visit-history'] })
+    },
+  })
+}
+
+export function usePlaneVisitHistory() {
+  const user = useAppStore((s) => s.user)
+  return useQuery({
+    queryKey: ['visit-history', user?.id],
+    queryFn: () => getPlaneVisitHistory(user!.id),
+    enabled: !!user,
   })
 }

@@ -185,6 +185,28 @@ export async function stealConqueredPlane(
     .eq('id', conquestId)
 }
 
+// --- Game Sessions ---
+
+export async function recordGameSession(params: {
+  hostUserId: string
+  planesVisited: string[]
+  dieRollHistory: { result: string; timestamp: number }[]
+  isArchenemy: boolean
+  podId?: string
+}) {
+  const { error } = await supabase()
+    .from('game_sessions')
+    .insert({
+      host_user_id: params.hostUserId,
+      planes_visited: params.planesVisited,
+      die_roll_history: params.dieRollHistory,
+      win_condition: params.isArchenemy ? 'archenemy' : 'normal',
+      pod_id: params.podId ?? null,
+    })
+
+  if (error) throw error
+}
+
 // --- Stats ---
 
 export async function getUserStats(userId: string) {
@@ -195,11 +217,45 @@ export async function getUserStats(userId: string) {
 
   const { data: sessions } = await supabase()
     .from('game_sessions')
-    .select('id')
+    .select('die_roll_history, win_condition, planes_visited')
     .eq('host_user_id', userId)
+
+  let totalRolls = 0
+  let planeswalkRolls = 0
+  let totalPlanesVisited = 0
+  let archenemyGames = 0
+
+  for (const s of sessions ?? []) {
+    const history = s.die_roll_history as { result: string }[]
+    totalRolls += history.length
+    planeswalkRolls += history.filter((r) => r.result === 'planeswalk').length
+    totalPlanesVisited += (s.planes_visited as string[]).length
+    if (s.win_condition === 'archenemy') archenemyGames++
+  }
 
   return {
     planes_conquered: conquests?.length ?? 0,
     games_played: sessions?.length ?? 0,
+    total_rolls: totalRolls,
+    planeswalk_rolls: planeswalkRolls,
+    total_planes_visited: totalPlanesVisited,
+    archenemy_games: archenemyGames,
   }
+}
+
+export async function getPlaneVisitHistory(userId: string) {
+  const { data: sessions } = await supabase()
+    .from('game_sessions')
+    .select('planes_visited, started_at')
+    .eq('host_user_id', userId)
+    .order('started_at', { ascending: false })
+
+  const visits: { planeName: string; sessionDate: string }[] = []
+  for (const s of sessions ?? []) {
+    const planes = s.planes_visited as string[]
+    for (const name of planes) {
+      visits.push({ planeName: name, sessionDate: s.started_at as string })
+    }
+  }
+  return visits
 }

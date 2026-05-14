@@ -10,6 +10,8 @@ import { EndGameDialog } from '@/components/end-game-dialog'
 import { ArchenemyEndDialog } from '@/components/archenemy-end-dialog'
 import { SchemeCard } from '@/components/scheme-card'
 import { Button } from '@/components/ui/button'
+import { useRecordGameSession } from '@/hooks/usePods'
+import { useAppStore } from '@/store/app-store'
 import type { GameState, DieResult } from '@/lib/game/types'
 
 export default function GamePage() {
@@ -20,6 +22,9 @@ export default function GamePage() {
   const [showChaos, setShowChaos] = useState(false)
   const [showEndGame, setShowEndGame] = useState(false)
   const [lastDrawnScheme, setLastDrawnScheme] = useState<string | null>(null)
+  const recordSession = useRecordGameSession()
+  const user = useAppStore((s) => s.user)
+  const activePodId = useAppStore((s) => s.activePodId)
 
   useEffect(() => {
     const saved = loadGameState()
@@ -65,9 +70,22 @@ export default function GamePage() {
   }, [])
 
   const handleEndGame = useCallback(() => {
+    if (state && user) {
+      const visitedPlanes = state.deck
+        .slice(0, state.planesVisited)
+        .map((p) => p.name)
+
+      recordSession.mutate({
+        hostUserId: user.id,
+        planesVisited: visitedPlanes,
+        dieRollHistory: state.dieRollHistory,
+        isArchenemy: !!state.archenemy,
+        podId: activePodId ?? undefined,
+      })
+    }
     clearGameState()
     router.push('/setup')
-  }, [router])
+  }, [router, state, user, activePodId, recordSession])
 
   const handleDrawScheme = useCallback(() => {
     setState((prev) => {

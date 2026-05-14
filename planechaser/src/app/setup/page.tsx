@@ -50,7 +50,23 @@ export default function SetupPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4 bg-[var(--color-bg)]">
+    <main className="min-h-screen flex flex-col bg-[var(--color-bg)]">
+      {/* Nav header */}
+      <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
+        <span className="text-[14px] text-[var(--color-accent)] font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
+          PlaneChaser
+        </span>
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.push('/pods')} className="text-[12px] text-[var(--color-text-muted)] hover:text-[var(--color-text)]" style={{ fontFamily: 'var(--font-body)' }}>
+            Pods
+          </button>
+          <button onClick={() => router.push('/profile')} className="text-[12px] text-[var(--color-text-muted)] hover:text-[var(--color-text)]" style={{ fontFamily: 'var(--font-body)' }}>
+            Profile
+          </button>
+        </div>
+      </header>
+
+      <div className="flex-1 flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-[400px] space-y-8">
         {/* Header */}
         <div className="text-center space-y-1">
@@ -150,6 +166,7 @@ export default function SetupPage() {
             Start Game
           </Button>
         </div>
+      </div>
       </div>
     </main>
   )

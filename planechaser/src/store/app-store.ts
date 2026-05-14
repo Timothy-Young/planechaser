@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react'
 interface AppState {
   user: User | null
   setUser: (user: User | null) => void
+  activePodId: string | null
+  setActivePodId: (podId: string | null) => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -13,6 +15,8 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       user: null,
       setUser: (user) => set({ user }),
+      activePodId: null,
+      setActivePodId: (activePodId) => set({ activePodId }),
     }),
     { name: 'planechaser-app' }
   )

@@ -6,6 +6,7 @@ import { gameReducer } from '@/lib/game/engine'
 import { loadGameState, saveGameState, clearGameState } from '@/lib/game/session-storage'
 import { PlaneCard } from '@/components/plane-card'
 import { DieRoller } from '@/components/die-roller'
+import { EndGameDialog } from '@/components/end-game-dialog'
 import { Button } from '@/components/ui/button'
 import type { GameState, DieResult } from '@/lib/game/types'
 
@@ -15,6 +16,7 @@ export default function GamePage() {
   const [loaded, setLoaded] = useState(false)
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('right')
   const [showChaos, setShowChaos] = useState(false)
+  const [showEndGame, setShowEndGame] = useState(false)
 
   useEffect(() => {
     const saved = loadGameState()
@@ -26,7 +28,6 @@ export default function GamePage() {
     setLoaded(true)
   }, [router])
 
-  // Persist on every state change
   useEffect(() => {
     if (state) saveGameState(state)
   }, [state])
@@ -98,23 +99,28 @@ export default function GamePage() {
       {/* Chaos flash overlay */}
       {showChaos && (
         <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-[var(--color-cta)]/10 animate-pulse"
-          />
+          <div className="absolute inset-0 bg-[var(--color-cta)]/10 animate-pulse" />
           <span className="text-[48px] animate-bounce">🌀</span>
         </div>
       )}
 
+      {/* End game dialog */}
+      {showEndGame && currentPlane && (
+        <EndGameDialog
+          currentPlane={currentPlane}
+          onClose={() => setShowEndGame(false)}
+          onConfirm={handleEndGame}
+        />
+      )}
+
       {/* Game content */}
       <div className="flex-1 flex flex-col items-center justify-between py-4 px-4 gap-4 overflow-hidden">
-        {/* Plane card */}
         <div className="flex-1 flex items-center justify-center w-full max-w-[400px]">
           {currentPlane && (
             <PlaneCard card={currentPlane} direction={slideDirection} />
           )}
         </div>
 
-        {/* Die roller */}
         <div className="pb-2">
           <DieRoller
             rollCount={state.rollCountThisTurn}
@@ -123,7 +129,6 @@ export default function GamePage() {
           />
         </div>
 
-        {/* Action buttons */}
         <div className="flex gap-3 w-full max-w-[400px] pb-4">
           <Button
             onClick={handleEndTurn}
@@ -134,7 +139,7 @@ export default function GamePage() {
             End Turn
           </Button>
           <Button
-            onClick={handleEndGame}
+            onClick={() => setShowEndGame(true)}
             variant="outline"
             className="h-12 px-4 border-[var(--color-border)] text-[var(--color-text-muted)]"
             style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}

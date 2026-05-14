@@ -31,7 +31,8 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  if (!user && (pathname.startsWith('/game') || pathname.startsWith('/setup'))) {
+  const protectedRoutes = ['/game', '/setup', '/pods', '/profile']
+  if (!user && protectedRoutes.some((r) => pathname.startsWith(r))) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth'
     return NextResponse.redirect(url)

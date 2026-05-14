@@ -1,13 +1,19 @@
+export interface ScryfallImageUris {
+  normal: string
+  large: string
+  art_crop: string
+  border_crop: string
+  small: string
+  png: string
+}
+
 export interface ScryfallCard {
   id: string
   name: string
   type_line: string
   oracle_text: string
   flavor_text?: string
-  image_uris: {
-    normal: string
-    art_crop?: string
-  }
+  image_uris: ScryfallImageUris
   set_name: string
   set: string
 }

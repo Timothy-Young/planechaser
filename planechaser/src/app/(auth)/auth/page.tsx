@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,12 +13,20 @@ const DISCLAIMER_KEY = 'planechaser_disclaimer_shown'
 
 export default function AuthPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [showDisclaimer, setShowDisclaimer] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get('error') === 'auth_failed') {
+      setError('Authentication failed. Please try again.')
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (!sessionStorage.getItem(DISCLAIMER_KEY)) {
@@ -51,11 +59,21 @@ export default function AuthPage() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { display_name: email.split('@')[0] } },
+        options: {
+          data: { display_name: email.split('@')[0] },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       })
       if (signUpError) {
         setError(signUpError.message)
         setLoading(false)
+        return
+      }
+      // If email confirmation is required, the session will be null
+      if (data.user && !data.session) {
+        setSuccess('Check your email for a confirmation link, then sign in.')
+        setLoading(false)
+        setMode('signin')
         return
       }
       if (data.user) {
@@ -158,6 +176,15 @@ export default function AuthPage() {
               style={{ fontFamily: 'var(--font-body)' }}
             >
               {error}
+            </p>
+          )}
+
+          {success && (
+            <p
+              className="text-[14px] text-green-400"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              {success}
             </p>
           )}
 

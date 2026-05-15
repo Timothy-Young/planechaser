@@ -6,10 +6,10 @@
 
 @theme inline {
   /* PlaneChaser MTG-inspired design tokens */
-  --color-bg: #080810;
-  --color-bg-subtle: #0e0e1a;
-  --color-surface: #141428;
-  --color-surface-raised: #1a1a36;
+  --color-bg: #0f0f1a;
+  --color-bg-subtle: #151524;
+  --color-surface: #1c1c34;
+  --color-surface-raised: #242442;
   --color-accent: #c084fc;
   --color-accent-deep: #7c3aed;
   --color-accent-muted: #a78bfa;
@@ -21,8 +21,8 @@
   --color-text-secondary: #cbd5e1;
   --color-text-muted: #64748b;
   --color-destructive: #ef4444;
-  --color-border: #1e1e3a;
-  --color-border-subtle: #161630;
+  --color-border: #2a2a48;
+  --color-border-subtle: #1e1e38;
   --color-glow-purple: rgba(168, 85, 247, 0.4);
   --color-glow-gold: rgba(245, 158, 11, 0.3);
   --color-glow-red: rgba(239, 68, 68, 0.3);
@@ -55,23 +55,23 @@
 :root {
   color-scheme: dark;
 
-  --background: #080810;
+  --background: #0f0f1a;
   --foreground: #f1f5f9;
-  --card: #141428;
+  --card: #1c1c34;
   --card-foreground: #f1f5f9;
-  --popover: #141428;
+  --popover: #1c1c34;
   --popover-foreground: #f1f5f9;
   --primary: #7c3aed;
   --primary-foreground: #ffffff;
-  --secondary: #141428;
+  --secondary: #1c1c34;
   --secondary-foreground: #f1f5f9;
-  --muted: #141428;
+  --muted: #1c1c34;
   --muted-foreground: #64748b;
   --accent: #7c3aed;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
-  --border: #1e1e3a;
-  --input: #1e1e3a;
+  --border: #2a2a48;
+  --input: #2a2a48;
   --ring: #7c3aed;
   --radius: 0.75rem;
 }

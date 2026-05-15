@@ -6,11 +6,19 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 
 const SUPPORT_OPTIONS = [
+  
   {
+    icon: CreditCard,
+    name: 'Venmo',
+    description: 'Quick tip via Venmo.',
+    url: 'https://venmo.com/wherestim',
+    color: '#3D95CE',
+    cta: 'Tip on Venmo',
+  },{
     icon: Coffee,
     name: 'Ko-fi',
     description: 'Buy me a coffee — one-time tips welcome.',
-    url: 'https://ko-fi.com/wherestim',
+    url: 'https://ko-fi.com/planechaser',
     color: '#FF5E5B',
     cta: 'Support on Ko-fi',
   },
@@ -18,7 +26,7 @@ const SUPPORT_OPTIONS = [
     icon: Crown,
     name: 'Patreon',
     description: 'Monthly support for ongoing development and new features.',
-    url: 'https://patreon.com/wherestim',
+    url: 'https://patreon.com/planechaser',
     color: '#FF424D',
     cta: 'Join on Patreon',
   },
@@ -29,14 +37,6 @@ const SUPPORT_OPTIONS = [
     url: 'https://paypal.me/wherestim',
     color: '#0070BA',
     cta: 'Donate via PayPal',
-  },
-  {
-    icon: CreditCard,
-    name: 'Venmo',
-    description: 'Quick tip via Venmo.',
-    url: 'https://venmo.com/wherestim',
-    color: '#3D95CE',
-    cta: 'Tip on Venmo',
   },
   {
     icon: Coins,

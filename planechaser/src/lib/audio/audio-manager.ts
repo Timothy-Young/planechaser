@@ -23,10 +23,40 @@ const SFX_URLS: Record<SFXKey, string> = {
   cardSlide: 'https://cdn.freesound.org/previews/240/240777_4107740-lq.mp3',
 }
 
-const MUSIC_URL = 'https://cdn.freesound.org/previews/649/649132_12946258-lq.mp3'
+type MusicKey =
+  | 'medievil'
+  | 'natureAmbo'
+  | 'skyrim'
+  | 'dreamIntro'
+  | 'ancientManuscripts'
+  | 'pianoWindChimes'
+  | 'theInnOfTheLastHome'
+
+const MUSIC_URLS: Record<MusicKey, string> = {
+  medievil: 'https://cdn.freesound.org/previews/649/649132_12946258-lq.mp3',
+  natureAmbo: 'https://cdn.freesound.org/previews/634/634140_2282212-lq.mp3',
+  skyrim: 'https://cdn.freesound.org/previews/770/770560_858088-lq.mp3',
+  dreamIntro: 'https://cdn.freesound.org/previews/264/264199_3525275-lq.mp3',
+  ancientManuscripts: 'https://cdn.freesound.org/previews/620/620673_1766049-lq.mp3',
+  pianoWindChimes: 'https://cdn.freesound.org/previews/803/803509_17289332-lq.mp3',
+  theInnOfTheLastHome: 'https://cdn.freesound.org/previews/725/725830_34173-lq.mp3',
+}
+
+const MUSIC_KEYS = Object.keys(MUSIC_URLS) as MusicKey[]
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const shuffled = [...arr]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
 
 class AudioManager {
   private music: HTMLAudioElement | null = null
+  private musicPlaylist: MusicKey[] = []
+  private musicIndex = 0
   private ambient: HTMLAudioElement | null = null
   private currentAmbientUrl: string | null = null
   private _sfxEnabled = true
@@ -167,15 +197,38 @@ class AudioManager {
       return
     }
 
-    this.music = new Audio(MUSIC_URL)
-    this.music.loop = true
+    this.musicPlaylist = shuffleArray(MUSIC_KEYS)
+    this.musicIndex = 0
+    this.playCurrentTrack()
+  }
+
+  private playCurrentTrack() {
+    if (this.music) {
+      this.music.pause()
+      this.music.removeAttribute('src')
+      this.music = null
+    }
+
+    const key = this.musicPlaylist[this.musicIndex]
+    const url = MUSIC_URLS[key]
+
+    this.music = new Audio(url)
     this.music.volume = this._musicVolume
     this.music.play().catch(() => {})
+
+    this.music.addEventListener('ended', () => {
+      this.musicIndex = (this.musicIndex + 1) % this.musicPlaylist.length
+      if (this.musicIndex === 0) {
+        this.musicPlaylist = shuffleArray(MUSIC_KEYS)
+      }
+      this.playCurrentTrack()
+    })
   }
 
   stopMusic() {
     if (this.music) {
       this.music.pause()
+      this.music = null
     }
   }
 

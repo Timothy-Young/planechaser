@@ -74,7 +74,7 @@ export default function GamePage() {
 
     if (result === 'planeswalk') {
       setSlideDirection('right')
-      audioManager.playSFX('cardSlide')
+      audioManager.playPlaneswalkLayered()
       setTimeout(() => {
         setState((prev) => {
           if (!prev) return prev

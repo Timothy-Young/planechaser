@@ -39,7 +39,7 @@ export function DieRoller({ rollCount, onRoll, disabled }: DieRollerProps) {
     const finalResult = rollPlanarDie()
 
     let tick = 0
-    const totalTicks = 14
+    const totalTicks = 20
     const interval = setInterval(() => {
       tick++
       setDisplayFace(DIE_FACES[Math.floor(Math.random() * DIE_FACES.length)])
@@ -54,7 +54,7 @@ export function DieRoller({ rollCount, onRoll, disabled }: DieRollerProps) {
         setRolling(false)
         setSettled(true)
 
-        if (finalResult === 'chaos') audioManager.playSFX('chaos')
+        if (finalResult === 'chaos') audioManager.playChaosLayered()
         else if (finalResult === 'planeswalk') audioManager.playSFX('planeswalk')
         else audioManager.playSFX('blank')
 
@@ -62,9 +62,9 @@ export function DieRoller({ rollCount, onRoll, disabled }: DieRollerProps) {
           onRoll(finalResult)
           setSettled(false)
           setDisplayFace(null)
-        }, 1400)
+        }, 1600)
       }
-    }, 70)
+    }, 75)
   }, [rolling, disabled, onRoll])
 
   const currentFace = displayFace ? FACE_DISPLAY[displayFace] : null

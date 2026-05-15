@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Swords, Users, Trophy, Dice5, ChevronRight, Sparkles, Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -111,15 +112,18 @@ export default function Home() {
           </div>
 
           {/* Mock plane card */}
-          <div className="relative aspect-[3/2] bg-gradient-to-br from-[#1a1040] via-[#2d1860] to-[#0f0f1a]">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center space-y-1">
-                <div className="w-16 h-16 mx-auto rounded-xl bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 flex items-center justify-center">
-                  <Sparkles size={24} className="text-[var(--color-accent)]" />
-                </div>
-                <p className="text-[14px] font-bold text-white/90" style={{ fontFamily: 'var(--font-heading)' }}>Nyx</p>
-                <p className="text-[9px] text-white/50" style={{ fontFamily: 'var(--font-body)' }}>Plane — Theros</p>
-              </div>
+          <div className="relative aspect-[3/2] overflow-hidden">
+            <Image
+              src="https://cards.scryfall.io/art_crop/front/d/8/d8da872d-55e0-4596-ba8e-f9ff7b2c0a86.jpg?1680815480"
+              alt="Nyx — Plane of Theros"
+              fill
+              className="object-cover"
+              sizes="360px"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-3">
+              <p className="text-[14px] font-bold text-white drop-shadow-lg" style={{ fontFamily: 'var(--font-heading)' }}>Nyx</p>
+              <p className="text-[9px] text-white/60" style={{ fontFamily: 'var(--font-body)' }}>Plane — Theros</p>
             </div>
           </div>
 

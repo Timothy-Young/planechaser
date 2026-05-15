@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ACHIEVEMENT_MAP } from '@/lib/achievements/definitions'
 
 interface AchievementToastProps {
@@ -21,7 +22,7 @@ export function AchievementToast({ achievementKeys, onDone }: AchievementToastPr
     setVisible(true)
     const timer = setTimeout(() => {
       setVisible(false)
-      setTimeout(() => setCurrentIndex((i) => i + 1), 300)
+      setTimeout(() => setCurrentIndex((i) => i + 1), 400)
     }, 2500)
 
     return () => clearTimeout(timer)
@@ -33,18 +34,27 @@ export function AchievementToast({ achievementKeys, onDone }: AchievementToastPr
   if (!def) return null
 
   return (
-    <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
-      <div className="flex items-center gap-3 px-5 py-3 rounded-[12px] bg-[var(--color-accent)] text-white shadow-lg shadow-[var(--color-accent)]/30">
-        <span className="text-[28px]">{def.icon}</span>
-        <div>
-          <p className="text-[11px] uppercase tracking-wide opacity-80" style={{ fontFamily: 'var(--font-body)' }}>
-            Achievement Unlocked
-          </p>
-          <p className="text-[14px] font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
-            {def.name}
-          </p>
-        </div>
-      </div>
-    </div>
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity: 0, y: -40, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100]"
+        >
+          <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] text-white glow-purple">
+            <span className="text-[28px]">{def.icon}</span>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest opacity-80" style={{ fontFamily: 'var(--font-body)' }}>
+                Achievement Unlocked
+              </p>
+              <p className="text-[15px] font-bold tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
+                {def.name}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }

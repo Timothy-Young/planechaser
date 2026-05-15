@@ -1,16 +1,19 @@
-import type { Metadata } from 'next'
-import { Geist_Mono } from 'next/font/google'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Providers } from '@/components/providers'
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-})
+import { BottomNav } from '@/components/bottom-nav'
 
 export const metadata: Metadata = {
-  title: 'PlaneChaser',
-  description: 'The multiplanar conquest companion for Magic: The Gathering',
+  title: 'PlaneChaser — MTG Planechase Companion',
+  description: 'The multiplanar conquest companion for Magic: The Gathering. Track planes, roll dice, conquer worlds.',
+}
+
+export const viewport: Viewport = {
+  themeColor: '#080810',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
@@ -19,10 +22,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${geistMono.variable} dark h-full`}>
+    <html lang="en" className="dark h-full">
       <body className="min-h-full flex flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
-        <div className="crt-overlay" aria-hidden="true" />
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <BottomNav />
+        </Providers>
       </body>
     </html>
   )

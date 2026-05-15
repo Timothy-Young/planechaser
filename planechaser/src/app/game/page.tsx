@@ -1,7 +1,10 @@
 'use client'
 
-import { useEffect, useCallback, useState } from 'react'
+import { useEffect, useCallback, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Volume2, VolumeX, Music } from 'lucide-react'
 import { gameReducer } from '@/lib/game/engine'
 import { loadGameState, saveGameState, clearGameState } from '@/lib/game/session-storage'
 import { PlaneCard } from '@/components/plane-card'
@@ -14,6 +17,7 @@ import { useRecordGameSession, useUserStats } from '@/hooks/usePods'
 import { useUserAchievements, useGrantAchievements } from '@/hooks/useAchievements'
 import { evaluateAchievements } from '@/lib/achievements/evaluator'
 import { AchievementToast } from '@/components/achievement-toast'
+import { audioManager } from '@/lib/audio/audio-manager'
 import { useAppStore } from '@/store/app-store'
 import type { GameState, DieResult } from '@/lib/game/types'
 
@@ -26,12 +30,20 @@ export default function GamePage() {
   const [showEndGame, setShowEndGame] = useState(false)
   const [lastDrawnScheme, setLastDrawnScheme] = useState<string | null>(null)
   const [newBadges, setNewBadges] = useState<string[]>([])
+  const [musicOn, setMusicOn] = useState(false)
+  const [sfxOn, setSfxOn] = useState(true)
   const recordSession = useRecordGameSession()
   const grantAchievements = useGrantAchievements()
   const { data: userStats } = useUserStats()
   const { data: earnedAchievements } = useUserAchievements()
   const user = useAppStore((s) => s.user)
   const activePodId = useAppStore((s) => s.activePodId)
+
+  useEffect(() => {
+    audioManager.init()
+    setMusicOn(audioManager.musicEnabled)
+    setSfxOn(audioManager.sfxEnabled)
+  }, [])
 
   useEffect(() => {
     const saved = loadGameState()
@@ -60,6 +72,7 @@ export default function GamePage() {
 
     if (result === 'planeswalk') {
       setSlideDirection('right')
+      audioManager.playSFX('cardSlide')
       setTimeout(() => {
         setState((prev) => {
           if (!prev) return prev
@@ -114,9 +127,11 @@ export default function GamePage() {
         if (newlyEarned.length > 0) {
           grantAchievements.mutate({ userId: user.id, keys: newlyEarned })
           setNewBadges(newlyEarned)
+          audioManager.playSFX('achievement')
         }
       }
     }
+    audioManager.stopMusic()
     clearGameState()
     router.push('/setup')
   }, [router, state, user, activePodId, recordSession, userStats, earnedAchievements, grantAchievements])
@@ -139,12 +154,30 @@ export default function GamePage() {
     })
   }, [])
 
+  const toggleMusic = useCallback(() => {
+    audioManager.toggleMusic()
+    setMusicOn(audioManager.musicEnabled)
+  }, [])
+
+  const toggleSfx = useCallback(() => {
+    audioManager.toggleSFX()
+    setSfxOn(audioManager.sfxEnabled)
+  }, [])
+
+  const visitedBreadcrumb = useMemo(() => {
+    if (!state) return []
+    return state.deck.slice(0, state.planesVisited).map((p) => p.name).reverse().slice(0, 6)
+  }, [state])
+
   if (!loaded || !state) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
-        <p className="text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-          Loading game...
-        </p>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+          <p className="text-[var(--color-text-muted)] text-[13px]" style={{ fontFamily: 'var(--font-body)' }}>
+            Loading game...
+          </p>
+        </div>
       </main>
     )
   }
@@ -156,30 +189,21 @@ export default function GamePage() {
     : null
 
   return (
-    <main className="min-h-screen flex flex-col bg-[var(--color-bg)]">
-      {/* Top bar */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
-        <div className="flex items-center gap-2">
-          <span
-            className="text-[14px] text-[var(--color-accent)] font-bold"
-            style={{ fontFamily: 'var(--font-heading)' }}
-          >
-            PlaneChaser
-          </span>
-          {isArchenemy && (
-            <span className="text-[11px] text-[var(--color-cta)] font-bold px-2 py-0.5 rounded-full border border-[var(--color-cta)]/40" style={{ fontFamily: 'var(--font-heading)' }}>
-              ARCHENEMY
-            </span>
-          )}
+    <main className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Full-bleed plane art background */}
+      {currentPlane && (
+        <div className="fixed inset-0 z-0">
+          <Image
+            src={currentPlane.image_uris.art_crop}
+            alt=""
+            fill
+            className="object-cover blur-2xl scale-110 opacity-25"
+            sizes="100vw"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-bg)]/70 via-[var(--color-bg)]/50 to-[var(--color-bg)]/90" />
         </div>
-        <div className="flex items-center gap-4 text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-          <span>Plane {state.planesVisited} / {state.deck.length}</span>
-          <span>{state.dieRollHistory.length} rolls</span>
-          {state.archenemy && (
-            <span>{state.archenemy.schemesPlayed} schemes</span>
-          )}
-        </div>
-      </header>
+      )}
 
       {/* Achievement toast */}
       {newBadges.length > 0 && (
@@ -187,12 +211,26 @@ export default function GamePage() {
       )}
 
       {/* Chaos flash overlay */}
-      {showChaos && (
-        <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center">
-          <div className="absolute inset-0 bg-[var(--color-cta)]/10 animate-pulse" />
-          <span className="text-[48px] animate-bounce">🌀</span>
-        </div>
-      )}
+      <AnimatePresence>
+        {showChaos && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center"
+          >
+            <div className="absolute inset-0 bg-red-900/20 animate-pulse" />
+            <motion.span
+              initial={{ scale: 0.5, rotate: 0 }}
+              animate={{ scale: 1.5, rotate: 360 }}
+              transition={{ duration: 0.8 }}
+              className="text-[80px]"
+            >
+              🌀
+            </motion.span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* End game dialog */}
       {showEndGame && currentPlane && !isArchenemy && (
@@ -213,12 +251,52 @@ export default function GamePage() {
         />
       )}
 
+      {/* Top bar */}
+      <header className="relative z-10 flex items-center justify-between px-4 py-3 glass-strong">
+        <div className="flex items-center gap-2">
+          <span className="text-[14px] text-[var(--color-accent)] font-bold tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
+            PlaneChaser
+          </span>
+          {isArchenemy && (
+            <span className="text-[10px] text-[var(--color-cta)] font-bold px-2 py-0.5 rounded-full border border-[var(--color-cta)]/40 bg-[var(--color-cta)]/10 uppercase tracking-widest" style={{ fontFamily: 'var(--font-heading)' }}>
+              Archenemy
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 text-[11px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+            <span>{state.planesVisited}/{state.deck.length}</span>
+            <span>{state.dieRollHistory.length} rolls</span>
+          </div>
+          <button onClick={toggleSfx} className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
+            {sfxOn ? <Volume2 size={16} className="text-[var(--color-text-muted)]" /> : <VolumeX size={16} className="text-[var(--color-text-muted)] opacity-40" />}
+          </button>
+          <button onClick={toggleMusic} className={`p-1.5 rounded-lg hover:bg-white/5 transition-colors ${musicOn ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)] opacity-40'}`}>
+            <Music size={16} />
+          </button>
+        </div>
+      </header>
+
+      {/* Visited planes breadcrumb */}
+      {visitedBreadcrumb.length > 1 && (
+        <div className="relative z-10 px-4 py-2 overflow-x-auto">
+          <div className="flex items-center gap-1 text-[10px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+            {visitedBreadcrumb.map((name, i) => (
+              <span key={i} className={`whitespace-nowrap ${i === 0 ? 'text-[var(--color-accent)] font-semibold' : 'opacity-60'}`}>
+                {i > 0 && <span className="mx-1">←</span>}
+                {name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Game content */}
-      <div className="flex-1 flex flex-col items-center justify-between py-4 px-4 gap-3 overflow-hidden">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-between py-4 px-4 gap-3 overflow-hidden">
         {/* Archenemy: active schemes bar */}
         {isArchenemy && state.archenemy && state.archenemy.activeSchemes.length > 0 && (
-          <div className="w-full max-w-[400px] space-y-2">
-            <p className="text-[11px] text-[var(--color-cta)] uppercase tracking-wide font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
+          <div className="w-full max-w-[440px] space-y-2">
+            <p className="text-[10px] text-[var(--color-cta)] uppercase tracking-widest font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
               Active Schemes
             </p>
             <div className="flex gap-2 overflow-x-auto pb-1">
@@ -239,7 +317,7 @@ export default function GamePage() {
         )}
 
         {/* Plane card */}
-        <div className={`flex-1 flex items-center justify-center w-full max-w-[400px] ${isArchenemy && state.archenemy?.activeSchemes.length ? 'max-h-[300px]' : ''}`}>
+        <div className={`flex-1 flex items-center justify-center w-full max-w-[440px] ${isArchenemy && state.archenemy?.activeSchemes.length ? 'max-h-[300px]' : ''}`}>
           {currentPlane && (
             <PlaneCard card={currentPlane} direction={slideDirection} />
           )}
@@ -250,7 +328,7 @@ export default function GamePage() {
           {isArchenemy && (
             <Button
               onClick={handleDrawScheme}
-              className="h-12 px-5 bg-[var(--color-cta)] hover:bg-[var(--color-cta-hover)] text-white"
+              className="h-12 px-5 bg-[var(--color-cta)] hover:bg-[var(--color-cta-hover)] text-white glow-red"
               style={{ fontFamily: 'var(--font-heading)', fontSize: '13px' }}
             >
               Draw Scheme
@@ -263,11 +341,11 @@ export default function GamePage() {
           />
         </div>
 
-        <div className="flex gap-3 w-full max-w-[400px] pb-4">
+        <div className="flex gap-3 w-full max-w-[440px] pb-4">
           <Button
             onClick={handleEndTurn}
             variant="outline"
-            className="flex-1 h-12 border-[var(--color-border)] text-[var(--color-text)]"
+            className="flex-1 h-12 border-[var(--color-border)] bg-white/5 text-[var(--color-text)] hover:bg-white/10"
             style={{ fontFamily: 'var(--font-heading)', fontSize: '14px' }}
           >
             End Turn
@@ -275,7 +353,7 @@ export default function GamePage() {
           <Button
             onClick={() => setShowEndGame(true)}
             variant="outline"
-            className="h-12 px-4 border-[var(--color-border)] text-[var(--color-text-muted)]"
+            className="h-12 px-5 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10"
             style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}
           >
             End Game

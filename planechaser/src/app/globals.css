@@ -1,24 +1,34 @@
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Russo+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  /* PlaneChaser design tokens */
-  --color-bg: #0F0F23;
-  --color-surface: #1A1A3E;
-  --color-accent: #7C3AED;
-  --color-accent-muted: #A78BFA;
-  --color-cta: #F43F5E;
-  --color-cta-hover: #E11D48;
-  --color-text: #E2E8F0;
-  --color-text-muted: #94A3B8;
-  --color-destructive: #DC2626;
-  --color-border: #2D2D5E;
-  --font-heading: 'Russo One', sans-serif;
-  --font-body: 'Chakra Petch', sans-serif;
-  --radius-card: 12px;
+  /* PlaneChaser MTG-inspired design tokens */
+  --color-bg: #080810;
+  --color-bg-subtle: #0e0e1a;
+  --color-surface: #141428;
+  --color-surface-raised: #1a1a36;
+  --color-accent: #c084fc;
+  --color-accent-deep: #7c3aed;
+  --color-accent-muted: #a78bfa;
+  --color-gold: #f59e0b;
+  --color-gold-muted: #d97706;
+  --color-cta: #ef4444;
+  --color-cta-hover: #dc2626;
+  --color-text: #f1f5f9;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #64748b;
+  --color-destructive: #ef4444;
+  --color-border: #1e1e3a;
+  --color-border-subtle: #161630;
+  --color-glow-purple: rgba(168, 85, 247, 0.4);
+  --color-glow-gold: rgba(245, 158, 11, 0.3);
+  --color-glow-red: rgba(239, 68, 68, 0.3);
+  --font-heading: 'Cinzel', serif;
+  --font-body: 'Inter', sans-serif;
+  --radius-card: 16px;
 
   /* shadcn semantic token mappings */
   --color-background: var(--background);
@@ -45,25 +55,24 @@
 :root {
   color-scheme: dark;
 
-  /* shadcn variables mapped to PlaneChaser palette (always dark) */
-  --background: #0F0F23;
-  --foreground: #E2E8F0;
-  --card: #1A1A3E;
-  --card-foreground: #E2E8F0;
-  --popover: #1A1A3E;
-  --popover-foreground: #E2E8F0;
-  --primary: #7C3AED;
+  --background: #080810;
+  --foreground: #f1f5f9;
+  --card: #141428;
+  --card-foreground: #f1f5f9;
+  --popover: #141428;
+  --popover-foreground: #f1f5f9;
+  --primary: #7c3aed;
   --primary-foreground: #ffffff;
-  --secondary: #1A1A3E;
-  --secondary-foreground: #E2E8F0;
-  --muted: #1A1A3E;
-  --muted-foreground: #94A3B8;
-  --accent: #7C3AED;
+  --secondary: #141428;
+  --secondary-foreground: #f1f5f9;
+  --muted: #141428;
+  --muted-foreground: #64748b;
+  --accent: #7c3aed;
   --accent-foreground: #ffffff;
-  --destructive: #DC2626;
-  --border: #2D2D5E;
-  --input: #2D2D5E;
-  --ring: #7C3AED;
+  --destructive: #ef4444;
+  --border: #1e1e3a;
+  --input: #1e1e3a;
+  --ring: #7c3aed;
   --radius: 0.75rem;
 }
 
@@ -71,27 +80,121 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* CRT scanline overlay — decorative, aria-hidden */
-.crt-overlay::before {
+/* Ambient background grain */
+body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.05) 2px,
-    rgba(0, 0, 0, 0.05) 4px
-  );
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
   pointer-events: none;
-  z-index: 9999;
+  z-index: 0;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(20, 20, 40, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-strong {
+  background: rgba(20, 20, 40, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Glow effects */
+.glow-purple {
+  box-shadow: 0 0 20px var(--color-glow-purple), 0 0 60px rgba(168, 85, 247, 0.15);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px var(--color-glow-gold), 0 0 60px rgba(245, 158, 11, 0.1);
+}
+
+.glow-red {
+  box-shadow: 0 0 15px var(--color-glow-red);
+}
+
+.text-glow-purple {
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.5), 0 0 40px rgba(168, 85, 247, 0.2);
+}
+
+.text-glow-gold {
+  text-shadow: 0 0 20px rgba(245, 158, 11, 0.5), 0 0 40px rgba(245, 158, 11, 0.2);
+}
+
+/* Animated gradient border */
+.gradient-border {
+  position: relative;
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--color-accent-deep), var(--color-gold), var(--color-cta), var(--color-accent-deep));
+  background-size: 300% 300%;
+  animation: gradient-rotate 6s ease infinite;
+  z-index: -1;
+  opacity: 0.6;
+}
+
+@keyframes gradient-rotate {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Particle float animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+}
+
+/* Plane card ambient animation */
+@keyframes card-breathe {
+  0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.2), 0 0 40px rgba(168, 85, 247, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(168, 85, 247, 0.35), 0 0 60px rgba(168, 85, 247, 0.15); }
+}
+
+.card-breathe {
+  animation: card-breathe 3s ease-in-out infinite;
+}
+
+/* Die roller 3D perspective */
+.die-container {
+  perspective: 600px;
+}
+
+/* Bottom nav safe area */
+.pb-nav {
+  padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .crt-overlay::before {
-    display: none;
+  .gradient-border::before,
+  .card-breathe {
+    animation: none;
   }
 }
 

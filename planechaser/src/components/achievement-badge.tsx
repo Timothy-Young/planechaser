@@ -12,9 +12,9 @@ export function AchievementBadge({ achievementKey, earnedAt }: AchievementBadgeP
   if (!def) return null
 
   return (
-    <div className="flex flex-col items-center gap-1 p-2 rounded-[8px] bg-[var(--color-surface)] border border-[var(--color-border)]">
-      <span className="text-[24px]">{def.icon}</span>
-      <p className="text-[10px] font-bold text-[var(--color-text)] text-center leading-tight" style={{ fontFamily: 'var(--font-heading)' }}>
+    <div className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-[var(--color-surface)]/60 border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-all group">
+      <span className="text-[22px] group-hover:scale-110 transition-transform">{def.icon}</span>
+      <p className="text-[9px] font-bold text-[var(--color-text)] text-center leading-tight tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
         {def.name}
       </p>
       <p className="text-[8px] text-[var(--color-text-muted)] text-center" style={{ fontFamily: 'var(--font-body)' }}>

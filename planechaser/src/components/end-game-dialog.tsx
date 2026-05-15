@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store/app-store'
 import { useConquerPlane, useUserPods } from '@/hooks/usePods'
@@ -43,13 +44,14 @@ export function EndGameDialog({ currentPlane, onClose, onConfirm }: EndGameDialo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-      <div className="w-full max-w-[380px] rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 space-y-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="w-full max-w-[380px] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur-md p-6 space-y-5"
+      >
         <div className="text-center space-y-1">
-          <h2
-            className="text-[20px] font-bold text-[var(--color-text)]"
-            style={{ fontFamily: 'var(--font-heading)' }}
-          >
+          <h2 className="text-[20px] font-bold text-[var(--color-text)] tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
             End Game
           </h2>
           <p className="text-[13px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
@@ -61,21 +63,26 @@ export function EndGameDialog({ currentPlane, onClose, onConfirm }: EndGameDialo
           <Button
             onClick={handleConquer}
             disabled={conquering}
-            className="w-full h-12 bg-[var(--color-accent)] hover:bg-[var(--color-accent-muted)] text-white"
-            style={{ fontFamily: 'var(--font-heading)', fontSize: '15px' }}
+            className="w-full h-12 bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] hover:opacity-90 text-white rounded-xl"
+            style={{ fontFamily: 'var(--font-heading)', fontSize: '15px', boxShadow: '0 4px 20px rgba(124, 58, 237, 0.3)' }}
           >
             {conquering ? 'Conquering...' : `Conquer ${currentPlane.name}`}
           </Button>
         )}
 
         {conquered && (
-          <p className="text-center text-green-400 text-[14px]" style={{ fontFamily: 'var(--font-body)' }}>
+          <motion.p
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center text-green-400 text-[14px] font-medium"
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
             You conquered {currentPlane.name}!
-          </p>
+          </motion.p>
         )}
 
         {user && !podId && (
-          <p className="text-center text-[13px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+          <p className="text-center text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
             Join a pod to start conquering planes
           </p>
         )}
@@ -84,20 +91,20 @@ export function EndGameDialog({ currentPlane, onClose, onConfirm }: EndGameDialo
           <Button
             onClick={onClose}
             variant="outline"
-            className="flex-1 h-11 border-[var(--color-border)] text-[var(--color-text)]"
+            className="flex-1 h-11 border-[var(--color-border)] bg-white/5 text-[var(--color-text)] hover:bg-white/10 rounded-xl"
             style={{ fontFamily: 'var(--font-heading)', fontSize: '14px' }}
           >
             Keep Playing
           </Button>
           <Button
             onClick={onConfirm}
-            className="flex-1 h-11 bg-[var(--color-cta)] hover:bg-[var(--color-cta-hover)] text-white"
+            className="flex-1 h-11 bg-[var(--color-cta)] hover:bg-[var(--color-cta-hover)] text-white rounded-xl"
             style={{ fontFamily: 'var(--font-heading)', fontSize: '14px' }}
           >
             End Game
           </Button>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }

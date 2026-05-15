@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { usePlaneCorpus } from '@/hooks/usePlaneCorpus'
 import { useSchemeCorpus } from '@/hooks/useSchemeCorpus'
@@ -79,131 +80,148 @@ export default function SetupPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col bg-[var(--color-bg)]">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
-        <span className="text-[14px] text-[var(--color-accent)] font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
-          PlaneChaser
-        </span>
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/pods')} className="text-[12px] text-[var(--color-text-muted)] hover:text-[var(--color-text)]" style={{ fontFamily: 'var(--font-body)' }}>
-            Pods
-          </button>
-          <button onClick={() => router.push('/profile')} className="text-[12px] text-[var(--color-text-muted)] hover:text-[var(--color-text)]" style={{ fontFamily: 'var(--font-body)' }}>
-            Profile
-          </button>
-        </div>
-      </header>
-
-      <div className="flex-1 flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-[400px] space-y-8">
-        <div className="text-center space-y-1">
-          <h1
-            className="text-[28px] font-bold text-[var(--color-accent)]"
-            style={{ fontFamily: 'var(--font-heading)', textShadow: '0 0 12px #7C3AED' }}
-          >
-            PlaneChaser
-          </h1>
-          <p className="text-[14px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-            New Planechase Session
-          </p>
-        </div>
-
-        {resumeAvailable && (
-          <button
-            onClick={resumeGame}
-            className="w-full rounded-[12px] border border-[var(--color-accent)] bg-[var(--color-accent)]/10 p-4 text-center transition-colors hover:bg-[var(--color-accent)]/20"
-          >
-            <p className="text-[16px] font-semibold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
-              Resume Game
-            </p>
-            <p className="text-[13px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
-              You have an active session
-            </p>
-          </button>
-        )}
-
-        {/* Archenemy alert */}
-        {archenemy && activePod && (
-          <button
-            onClick={() => startGame(true)}
-            disabled={isLoading || !corpus || corpus.length === 0 || !schemes}
-            className="w-full rounded-[12px] border border-[var(--color-cta)] bg-[var(--color-cta)]/10 p-4 text-center transition-colors hover:bg-[var(--color-cta)]/20 disabled:opacity-50"
-          >
-            <p className="text-[16px] font-bold text-[var(--color-cta)]" style={{ fontFamily: 'var(--font-heading)' }}>
-              ⚔️ Archenemy Showdown
-            </p>
-            <p className="text-[13px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
-              {archenemy.display_name} has {archenemy.conquered_count} conquests — start an Archenemy game!
-            </p>
-          </button>
-        )}
-
-        <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 space-y-6">
-          <div className="space-y-3">
-            <label className="text-[14px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-              Players
-            </label>
-            <div className="flex gap-2">
-              {PLAYER_OPTIONS.map((n) => (
-                <button
-                  key={n}
-                  onClick={() => setPlayerCount(n)}
-                  className={`flex-1 h-12 rounded-lg text-[16px] font-semibold transition-colors ${
-                    playerCount === n
-                      ? 'bg-[var(--color-accent)] text-white'
-                      : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
-                  }`}
-                  style={{ fontFamily: 'var(--font-heading)' }}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[14px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-              Deck Size
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {DECK_SIZES.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setDeckSize(size)}
-                  className={`h-12 rounded-lg text-[14px] font-semibold transition-colors ${
-                    deckSize === size
-                      ? 'bg-[var(--color-accent)] text-white'
-                      : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
-                  }`}
-                  style={{ fontFamily: 'var(--font-heading)' }}
-                >
-                  {size === 0 ? `All (${corpus?.length ?? '...'})` : `${size} planes`}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {isLoading && (
-            <p className="text-[13px] text-[var(--color-text-muted)] text-center" style={{ fontFamily: 'var(--font-body)' }}>
-              Loading plane cards from Scryfall...
-            </p>
-          )}
-          {error && (
-            <p className="text-[13px] text-[var(--color-destructive)] text-center" style={{ fontFamily: 'var(--font-body)' }}>
-              Failed to load planes. Check your connection and refresh.
-            </p>
-          )}
-
-          <Button
-            onClick={() => startGame(false)}
-            disabled={isLoading || !corpus || corpus.length === 0}
-            className="w-full h-14 text-[18px] bg-[var(--color-cta)] hover:bg-[var(--color-cta-hover)] text-white"
-            style={{ fontFamily: 'var(--font-heading)' }}
-          >
-            Start Game
-          </Button>
-        </div>
+    <main className="min-h-screen flex flex-col bg-[var(--color-bg)] pb-nav">
+      {/* Ambient background */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-[var(--color-accent-deep)]/8 blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-[var(--color-gold)]/5 blur-[100px]" />
       </div>
+
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="w-full max-w-[420px] space-y-6"
+        >
+          {/* Title */}
+          <div className="text-center space-y-2">
+            <h1
+              className="text-[32px] md:text-[40px] font-bold text-[var(--color-accent)] text-glow-purple tracking-wide"
+              style={{ fontFamily: 'var(--font-heading)' }}
+            >
+              PlaneChaser
+            </h1>
+            <p className="text-[13px] text-[var(--color-text-muted)] tracking-wide" style={{ fontFamily: 'var(--font-body)' }}>
+              New Planechase Session
+            </p>
+          </div>
+
+          {/* Resume game */}
+          {resumeAvailable && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              onClick={resumeGame}
+              className="w-full rounded-2xl border border-[var(--color-accent)]/40 bg-[var(--color-accent)]/8 p-5 text-center transition-all hover:bg-[var(--color-accent)]/15 glow-purple"
+            >
+              <p className="text-[17px] font-semibold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+                Resume Game
+              </p>
+              <p className="text-[12px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+                You have an active session
+              </p>
+            </motion.button>
+          )}
+
+          {/* Archenemy alert */}
+          {archenemy && activePod && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+              onClick={() => startGame(true)}
+              disabled={isLoading || !corpus || corpus.length === 0 || !schemes}
+              className="w-full rounded-2xl border border-[var(--color-cta)]/40 bg-[var(--color-cta)]/8 p-5 text-center transition-all hover:bg-[var(--color-cta)]/15 glow-red disabled:opacity-50"
+            >
+              <p className="text-[17px] font-bold text-[var(--color-cta)]" style={{ fontFamily: 'var(--font-heading)' }}>
+                Archenemy Showdown
+              </p>
+              <p className="text-[12px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+                {archenemy.display_name} has {archenemy.conquered_count} conquests
+              </p>
+            </motion.button>
+          )}
+
+          {/* Config card */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm p-6 space-y-6"
+          >
+            {/* Players */}
+            <div className="space-y-3">
+              <label className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium" style={{ fontFamily: 'var(--font-heading)' }}>
+                Players
+              </label>
+              <div className="flex gap-2">
+                {PLAYER_OPTIONS.map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setPlayerCount(n)}
+                    className={`flex-1 h-11 rounded-xl text-[15px] font-semibold transition-all ${
+                      playerCount === n
+                        ? 'bg-[var(--color-accent-deep)] text-white glow-purple'
+                        : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
+                    }`}
+                    style={{ fontFamily: 'var(--font-heading)' }}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Deck size */}
+            <div className="space-y-3">
+              <label className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium" style={{ fontFamily: 'var(--font-heading)' }}>
+                Deck Size
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {DECK_SIZES.map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setDeckSize(size)}
+                    className={`h-11 rounded-xl text-[13px] font-semibold transition-all ${
+                      deckSize === size
+                        ? 'bg-[var(--color-accent-deep)] text-white glow-purple'
+                        : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
+                    }`}
+                    style={{ fontFamily: 'var(--font-heading)' }}
+                  >
+                    {size === 0 ? `All (${corpus?.length ?? '...'})` : `${size} planes`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Status */}
+            {isLoading && (
+              <div className="flex items-center justify-center gap-2 py-2">
+                <div className="w-4 h-4 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+                <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+                  Loading plane cards...
+                </p>
+              </div>
+            )}
+            {error && (
+              <p className="text-[12px] text-[var(--color-destructive)] text-center" style={{ fontFamily: 'var(--font-body)' }}>
+                Failed to load planes. Check connection and refresh.
+              </p>
+            )}
+
+            {/* Start button */}
+            <Button
+              onClick={() => startGame(false)}
+              disabled={isLoading || !corpus || corpus.length === 0}
+              className="w-full h-14 text-[17px] bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] hover:opacity-90 text-white transition-all"
+              style={{ fontFamily: 'var(--font-heading)', boxShadow: '0 4px 30px rgba(124, 58, 237, 0.4)' }}
+            >
+              Start Game
+            </Button>
+          </motion.div>
+        </motion.div>
       </div>
     </main>
   )

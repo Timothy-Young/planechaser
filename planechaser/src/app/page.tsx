@@ -93,20 +93,54 @@ export default function Home() {
           </div>
         </motion.div>
 
-        {/* Scroll indicator */}
+      </section>
+
+      {/* Game preview */}
+      <section className="relative z-10 px-4 pb-12 flex justify-center">
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="absolute bottom-8"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.8 }}
+          className="w-full max-w-[360px] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/70 backdrop-blur-sm overflow-hidden shadow-2xl"
+          style={{ boxShadow: '0 20px 80px rgba(124, 58, 237, 0.15), 0 0 40px rgba(0,0,0,0.4)' }}
         >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ repeat: Infinity, duration: 2 }}
-            className="w-5 h-8 rounded-full border border-[var(--color-border)] flex items-start justify-center p-1.5"
-          >
-            <div className="w-1 h-2 rounded-full bg-[var(--color-accent)]" />
-          </motion.div>
+          {/* Mock header */}
+          <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-border)]">
+            <span className="text-[11px] font-bold text-[var(--color-accent)] tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>PlaneChaser</span>
+            <span className="text-[9px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>5/78 · 3 rolls</span>
+          </div>
+
+          {/* Mock plane card */}
+          <div className="relative aspect-[3/2] bg-gradient-to-br from-[#1a1040] via-[#2d1860] to-[#0f0f1a]">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center space-y-1">
+                <div className="w-16 h-16 mx-auto rounded-xl bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 flex items-center justify-center">
+                  <Sparkles size={24} className="text-[var(--color-accent)]" />
+                </div>
+                <p className="text-[14px] font-bold text-white/90" style={{ fontFamily: 'var(--font-heading)' }}>Nyx</p>
+                <p className="text-[9px] text-white/50" style={{ fontFamily: 'var(--font-body)' }}>Plane — Theros</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Mock oracle text */}
+          <div className="px-3 py-2 border-t border-[var(--color-border)]">
+            <p className="text-[10px] text-[var(--color-text-muted)] leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
+              As long as you control an enchantment, creatures you control get +1/+1. Whenever chaos ensues, you may put an enchantment card from your hand onto the battlefield.
+            </p>
+          </div>
+
+          {/* Mock controls */}
+          <div className="flex items-center justify-center gap-3 px-3 py-3 border-t border-[var(--color-border)]">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--color-surface-raised)] border border-[var(--color-border)]" style={{ boxShadow: '0 0 10px rgba(168, 85, 247, 0.15)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--color-accent)]">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                <line x1="12" y1="22.08" x2="12" y2="12" />
+              </svg>
+            </div>
+            <span className="text-[9px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>Free roll</span>
+          </div>
         </motion.div>
       </section>
 

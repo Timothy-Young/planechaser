@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Outer ring -->
+  <circle cx="256" cy="256" r="240" stroke="#c084fc" stroke-width="12" opacity="0.3"/>
+  <circle cx="256" cy="256" r="200" stroke="#c084fc" stroke-width="6" opacity="0.15"/>
+
+  <!-- Planeswalker-inspired symbol: stylized compass/portal -->
+  <!-- Central diamond -->
+  <path d="M256 80 L320 256 L256 432 L192 256 Z" fill="#c084fc" opacity="0.9"/>
+
+  <!-- Horizontal wings -->
+  <path d="M80 256 L192 220 L192 292 Z" fill="#7c3aed" opacity="0.8"/>
+  <path d="M432 256 L320 220 L320 292 Z" fill="#7c3aed" opacity="0.8"/>
+
+  <!-- Inner glow circle -->
+  <circle cx="256" cy="256" r="52" fill="#c084fc" opacity="0.25"/>
+  <circle cx="256" cy="256" r="32" fill="#c084fc" opacity="0.5"/>
+  <circle cx="256" cy="256" r="14" fill="#ffffff" opacity="0.9"/>
+
+  <!-- Corner accent marks (compass points) -->
+  <circle cx="256" cy="60" r="8" fill="#c084fc" opacity="0.6"/>
+  <circle cx="256" cy="452" r="8" fill="#c084fc" opacity="0.6"/>
+  <circle cx="60" cy="256" r="8" fill="#7c3aed" opacity="0.6"/>
+  <circle cx="452" cy="256" r="8" fill="#7c3aed" opacity="0.6"/>
+</svg>

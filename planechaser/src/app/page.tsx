@@ -182,6 +182,11 @@ export default function Home() {
         >
           <Heart size={12} /> Support PlaneChaser
         </button>
+        <div className="flex items-center justify-center gap-3 text-[11px]" style={{ fontFamily: 'var(--font-body)' }}>
+          <button onClick={() => router.push('/privacy')} className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors">Privacy</button>
+          <span className="text-[var(--color-border)]">·</span>
+          <button onClick={() => router.push('/terms')} className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors">Terms</button>
+        </div>
         <p className="text-[10px] text-[var(--color-text-muted)] max-w-[500px] mx-auto leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
           PlaneChaser is unofficial Fan Content permitted under the Wizards of the Coast Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.
         </p>

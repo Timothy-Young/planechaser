@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Swords, Users, Trophy, Dice5, ChevronRight, Sparkles } from 'lucide-react'
+import { Swords, Users, Trophy, Dice5, ChevronRight, Sparkles, Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store/app-store'
 
@@ -174,9 +174,19 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-[var(--color-border)] px-4 py-6 text-center">
+      <footer className="relative z-10 border-t border-[var(--color-border)] px-4 py-6 text-center space-y-3">
+        <button
+          onClick={() => router.push('/support')}
+          className="inline-flex items-center gap-1.5 text-[12px] text-[var(--color-accent)] hover:opacity-80 transition-opacity"
+          style={{ fontFamily: 'var(--font-heading)' }}
+        >
+          <Heart size={12} /> Support PlaneChaser
+        </button>
         <p className="text-[10px] text-[var(--color-text-muted)] max-w-[500px] mx-auto leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
           PlaneChaser is unofficial Fan Content permitted under the Wizards of the Coast Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.
+        </p>
+        <p className="text-[9px] text-[var(--color-text-muted)] opacity-60" style={{ fontFamily: 'var(--font-body)' }}>
+          Built by WheresTim LLC
         </p>
       </footer>
     </main>

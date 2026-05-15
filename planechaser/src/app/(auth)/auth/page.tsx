@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
@@ -13,6 +13,14 @@ const DISCLAIMER =
 const DISCLAIMER_KEY = 'planechaser_disclaimer_shown'
 
 export default function AuthPage() {
+  return (
+    <Suspense>
+      <AuthContent />
+    </Suspense>
+  )
+}
+
+function AuthContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')

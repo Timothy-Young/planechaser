@@ -4,7 +4,7 @@ import { useEffect, useCallback, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Volume2, VolumeX, Music } from 'lucide-react'
+import { Volume2, VolumeX, Music, Home, Sun, Moon } from 'lucide-react'
 import { gameReducer } from '@/lib/game/engine'
 import { loadGameState, saveGameState, clearGameState } from '@/lib/game/session-storage'
 import { PlaneCard } from '@/components/plane-card'
@@ -38,6 +38,8 @@ export default function GamePage() {
   const { data: earnedAchievements } = useUserAchievements()
   const user = useAppStore((s) => s.user)
   const activePodId = useAppStore((s) => s.activePodId)
+  const theme = useAppStore((s) => s.theme)
+  const toggleTheme = useAppStore((s) => s.toggleTheme)
 
   useEffect(() => {
     audioManager.init()
@@ -254,9 +256,12 @@ export default function GamePage() {
       {/* Top bar */}
       <header className="relative z-10 flex items-center justify-between px-4 py-3 glass-strong">
         <div className="flex items-center gap-2">
-          <span className="text-[14px] text-[var(--color-accent)] font-bold tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
-            PlaneChaser
-          </span>
+          <button onClick={() => router.push('/setup')} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
+            <Home size={14} className="text-[var(--color-accent)]" />
+            <span className="text-[14px] text-[var(--color-accent)] font-bold tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
+              PlaneChaser
+            </span>
+          </button>
           {isArchenemy && (
             <span className="text-[10px] text-[var(--color-cta)] font-bold px-2 py-0.5 rounded-full border border-[var(--color-cta)]/40 bg-[var(--color-cta)]/10 uppercase tracking-widest" style={{ fontFamily: 'var(--font-heading)' }}>
               Archenemy
@@ -273,6 +278,9 @@ export default function GamePage() {
           </button>
           <button onClick={toggleMusic} className={`p-1.5 rounded-lg hover:bg-white/5 transition-colors ${musicOn ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)] opacity-40'}`}>
             <Music size={16} />
+          </button>
+          <button onClick={toggleTheme} className="p-1.5 rounded-lg hover:bg-white/5 transition-colors text-[var(--color-text-muted)]">
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           </button>
         </div>
       </header>

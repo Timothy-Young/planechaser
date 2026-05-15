@@ -1,7 +1,8 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
-import { Swords, Users, User, Settings2 } from 'lucide-react'
+import { Swords, Users, User, Sun, Moon } from 'lucide-react'
+import { useAppStore } from '@/store/app-store'
 
 const NAV_ITEMS = [
   { path: '/setup', label: 'Play', icon: Swords },
@@ -12,6 +13,8 @@ const NAV_ITEMS = [
 export function BottomNav() {
   const pathname = usePathname()
   const router = useRouter()
+  const theme = useAppStore((s) => s.theme)
+  const toggleTheme = useAppStore((s) => s.toggleTheme)
 
   if (pathname === '/game' || pathname === '/auth' || pathname === '/') return null
 
@@ -40,6 +43,15 @@ export function BottomNav() {
             </button>
           )
         })}
+        <button
+          onClick={toggleTheme}
+          className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl transition-all text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+        >
+          {theme === 'dark' ? <Sun size={20} strokeWidth={1.5} /> : <Moon size={20} strokeWidth={1.5} />}
+          <span className="text-[10px] font-medium" style={{ fontFamily: 'var(--font-body)' }}>
+            {theme === 'dark' ? 'Light' : 'Dark'}
+          </span>
+        </button>
       </div>
     </nav>
   )

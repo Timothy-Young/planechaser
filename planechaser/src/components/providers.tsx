@@ -27,6 +27,18 @@ function AuthSync() {
   return null
 }
 
+function ThemeSync() {
+  const theme = useAppStore((s) => s.theme)
+
+  useEffect(() => {
+    const root = document.documentElement
+    root.classList.remove('dark', 'light')
+    root.classList.add(theme)
+  }, [theme])
+
+  return null
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -42,6 +54,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthSync />
+      <ThemeSync />
       {children}
     </QueryClientProvider>
   )

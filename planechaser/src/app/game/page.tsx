@@ -4,7 +4,7 @@ import { useEffect, useCallback, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Volume2, VolumeX, Music, Home, Sun, Moon } from 'lucide-react'
+import { Volume2, VolumeX, Music, Home, Sun, Moon, Trees } from 'lucide-react'
 import { gameReducer } from '@/lib/game/engine'
 import { loadGameState, saveGameState, clearGameState } from '@/lib/game/session-storage'
 import { PlaneCard } from '@/components/plane-card'
@@ -18,6 +18,7 @@ import { useUserAchievements, useGrantAchievements } from '@/hooks/useAchievemen
 import { evaluateAchievements } from '@/lib/achievements/evaluator'
 import { AchievementToast } from '@/components/achievement-toast'
 import { audioManager } from '@/lib/audio/audio-manager'
+import { getPlaneEnvironment, AMBIENT_URLS } from '@/lib/game/plane-environments'
 import { useAppStore } from '@/store/app-store'
 import type { GameState, DieResult } from '@/lib/game/types'
 
@@ -32,6 +33,7 @@ export default function GamePage() {
   const [newBadges, setNewBadges] = useState<string[]>([])
   const [musicOn, setMusicOn] = useState(false)
   const [sfxOn, setSfxOn] = useState(true)
+  const [ambientOn, setAmbientOn] = useState(true)
   const recordSession = useRecordGameSession()
   const grantAchievements = useGrantAchievements()
   const { data: userStats } = useUserStats()
@@ -45,6 +47,7 @@ export default function GamePage() {
     audioManager.init()
     setMusicOn(audioManager.musicEnabled)
     setSfxOn(audioManager.sfxEnabled)
+    setAmbientOn(audioManager.ambientEnabled)
   }, [])
 
   useEffect(() => {
@@ -60,6 +63,15 @@ export default function GamePage() {
   useEffect(() => {
     if (state) saveGameState(state)
   }, [state])
+
+  useEffect(() => {
+    if (!state) return
+    const plane = state.deck[state.currentPlaneIndex]
+    if (!plane) return
+    const env = getPlaneEnvironment(plane.name)
+    const url = AMBIENT_URLS[env]
+    audioManager.playAmbient(url)
+  }, [state?.currentPlaneIndex])
 
   const handleRoll = useCallback((result: DieResult) => {
     setState((prev) => {
@@ -133,7 +145,7 @@ export default function GamePage() {
         }
       }
     }
-    audioManager.stopMusic()
+    audioManager.stopAll()
     clearGameState()
     router.push('/setup')
   }, [router, state, user, activePodId, recordSession, userStats, earnedAchievements, grantAchievements])
@@ -164,6 +176,11 @@ export default function GamePage() {
   const toggleSfx = useCallback(() => {
     audioManager.toggleSFX()
     setSfxOn(audioManager.sfxEnabled)
+  }, [])
+
+  const toggleAmbient = useCallback(() => {
+    audioManager.toggleAmbient()
+    setAmbientOn(audioManager.ambientEnabled)
   }, [])
 
   const visitedBreadcrumb = useMemo(() => {
@@ -278,6 +295,9 @@ export default function GamePage() {
           </button>
           <button onClick={toggleMusic} className={`p-1.5 rounded-lg hover:bg-white/5 transition-colors ${musicOn ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)] opacity-40'}`}>
             <Music size={16} />
+          </button>
+          <button onClick={toggleAmbient} className={`p-1.5 rounded-lg hover:bg-white/5 transition-colors ${ambientOn ? 'text-green-400' : 'text-[var(--color-text-muted)] opacity-40'}`}>
+            <Trees size={16} />
           </button>
           <button onClick={toggleTheme} className="p-1.5 rounded-lg hover:bg-white/5 transition-colors text-[var(--color-text-muted)]">
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}

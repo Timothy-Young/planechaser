@@ -27,18 +27,24 @@ const MUSIC_URL = 'https://cdn.freesound.org/previews/649/649132_12946258-lq.mp3
 
 class AudioManager {
   private music: HTMLAudioElement | null = null
+  private ambient: HTMLAudioElement | null = null
+  private currentAmbientUrl: string | null = null
   private _sfxEnabled = true
   private _musicEnabled = false
+  private _ambientEnabled = true
   private _musicVolume = 0.3
   private _sfxVolume = 0.5
+  private _ambientVolume = 0.25
   private _baseMusicVolume = 0.3
   private initialized = false
   private duckTimeout: ReturnType<typeof setTimeout> | null = null
 
   get sfxEnabled() { return this._sfxEnabled }
   get musicEnabled() { return this._musicEnabled }
+  get ambientEnabled() { return this._ambientEnabled }
   get musicVolume() { return this._musicVolume }
   get sfxVolume() { return this._sfxVolume }
+  get ambientVolume() { return this._ambientVolume }
 
   init() {
     if (this.initialized) return
@@ -49,13 +55,18 @@ class AudioManager {
     const savedMusicVol = localStorage.getItem('pc_music_vol')
     const savedSfxVol = localStorage.getItem('pc_sfx_vol')
 
+    const savedAmbient = localStorage.getItem('pc_ambient')
+    const savedAmbientVol = localStorage.getItem('pc_ambient_vol')
+
     if (savedSfx !== null) this._sfxEnabled = savedSfx === 'true'
     if (savedMusic !== null) this._musicEnabled = savedMusic === 'true'
+    if (savedAmbient !== null) this._ambientEnabled = savedAmbient === 'true'
     if (savedMusicVol !== null) {
       this._musicVolume = parseFloat(savedMusicVol)
       this._baseMusicVolume = this._musicVolume
     }
     if (savedSfxVol !== null) this._sfxVolume = parseFloat(savedSfxVol)
+    if (savedAmbientVol !== null) this._ambientVolume = parseFloat(savedAmbientVol)
   }
 
   playSFX(key: SFXKey, volumeMultiplier = 1) {
@@ -166,6 +177,64 @@ class AudioManager {
     if (this.music) {
       this.music.pause()
     }
+  }
+
+  toggleAmbient(enabled?: boolean) {
+    this._ambientEnabled = enabled ?? !this._ambientEnabled
+    localStorage.setItem('pc_ambient', String(this._ambientEnabled))
+
+    if (!this._ambientEnabled) {
+      this.stopAmbient()
+    }
+  }
+
+  setAmbientVolume(vol: number) {
+    this._ambientVolume = vol
+    localStorage.setItem('pc_ambient_vol', String(vol))
+    if (this.ambient) this.ambient.volume = vol
+  }
+
+  playAmbient(url: string) {
+    if (!this._ambientEnabled) return
+
+    if (this.currentAmbientUrl === url && this.ambient) {
+      this.ambient.play().catch(() => {})
+      return
+    }
+
+    this.stopAmbient()
+    this.currentAmbientUrl = url
+
+    this.ambient = new Audio(url)
+    this.ambient.loop = true
+    this.ambient.volume = 0
+    this.ambient.play().catch(() => {})
+
+    const targetVol = this._ambientVolume
+    let step = 0
+    const steps = 30
+    const interval = setInterval(() => {
+      step++
+      if (!this.ambient || step >= steps) {
+        if (this.ambient) this.ambient.volume = targetVol
+        clearInterval(interval)
+        return
+      }
+      this.ambient.volume = targetVol * (step / steps)
+    }, 50)
+  }
+
+  stopAmbient() {
+    if (this.ambient) {
+      this.ambient.pause()
+      this.ambient = null
+      this.currentAmbientUrl = null
+    }
+  }
+
+  stopAll() {
+    this.stopMusic()
+    this.stopAmbient()
   }
 }
 

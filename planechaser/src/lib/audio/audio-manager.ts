@@ -99,7 +99,7 @@ class AudioManager {
     if (savedAmbientVol !== null) this._ambientVolume = parseFloat(savedAmbientVol)
   }
 
-  playSFX(key: SFXKey, volumeMultiplier = 1) {
+  playSFX(key: SFXKey, volumeMultiplier = 1, maxDurationMs?: number) {
     if (!this._sfxEnabled) return
 
     const url = SFX_URLS[key]
@@ -107,8 +107,21 @@ class AudioManager {
 
     try {
       const audio = new Audio(url)
-      audio.volume = Math.min(1, this._sfxVolume * volumeMultiplier)
+      const vol = Math.min(1, this._sfxVolume * volumeMultiplier)
+      audio.volume = vol
       audio.play().catch(() => {})
+
+      if (maxDurationMs) {
+        const fadeStart = maxDurationMs - 300
+        setTimeout(() => {
+          let step = 0
+          const interval = setInterval(() => {
+            step++
+            if (step >= 10 || audio.paused) { audio.pause(); clearInterval(interval); return }
+            audio.volume = Math.max(0, vol * (1 - step / 10))
+          }, 30)
+        }, Math.max(0, fadeStart))
+      }
     } catch {}
   }
 

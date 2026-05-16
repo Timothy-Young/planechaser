@@ -34,7 +34,7 @@ export function DieRoller({ rollCount, onRoll, disabled }: DieRollerProps) {
 
     setRolling(true)
     setSettled(false)
-    audioManager.playSFX('dieRoll')
+    audioManager.playSFX('dieRoll', 1, 1500)
 
     const finalResult = rollPlanarDie()
 

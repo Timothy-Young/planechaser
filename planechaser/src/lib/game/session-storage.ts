@@ -35,3 +35,29 @@ export function hasActiveGame(): boolean {
     return false
   }
 }
+
+const SESSION_ID_KEY = 'planechaser_active_session_id'
+
+export function saveActiveSessionId(sessionId: string): void {
+  try {
+    sessionStorage.setItem(SESSION_ID_KEY, sessionId)
+  } catch {
+    // Ignore
+  }
+}
+
+export function loadActiveSessionId(): string | null {
+  try {
+    return sessionStorage.getItem(SESSION_ID_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function clearActiveSessionId(): void {
+  try {
+    sessionStorage.removeItem(SESSION_ID_KEY)
+  } catch {
+    // Ignore
+  }
+}

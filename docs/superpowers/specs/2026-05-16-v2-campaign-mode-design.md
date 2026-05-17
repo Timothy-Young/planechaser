@@ -12,9 +12,9 @@ PlaneChaser v2 transforms the app from a single-device Planechase game into a mu
 
 | Term | Definition |
 |------|-----------|
-| **Owned plane** | A plane in a player's collection that they can include in decks. All players start with 10 random owned planes. Owned does NOT mean conquered. |
-| **Conquered plane** | A plane won by winning a game while on that plane. Conquered planes are also owned. Conquered planes are skipped in future games. |
-| **Unowned plane** | A plane in the default Scryfall corpus that no one in the pod has claimed. Available to anyone's deck. |
+| **Owned plane** | A plane in a player's collection that they can include in decks. ALL cards a player can build with are owned. Players start with 10 random owned planes. |
+| **Conquered (status)** | A provenance indicator on an owned card showing HOW it was acquired — by winning a game on that plane. Displays a "Conquered from: {player_name}" chip when taken from another player, or "Conquered" when claimed from the unowned pool. Conquered cards are still owned cards; "conquered" is metadata, not a separate category. |
+| **Unowned plane** | A plane in the default Scryfall corpus that no player in the pod currently owns. Available to be added to anyone's deck and conquerable. |
 | **Host** | The player whose device runs the game. All game actions happen on this device. |
 | **Spectator** | A joined player viewing the game from their own device. Read-only. |
 | **Session code** | 6-char alphanumeric code to join an active game session (ephemeral). |
@@ -269,14 +269,21 @@ Winning games conquers planes. Conquered planes are visually claimed and skipped
 | CQ-07 | Basic stats: games played, win rate, total planes conquered |
 | CQ-08 | Planar Dominion: top achievement is conquering all 185 planes |
 
+### Conquest Data Model
+
+The `conquered_planes` table gains a `conquered_from_user_id` column:
+- NULL = conquered from the unowned pool (displays "Conquered" chip)
+- UUID = conquered/stolen from another player (displays "Conquered from: {name}" chip)
+
 ### Conquest Flow
 
 1. Host taps "End Game"
 2. Dialog: "Who won this game?" -> list of players in turn order
 3. Host selects winner
 4. Confirmation: "Award [Plane Name] to [Player Name]?"
-5. On confirm: INSERT into `conquered_planes` with plane_scryfall_id, user_id, pod_id
+5. On confirm: INSERT into `conquered_planes` with plane_scryfall_id, user_id, pod_id, conquered_from_user_id
 6. UI shows conquest animation/celebration
+7. Card displays "Conquered" or "Conquered from: {name}" chip based on provenance
 
 ### Conquered Plane Skip Logic
 

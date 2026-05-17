@@ -102,7 +102,7 @@ export default function SpectatePage() {
         {currentPlane && (
           <div className="relative aspect-[5/7] rounded-xl overflow-hidden">
             <Image
-              src={currentPlane.image_uris.normal}
+              src={currentPlane.image_uris.border_crop}
               alt={currentPlane.name}
               fill
               className="object-contain"

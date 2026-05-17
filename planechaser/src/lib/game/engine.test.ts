@@ -10,10 +10,13 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
       id: `plane-${i}`,
       name: `Plane ${i}`,
       type_line: 'Plane — Test',
+      card_type: 'plane' as const,
       oracle_text: 'Test text',
       image_uris: { normal: `https://example.com/${i}.jpg`, large: `https://example.com/${i}.jpg`, art_crop: `https://example.com/${i}.jpg`, border_crop: `https://example.com/${i}.jpg`, small: `https://example.com/${i}.jpg`, png: `https://example.com/${i}.png` },
       set_name: 'Test Set',
       set: 'tst',
+      chaos_effect_type: 'standard' as const,
+      chaos_effect_config: null,
     })),
     currentPlaneIndex: 0,
     dieState: 'idle',
@@ -29,6 +32,8 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     turnHistory: [],
     stateHistory: [],
     showChaosOverlay: false,
+    revealState: null,
+    phenomenonActive: false,
     ...overrides,
   }
 }
@@ -231,5 +236,56 @@ describe('ROLL_DIE chaos overlay', () => {
     const state = makeState()
     const result = gameReducer(state, { type: 'ROLL_DIE', result: 'blank' })
     expect(result.showChaosOverlay).toBe(false)
+  })
+})
+
+describe('phenomenon handling', () => {
+  it('RESOLVE_PHENOMENON advances to next plane and sets phenomenonActive false', () => {
+    const state = makeState({ phenomenonActive: true, currentPlaneIndex: 2 })
+    const result = gameReducer(state, { type: 'RESOLVE_PHENOMENON' })
+    expect(result.currentPlaneIndex).toBe(3)
+    expect(result.phenomenonActive).toBe(false)
+    expect(result.planesVisited).toBe(state.planesVisited + 1)
+  })
+})
+
+describe('reveal chaos actions', () => {
+  it('BEGIN_REVEAL_CHAOS sets revealState', () => {
+    const state = makeState()
+    const revealCards = [state.deck[1], state.deck[2], state.deck[3]]
+    const result = gameReducer(state, {
+      type: 'BEGIN_REVEAL_CHAOS',
+      cards: revealCards,
+      effectType: 'reveal_and_chaos',
+    })
+    expect(result.revealState).toEqual({
+      cards: revealCards,
+      source: 'chaos',
+      effectType: 'reveal_and_chaos',
+      resolved: false,
+    })
+  })
+
+  it('DISMISS_REVEAL clears revealState', () => {
+    const state = makeState({
+      revealState: {
+        cards: [],
+        source: 'chaos',
+        effectType: 'reveal_and_chaos',
+        resolved: false,
+      },
+    })
+    const result = gameReducer(state, { type: 'DISMISS_REVEAL' })
+    expect(result.revealState).toBeNull()
+    expect(result.showChaosOverlay).toBe(false)
+  })
+
+  it('REORDER_BOTTOM moves specified cards to end of deck', () => {
+    const state = makeState()
+    const cardIds = [state.deck[1].id, state.deck[2].id]
+    const result = gameReducer(state, { type: 'REORDER_BOTTOM', cardIds })
+    const deckLength = result.deck.length
+    expect(result.deck[deckLength - 2].id).toBe('plane-1')
+    expect(result.deck[deckLength - 1].id).toBe('plane-2')
   })
 })

@@ -6,8 +6,12 @@ import { motion } from 'framer-motion'
 import { Copy, Check, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PlayerList } from '@/components/player-list'
-import { useSessionPlayers, useUpdateTurnOrder } from '@/hooks/useGameSession'
+import { useSessionPlayers, useUpdateTurnOrder, useStartSession } from '@/hooks/useGameSession'
 import { useAppStore } from '@/store/app-store'
+import { usePlaneCorpus } from '@/hooks/usePlaneCorpus'
+import { shuffleDeck } from '@/lib/game/shuffle'
+import { saveGameState } from '@/lib/game/session-storage'
+import type { GameState, PlaneCard } from '@/lib/game/types'
 
 export default function LobbyPage() {
   const router = useRouter()
@@ -19,6 +23,8 @@ export default function LobbyPage() {
 
   const { data: players } = useSessionPlayers(activeSessionId ?? undefined)
   const updateTurnOrder = useUpdateTurnOrder()
+  const { data: corpus } = usePlaneCorpus()
+  const startSessionMutation = useStartSession()
 
   useEffect(() => {
     if (!activeSessionId) {
@@ -37,13 +43,54 @@ export default function LobbyPage() {
   }
 
   const handleStartGame = () => {
-    if (!players || players.length === 0) return
+    if (!players || players.length === 0 || !corpus || corpus.length === 0) return
+
     const turnOrder = players.map((p) => p.user_id)
+
+    const deck = shuffleDeck(corpus) as PlaneCard[]
+    const playerList = players.map((p) => ({
+      id: p.user_id,
+      display_name: p.profile?.display_name ?? 'Player',
+    }))
+
+    const state: GameState = {
+      id: crypto.randomUUID(),
+      config: { playerCount: players.length, deckSize: deck.length },
+      deck,
+      currentPlaneIndex: 0,
+      dieState: 'idle',
+      lastDieResult: null,
+      rollCountThisTurn: 0,
+      dieRollHistory: [],
+      planesVisited: 1,
+      startedAt: Date.now(),
+      players: playerList,
+      turnOrder,
+      currentTurnIndex: 0,
+      currentTurnRolls: [],
+      turnHistory: [],
+      stateHistory: [],
+      showChaosOverlay: false,
+    }
+
+    saveGameState(state)
+
     if (activeSessionId) {
       updateTurnOrder.mutate(
         { sessionId: activeSessionId, turnOrder },
-        { onSuccess: () => router.push('/setup?fromLobby=true') }
+        {
+          onSuccess: () => {
+            startSessionMutation.mutate({
+              sessionId: activeSessionId,
+              initialState: state,
+              firstPlayerId: turnOrder[0],
+            })
+            router.push('/game')
+          },
+        }
       )
+    } else {
+      router.push('/game')
     }
   }
 
@@ -118,7 +165,7 @@ export default function LobbyPage() {
 
         <Button
           onClick={handleStartGame}
-          disabled={!players || players.length < 2}
+          disabled={!players || players.length < 2 || !corpus || corpus.length === 0}
           className="w-full py-4 text-lg"
         >
           <Play className="w-5 h-5 mr-2" />

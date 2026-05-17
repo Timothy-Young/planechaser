@@ -27,6 +27,8 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     currentTurnIndex: 0,
     currentTurnRolls: [],
     turnHistory: [],
+    stateHistory: [],
+    showChaosOverlay: false,
     ...overrides,
   }
 }
@@ -166,5 +168,68 @@ describe('END_TURN', () => {
     })
     const next = gameReducer(state, { type: 'END_TURN' })
     expect(next.currentTurnRolls).toEqual([])
+  })
+})
+
+describe('UNDO', () => {
+  it('reverts to previous state', () => {
+    const state = makeState({ rollCountThisTurn: 0 })
+    const afterRoll = gameReducer(state, { type: 'ROLL_DIE', result: 'blank' })
+    expect(afterRoll.rollCountThisTurn).toBe(1)
+    expect(afterRoll.stateHistory).toHaveLength(1)
+    const undone = gameReducer(afterRoll, { type: 'UNDO' })
+    expect(undone.rollCountThisTurn).toBe(0)
+    expect(undone.stateHistory).toHaveLength(0)
+  })
+
+  it('does nothing when history is empty', () => {
+    const state = makeState({ stateHistory: [] })
+    const result = gameReducer(state, { type: 'UNDO' })
+    expect(result).toBe(state)
+  })
+
+  it('caps history at 5 entries', () => {
+    let state = makeState()
+    for (let i = 0; i < 7; i++) {
+      state = gameReducer(state, { type: 'ROLL_DIE', result: 'blank' })
+    }
+    expect(state.stateHistory.length).toBeLessThanOrEqual(5)
+  })
+
+  it('preserves stateHistory reference across undo', () => {
+    const state = makeState()
+    const s1 = gameReducer(state, { type: 'ROLL_DIE', result: 'blank' })
+    const s2 = gameReducer(s1, { type: 'ROLL_DIE', result: 'chaos' })
+    const undone = gameReducer(s2, { type: 'UNDO' })
+    expect(undone.rollCountThisTurn).toBe(1)
+    expect(undone.stateHistory).toHaveLength(1)
+  })
+})
+
+describe('DISMISS_CHAOS', () => {
+  it('clears showChaosOverlay', () => {
+    const state = makeState({ showChaosOverlay: true })
+    const result = gameReducer(state, { type: 'DISMISS_CHAOS' })
+    expect(result.showChaosOverlay).toBe(false)
+  })
+
+  it('does not push onto stateHistory', () => {
+    const state = makeState({ showChaosOverlay: true, stateHistory: [] })
+    const result = gameReducer(state, { type: 'DISMISS_CHAOS' })
+    expect(result.stateHistory).toHaveLength(0)
+  })
+})
+
+describe('ROLL_DIE chaos overlay', () => {
+  it('sets showChaosOverlay when result is chaos', () => {
+    const state = makeState()
+    const result = gameReducer(state, { type: 'ROLL_DIE', result: 'chaos' })
+    expect(result.showChaosOverlay).toBe(true)
+  })
+
+  it('does not set showChaosOverlay for blank', () => {
+    const state = makeState()
+    const result = gameReducer(state, { type: 'ROLL_DIE', result: 'blank' })
+    expect(result.showChaosOverlay).toBe(false)
   })
 })

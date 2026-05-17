@@ -14,7 +14,10 @@ export function loadGameState(): GameState | null {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    return JSON.parse(raw) as GameState
+    const saved = JSON.parse(raw) as GameState
+    if (!saved.stateHistory) saved.stateHistory = []
+    if (saved.showChaosOverlay === undefined) saved.showChaosOverlay = false
+    return saved
   } catch {
     return null
   }

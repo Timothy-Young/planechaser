@@ -88,6 +88,8 @@ export default function SetupPage() {
       currentTurnIndex: 0,
       currentTurnRolls: [],
       turnHistory: [],
+      stateHistory: [],
+      showChaosOverlay: false,
     }
 
     saveGameState(state)

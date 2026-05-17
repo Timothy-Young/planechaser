@@ -100,14 +100,18 @@ export default function SpectatePage() {
         />
 
         {currentPlane && (
-          <div className="relative aspect-[5/7] rounded-xl overflow-hidden">
-            <Image
-              src={currentPlane.image_uris.border_crop}
-              alt={currentPlane.name}
-              fill
-              className="object-contain"
-              sizes="(max-width: 768px) 100vw, 400px"
-            />
+          <div className="relative aspect-[7/5] rounded-xl overflow-hidden">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative h-[140%] aspect-[5/7] rotate-90">
+                <Image
+                  src={currentPlane.image_uris.border_crop}
+                  alt={currentPlane.name}
+                  fill
+                  className="object-contain"
+                  sizes="(max-width: 768px) 140vw, 560px"
+                />
+              </div>
+            </div>
           </div>
         )}
 

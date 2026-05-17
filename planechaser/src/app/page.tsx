@@ -111,15 +111,19 @@ export default function Home() {
             <span className="text-[9px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>5/78 · 3 rolls</span>
           </div>
 
-          {/* Mock plane card */}
-          <div className="relative aspect-[5/7] overflow-hidden">
-            <Image
-              src="https://cards.scryfall.io/border_crop/front/d/8/d8da872d-55e0-4596-ba8e-f9ff7b2c0a86.jpg?1680815480"
-              alt="Nyx — Plane of Theros"
-              fill
-              className="object-contain"
-              sizes="360px"
-            />
+          {/* Mock plane card — rotated landscape */}
+          <div className="relative aspect-[7/5] overflow-hidden">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative h-[140%] aspect-[5/7] rotate-90">
+                <Image
+                  src="https://cards.scryfall.io/border_crop/front/d/8/d8da872d-55e0-4596-ba8e-f9ff7b2c0a86.jpg?1680815480"
+                  alt="Nyx — Plane of Theros"
+                  fill
+                  className="object-contain"
+                  sizes="360px"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Mock controls */}

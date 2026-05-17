@@ -27,15 +27,19 @@ export function PlaneCard({ card, direction }: PlaneCardProps) {
           className="w-full flex justify-center cursor-pointer"
           onClick={() => setZoomed(true)}
         >
-          <div className="relative w-full max-w-[440px] aspect-[5/7] rounded-2xl overflow-hidden card-breathe">
-            <Image
-              src={card.image_uris.border_crop}
-              alt={card.name}
-              fill
-              className="object-contain"
-              sizes="(max-width: 480px) 100vw, 440px"
-              priority
-            />
+          <div className="relative w-full max-w-[440px] aspect-[7/5] rounded-2xl overflow-hidden card-breathe">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative h-[140%] aspect-[5/7] rotate-90">
+                <Image
+                  src={card.image_uris.border_crop}
+                  alt={card.name}
+                  fill
+                  className="object-contain"
+                  sizes="(max-width: 480px) 140vw, 616px"
+                  priority
+                />
+              </div>
+            </div>
           </div>
         </motion.div>
       </AnimatePresence>

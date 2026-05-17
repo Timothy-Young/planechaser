@@ -7,9 +7,10 @@ interface CardZoomModalProps {
   src: string | null
   alt: string
   onClose: () => void
+  rotate?: boolean
 }
 
-export function CardZoomModal({ src, alt, onClose }: CardZoomModalProps) {
+export function CardZoomModal({ src, alt, onClose, rotate = true }: CardZoomModalProps) {
   return (
     <AnimatePresence>
       {src && (
@@ -26,16 +27,34 @@ export function CardZoomModal({ src, alt, onClose }: CardZoomModalProps) {
             animate={{ scale: 1 }}
             exit={{ scale: 0.8 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="relative w-full max-w-[360px] aspect-[5/7]"
+            className={rotate
+              ? 'relative w-full max-w-[90vw] aspect-[7/5]'
+              : 'relative w-full max-w-[360px] aspect-[5/7]'
+            }
           >
-            <Image
-              src={src}
-              alt={alt}
-              fill
-              className="object-contain rounded-xl"
-              sizes="360px"
-              priority
-            />
+            {rotate ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="relative h-[140%] aspect-[5/7] rotate-90">
+                  <Image
+                    src={src}
+                    alt={alt}
+                    fill
+                    className="object-contain rounded-xl"
+                    sizes="90vw"
+                    priority
+                  />
+                </div>
+              </div>
+            ) : (
+              <Image
+                src={src}
+                alt={alt}
+                fill
+                className="object-contain rounded-xl"
+                sizes="360px"
+                priority
+              />
+            )}
           </motion.div>
         </motion.div>
       )}

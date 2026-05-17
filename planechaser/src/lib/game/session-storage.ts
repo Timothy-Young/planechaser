@@ -17,6 +17,8 @@ export function loadGameState(): GameState | null {
     const saved = JSON.parse(raw) as GameState
     if (!saved.stateHistory) saved.stateHistory = []
     if (saved.showChaosOverlay === undefined) saved.showChaosOverlay = false
+    if (saved.revealState === undefined) saved.revealState = null
+    if (saved.phenomenonActive === undefined) saved.phenomenonActive = false
     return saved
   } catch {
     return null

@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button'
 import { PlayerList } from '@/components/player-list'
 import { useSessionPlayers, useUpdateTurnOrder, useStartSession } from '@/hooks/useGameSession'
 import { useAppStore } from '@/store/app-store'
-import { usePlaneCorpus } from '@/hooks/usePlaneCorpus'
+import { usePlaneCorpus } from '@/hooks/useCardCorpus'
 import { shuffleDeck } from '@/lib/game/shuffle'
 import { saveGameState } from '@/lib/game/session-storage'
-import type { GameState, PlaneCard } from '@/lib/game/types'
+import type { GameState } from '@/lib/game/types'
 
 export default function LobbyPage() {
   const router = useRouter()
@@ -47,7 +47,7 @@ export default function LobbyPage() {
 
     const turnOrder = players.map((p) => p.user_id)
 
-    const deck = shuffleDeck(corpus) as PlaneCard[]
+    const deck = shuffleDeck(corpus)
     const playerList = players.map((p) => ({
       id: p.user_id,
       display_name: p.profile?.display_name ?? 'Player',
@@ -71,6 +71,8 @@ export default function LobbyPage() {
       turnHistory: [],
       stateHistory: [],
       showChaosOverlay: false,
+      revealState: null,
+      phenomenonActive: false,
     }
 
     saveGameState(state)

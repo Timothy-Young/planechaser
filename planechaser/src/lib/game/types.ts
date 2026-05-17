@@ -1,3 +1,5 @@
+import type { ChaosEffectType } from '@/lib/cards/effect-classifier'
+
 export interface Player {
   id: string
   display_name: string
@@ -12,22 +14,27 @@ export interface DieRoll {
 
 export type DieState = 'idle' | 'rolling' | 'settled'
 
+export interface CardImageUris {
+  normal: string
+  large: string
+  art_crop: string
+  border_crop: string
+  small: string
+  png: string
+}
+
 export interface PlaneCard {
   id: string
   name: string
   type_line: string
+  card_type: 'plane' | 'phenomenon'
   oracle_text: string
   flavor_text?: string
-  image_uris: {
-    normal: string
-    large: string
-    art_crop: string
-    border_crop: string
-    small: string
-    png: string
-  }
+  image_uris: CardImageUris
   set_name: string
   set: string
+  chaos_effect_type: ChaosEffectType
+  chaos_effect_config: Record<string, unknown> | null
 }
 
 export interface SchemeCard {
@@ -36,14 +43,7 @@ export interface SchemeCard {
   type_line: string
   oracle_text: string
   flavor_text?: string
-  image_uris: {
-    normal: string
-    large: string
-    art_crop: string
-    border_crop: string
-    small: string
-    png: string
-  }
+  image_uris: CardImageUris
   set_name: string
   set: string
   isOngoing: boolean
@@ -64,6 +64,13 @@ export interface GameConfig {
   isArchenemy?: boolean
 }
 
+export interface RevealState {
+  cards: PlaneCard[]
+  source: 'chaos' | 'phenomenon'
+  effectType: ChaosEffectType
+  resolved: boolean
+}
+
 export interface GameState {
   id: string
   config: GameConfig
@@ -76,16 +83,15 @@ export interface GameState {
   planesVisited: number
   startedAt: number
   archenemy?: ArchenemyState
-  // Multiplayer turn tracking
   players: Player[]
   turnOrder: string[]
   currentTurnIndex: number
   currentTurnRolls: DieRoll[]
   turnHistory: TurnRecord[]
-  // Undo system
   stateHistory: Omit<GameState, 'stateHistory'>[]
-  // Chaos overlay
   showChaosOverlay: boolean
+  revealState: RevealState | null
+  phenomenonActive: boolean
 }
 
 export type GameAction =
@@ -98,6 +104,10 @@ export type GameAction =
   | { type: 'ABANDON_SCHEME'; schemeId: string }
   | { type: 'UNDO' }
   | { type: 'DISMISS_CHAOS' }
+  | { type: 'RESOLVE_PHENOMENON' }
+  | { type: 'BEGIN_REVEAL_CHAOS'; cards: PlaneCard[]; effectType: ChaosEffectType }
+  | { type: 'DISMISS_REVEAL' }
+  | { type: 'REORDER_BOTTOM'; cardIds: string[] }
 
 export interface TurnRecord {
   playerId: string

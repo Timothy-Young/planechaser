@@ -34,14 +34,23 @@ export function PlayerList({
                 : 'bg-white/5 border border-white/10'}
             `}
           >
-            <div
-              className={`
-                w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
-                ${isCurrentTurn ? 'bg-[var(--color-accent)] text-white' : 'bg-white/10 text-white/60'}
-              `}
-            >
-              {name[0]?.toUpperCase()}
-            </div>
+            {player.profile?.avatar_url ? (
+              <img
+                src={player.profile.avatar_url}
+                alt={name}
+                className={`w-8 h-8 rounded-full ${isCurrentTurn ? 'ring-2 ring-[var(--color-accent)]' : ''}`}
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div
+                className={`
+                  w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
+                  ${isCurrentTurn ? 'bg-[var(--color-accent)] text-white' : 'bg-white/10 text-white/60'}
+                `}
+              >
+                {name[0]?.toUpperCase()}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p
                 className="text-sm font-medium text-white truncate"

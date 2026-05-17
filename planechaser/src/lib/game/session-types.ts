@@ -24,6 +24,7 @@ export interface SessionPlayer {
   deck_id: string | null
   profile?: {
     display_name: string
+    avatar_url?: string | null
   }
 }
 

@@ -58,12 +58,8 @@ CREATE POLICY "Session players viewable by session participants"
   ON game_session_players FOR SELECT TO authenticated
   USING (
     session_id IN (
-      SELECT id FROM active_game_sessions
-      WHERE host_user_id = auth.uid()
-    )
-    OR session_id IN (
-      SELECT session_id FROM game_session_players
-      WHERE user_id = auth.uid()
+      SELECT gsp.session_id FROM game_session_players gsp
+      WHERE gsp.user_id = auth.uid()
     )
   );
 

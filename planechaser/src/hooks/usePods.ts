@@ -14,6 +14,8 @@ import {
   stealConqueredPlane,
   recordGameSession,
   getPlaneVisitHistory,
+  getUserProfile,
+  updateUserProfile,
 } from '@/lib/pods/queries'
 import { useAppStore } from '@/store/app-store'
 
@@ -141,5 +143,24 @@ export function usePlaneVisitHistory() {
     queryKey: ['visit-history', user?.id],
     queryFn: () => getPlaneVisitHistory(user!.id),
     enabled: !!user,
+  })
+}
+
+export function useUserProfile() {
+  const user = useAppStore((s) => s.user)
+  return useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: () => getUserProfile(user!.id),
+    enabled: !!user,
+  })
+}
+
+export function useUpdateProfile() {
+  const user = useAppStore((s) => s.user)
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (updates: { display_name?: string; avatar_url?: string }) =>
+      updateUserProfile(user!.id, updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['profile'] }),
   })
 }

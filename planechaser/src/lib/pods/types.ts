@@ -14,6 +14,7 @@ export interface PodMember {
   joined_at: string
   profile?: {
     display_name: string
+    avatar_url?: string | null
   }
 }
 

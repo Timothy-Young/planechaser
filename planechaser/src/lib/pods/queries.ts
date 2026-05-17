@@ -76,17 +76,20 @@ export async function getPodMembers(podId: string): Promise<PodMember[]> {
 
   const { data: profiles } = await supabase()
     .from('profiles')
-    .select('id, display_name')
+    .select('id, display_name, avatar_url')
     .in('id', userIds)
 
   const profileMap = new Map(
-    (profiles ?? []).map((p: Record<string, unknown>) => [p.id as string, p.display_name as string])
+    (profiles ?? []).map((p: Record<string, unknown>) => [
+      p.id as string,
+      { display_name: p.display_name as string, avatar_url: p.avatar_url as string | null },
+    ])
   )
 
-  return (data ?? []).map((row: Record<string, unknown>) => ({
-    ...row,
-    profile: { display_name: profileMap.get(row.user_id as string) ?? 'Unknown' },
-  })) as PodMember[]
+  return (data ?? []).map((row) => ({
+    ...(row as unknown as PodMember),
+    profile: profileMap.get(row.user_id as string) ?? { display_name: 'Unknown', avatar_url: null },
+  }))
 }
 
 // --- Conquest ---
@@ -133,10 +136,21 @@ export async function getUserConquests(userId: string, podId?: string): Promise<
 export async function getPodLeaderboard(podId: string, threshold: number): Promise<LeaderboardEntry[]> {
   const { data: members, error: membersError } = await supabase()
     .from('pod_members')
-    .select('user_id, profiles(display_name)')
+    .select('user_id')
     .eq('pod_id', podId)
 
   if (membersError) throw membersError
+
+  const userIds = (members ?? []).map((m: Record<string, unknown>) => m.user_id as string)
+
+  const { data: profiles } = await supabase()
+    .from('profiles')
+    .select('id, display_name')
+    .in('id', userIds)
+
+  const profileMap = new Map(
+    (profiles ?? []).map((p: Record<string, unknown>) => [p.id as string, p.display_name as string])
+  )
 
   const { data: conquests, error: conquestsError } = await supabase()
     .from('conquered_planes')
@@ -150,13 +164,12 @@ export async function getPodLeaderboard(podId: string, threshold: number): Promi
     counts.set(c.user_id, (counts.get(c.user_id) ?? 0) + 1)
   }
 
-  return (members ?? [])
-    .map((m: Record<string, unknown>) => {
-      const count = counts.get(m.user_id as string) ?? 0
-      const profile = m.profiles as { display_name: string } | null
+  return userIds
+    .map((userId) => {
+      const count = counts.get(userId) ?? 0
       return {
-        user_id: m.user_id as string,
-        display_name: profile?.display_name ?? 'Unknown',
+        user_id: userId,
+        display_name: profileMap.get(userId) ?? 'Unknown',
         conquered_count: count,
         is_archenemy: count >= threshold,
       }
@@ -269,4 +282,36 @@ export async function getPlaneVisitHistory(userId: string) {
     }
   }
   return visits
+}
+
+// --- Profile ---
+
+export interface UserProfile {
+  id: string
+  display_name: string
+  avatar_url: string | null
+  created_at: string
+}
+
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  const { data, error } = await supabase()
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single()
+
+  if (error) return null
+  return data as UserProfile
+}
+
+export async function updateUserProfile(
+  userId: string,
+  updates: { display_name?: string; avatar_url?: string }
+): Promise<void> {
+  const { error } = await supabase()
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+
+  if (error) throw error
 }

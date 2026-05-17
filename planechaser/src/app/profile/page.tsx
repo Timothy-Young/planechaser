@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { LogOut, Trophy, History, Swords, Dice5, MapPin, Crown } from 'lucide-react'
+import { LogOut, Trophy, History, Swords, Dice5, MapPin, Crown, Pencil, Check, X } from 'lucide-react'
 import { useAppStore } from '@/store/app-store'
-import { useUserStats, useUserConquests, useUserPods, usePlaneVisitHistory } from '@/hooks/usePods'
+import { useUserStats, useUserConquests, useUserPods, usePlaneVisitHistory, useUserProfile, useUpdateProfile } from '@/hooks/usePods'
 import { useUserAchievements } from '@/hooks/useAchievements'
 import { AchievementBadge } from '@/components/achievement-badge'
 import { ACHIEVEMENTS } from '@/lib/achievements/definitions'
@@ -33,9 +33,15 @@ export default function ProfilePage() {
   const { data: pods } = useUserPods()
   const { data: visitHistory } = usePlaneVisitHistory()
   const { data: achievements } = useUserAchievements()
+  const { data: profile } = useUserProfile()
+  const updateProfile = useUpdateProfile()
   const [tab, setTab] = useState<ProfileTab>('conquests')
+  const [editingName, setEditingName] = useState(false)
+  const [nameInput, setNameInput] = useState('')
 
   const activePod = pods?.find((p) => p.id === activePodId)
+  const displayName = profile?.display_name ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'Player'
+  const avatarUrl = profile?.avatar_url ?? user?.user_metadata?.avatar_url
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -58,16 +64,74 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center space-y-3"
         >
-          <div className="w-18 h-18 rounded-full bg-gradient-to-br from-[var(--color-accent-deep)] to-[var(--color-accent)] flex items-center justify-center mx-auto glow-purple" style={{ width: 72, height: 72 }}>
-            <span className="text-[28px] text-white font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
-              {user?.email?.[0]?.toUpperCase() ?? '?'}
-            </span>
-          </div>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              className="w-[72px] h-[72px] rounded-full mx-auto ring-2 ring-[var(--color-accent)] ring-offset-2 ring-offset-[var(--color-bg)]"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-[var(--color-accent-deep)] to-[var(--color-accent)] flex items-center justify-center mx-auto glow-purple">
+              <span className="text-[28px] text-white font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
+                {displayName[0]?.toUpperCase() ?? '?'}
+              </span>
+            </div>
+          )}
           <div>
-            <h1 className="text-[22px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-heading)' }}>
-              {user?.user_metadata?.display_name ?? user?.email?.split('@')[0] ?? 'Player'}
-            </h1>
-            <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+            {editingName ? (
+              <div className="flex items-center justify-center gap-2">
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-[16px] text-[var(--color-text)] text-center w-[200px] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                  autoFocus
+                  maxLength={30}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && nameInput.trim()) {
+                      updateProfile.mutate({ display_name: nameInput.trim() })
+                      setEditingName(false)
+                    }
+                    if (e.key === 'Escape') setEditingName(false)
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    if (nameInput.trim()) {
+                      updateProfile.mutate({ display_name: nameInput.trim() })
+                      setEditingName(false)
+                    }
+                  }}
+                  className="p-1.5 rounded-lg bg-[var(--color-accent)] text-white hover:opacity-80"
+                >
+                  <Check size={14} />
+                </button>
+                <button
+                  onClick={() => setEditingName(false)}
+                  className="p-1.5 rounded-lg bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:opacity-80 border border-[var(--color-border)]"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <h1 className="text-[22px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-heading)' }}>
+                  {displayName}
+                </h1>
+                <button
+                  onClick={() => {
+                    setNameInput(displayName)
+                    setEditingName(true)
+                  }}
+                  className="p-1 rounded-lg hover:bg-white/10 text-[var(--color-text-muted)]"
+                >
+                  <Pencil size={14} />
+                </button>
+              </div>
+            )}
+            <p className="text-[12px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
               {user?.email}
             </p>
           </div>

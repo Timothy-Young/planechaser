@@ -73,17 +73,20 @@ export async function getSessionPlayers(sessionId: string): Promise<SessionPlaye
 
   const { data: profiles } = await supabase()
     .from('profiles')
-    .select('id, display_name')
+    .select('id, display_name, avatar_url')
     .in('id', userIds)
 
   const profileMap = new Map(
-    (profiles ?? []).map((p: Record<string, unknown>) => [p.id as string, p.display_name as string])
+    (profiles ?? []).map((p: Record<string, unknown>) => [
+      p.id as string,
+      { display_name: p.display_name as string, avatar_url: p.avatar_url as string | null },
+    ])
   )
 
-  return (data ?? []).map((row: Record<string, unknown>) => ({
-    ...row,
-    profile: { display_name: profileMap.get(row.user_id as string) ?? 'Unknown' },
-  })) as SessionPlayer[]
+  return (data ?? []).map((row) => ({
+    ...(row as unknown as SessionPlayer),
+    profile: profileMap.get(row.user_id as string) ?? { display_name: 'Unknown', avatar_url: null },
+  }))
 }
 
 export async function updateSessionTurnOrder(

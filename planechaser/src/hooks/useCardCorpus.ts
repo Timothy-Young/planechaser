@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { PlaneCard, SchemeCard } from '@/lib/game/types'
 import type { ChaosEffectType } from '@/lib/cards/effect-classifier'
 
-interface CardApiRow {
+export interface CardApiRow {
   id: string
   name: string
   type_line: string

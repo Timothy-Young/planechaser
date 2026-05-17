@@ -83,13 +83,10 @@ export async function getSessionPlayers(sessionId: string): Promise<SessionPlaye
     ])
   )
 
-  return (data ?? []).map((row: Record<string, unknown>) => {
-    const prof = profileMap.get(row.user_id as string)
-    return {
-      ...row,
-      profile: prof ?? { display_name: 'Unknown', avatar_url: null },
-    }
-  }) as SessionPlayer[]
+  return (data ?? []).map((row) => ({
+    ...(row as unknown as SessionPlayer),
+    profile: profileMap.get(row.user_id as string) ?? { display_name: 'Unknown', avatar_url: null },
+  }))
 }
 
 export async function updateSessionTurnOrder(

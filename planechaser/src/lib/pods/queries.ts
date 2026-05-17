@@ -86,13 +86,10 @@ export async function getPodMembers(podId: string): Promise<PodMember[]> {
     ])
   )
 
-  return (data ?? []).map((row: Record<string, unknown>) => {
-    const prof = profileMap.get(row.user_id as string)
-    return {
-      ...row,
-      profile: prof ?? { display_name: 'Unknown', avatar_url: null },
-    }
-  }) as PodMember[]
+  return (data ?? []).map((row) => ({
+    ...(row as unknown as PodMember),
+    profile: profileMap.get(row.user_id as string) ?? { display_name: 'Unknown', avatar_url: null },
+  }))
 }
 
 // --- Conquest ---

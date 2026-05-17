@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -8,12 +8,12 @@ import { usePlaneCorpus, useSchemeCorpus } from '@/hooks/useCardCorpus'
 import { useUserPods, usePodLeaderboard } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
 import { useCreateSession, useStartSession, useSessionPlayers } from '@/hooks/useGameSession'
+import { useUserDecks, useCreateDefaultDeck } from '@/hooks/useDecks'
 import { shuffleDeck } from '@/lib/game/shuffle'
 import { saveGameState, hasActiveGame } from '@/lib/game/session-storage'
 import type { GameState, SchemeCard, ArchenemyState } from '@/lib/game/types'
 
 const PLAYER_OPTIONS = [2, 3, 4, 5, 6]
-const DECK_SIZES = [10, 20, 30, 0]
 
 export default function SetupPage() {
   const router = useRouter()
@@ -32,19 +32,43 @@ export default function SetupPage() {
 
   const archenemy = leaderboard?.find((e) => e.is_archenemy)
 
+  const { data: decks, isLoading: decksLoading } = useUserDecks()
+  const createDefaultDeck = useCreateDefaultDeck()
+  const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null)
+
   const [playerCount, setPlayerCount] = useState(4)
-  const [deckSize, setDeckSize] = useState(0)
   const [resumeAvailable, setResumeAvailable] = useState(false)
+
+  const selectedDeck = decks?.find((d) => d.id === selectedDeckId) ?? decks?.[0]
+
+  const deckCards = useMemo(() => {
+    if (!corpus || !selectedDeck) return null
+    const idSet = new Set(selectedDeck.plane_ids)
+    return corpus.filter((c) => idSet.has(c.id))
+  }, [corpus, selectedDeck])
 
   useEffect(() => {
     setResumeAvailable(hasActiveGame())
   }, [])
 
-  function startGame(archenemyMode = false) {
-    if (!corpus || corpus.length === 0) return
+  useEffect(() => {
+    if (!decksLoading && decks && decks.length === 0 && corpus && corpus.length > 0) {
+      const planeOnlyIds = corpus.filter((c) => c.card_type === 'plane').map((c) => c.id)
+      createDefaultDeck.mutate(planeOnlyIds)
+    }
+  }, [decksLoading, decks, corpus])
 
-    const size = deckSize === 0 ? corpus.length : Math.min(deckSize, corpus.length)
-    const deck = shuffleDeck(corpus).slice(0, size)
+  useEffect(() => {
+    if (decks && decks.length > 0 && !selectedDeckId) {
+      setSelectedDeckId(decks[0].id)
+    }
+  }, [decks, selectedDeckId])
+
+  function startGame(archenemyMode = false) {
+    const cardsToUse = deckCards ?? corpus
+    if (!cardsToUse || cardsToUse.length === 0) return
+
+    const deck = shuffleDeck(cardsToUse)
 
     let archenemyState: ArchenemyState | undefined
     if (archenemyMode && archenemy && schemes && schemes.length > 0) {
@@ -72,7 +96,7 @@ export default function SetupPage() {
 
     const state: GameState = {
       id: crypto.randomUUID(),
-      config: { playerCount, deckSize: size, isArchenemy: archenemyMode },
+      config: { playerCount, deckSize: deck.length, isArchenemy: archenemyMode },
       deck,
       currentPlaneIndex: 0,
       dieState: 'idle',
@@ -217,27 +241,38 @@ export default function SetupPage() {
               </div>
             </div>
 
-            {/* Deck size */}
+            {/* Deck selector */}
             <div className="space-y-3">
               <label className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium" style={{ fontFamily: 'var(--font-heading)' }}>
-                Deck Size
+                Planar Deck
               </label>
-              <div className="grid grid-cols-2 gap-2">
-                {DECK_SIZES.map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setDeckSize(size)}
-                    className={`h-11 rounded-xl text-[13px] font-semibold transition-all ${
-                      deckSize === size
-                        ? 'bg-[var(--color-accent-deep)] text-white glow-purple'
-                        : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
-                    }`}
-                    style={{ fontFamily: 'var(--font-heading)' }}
-                  >
-                    {size === 0 ? `All (${corpus?.length ?? '...'})` : `${size} planes`}
-                  </button>
-                ))}
-              </div>
+              {decksLoading ? (
+                <div className="flex items-center gap-2 py-2">
+                  <div className="w-3 h-3 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>Loading decks...</span>
+                </div>
+              ) : decks && decks.length > 0 ? (
+                <div className="grid grid-cols-1 gap-2">
+                  {decks.map((d) => (
+                    <button
+                      key={d.id}
+                      onClick={() => setSelectedDeckId(d.id)}
+                      className={`h-11 rounded-xl text-[13px] font-semibold px-4 text-left transition-all ${
+                        selectedDeck?.id === d.id
+                          ? 'bg-[var(--color-accent-deep)] text-white glow-purple'
+                          : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
+                      }`}
+                      style={{ fontFamily: 'var(--font-heading)' }}
+                    >
+                      {d.name} ({d.plane_ids.length} cards)
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+                  No decks yet — one will be created automatically.
+                </p>
+              )}
             </div>
 
             {/* Status */}
@@ -258,7 +293,7 @@ export default function SetupPage() {
             {/* Start button */}
             <Button
               onClick={() => startGame(false)}
-              disabled={isLoading || !corpus || corpus.length === 0}
+              disabled={isLoading || !deckCards || deckCards.length === 0}
               className="w-full h-14 text-[17px] bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] hover:opacity-90 text-white transition-all"
               style={{ fontFamily: 'var(--font-heading)', boxShadow: '0 4px 30px rgba(124, 58, 237, 0.4)' }}
             >

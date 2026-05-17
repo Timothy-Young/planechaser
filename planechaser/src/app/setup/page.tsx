@@ -8,6 +8,7 @@ import { usePlaneCorpus } from '@/hooks/usePlaneCorpus'
 import { useSchemeCorpus } from '@/hooks/useSchemeCorpus'
 import { useUserPods, usePodLeaderboard } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
+import { useCreateSession, useStartSession, useSessionPlayers } from '@/hooks/useGameSession'
 import { shuffleDeck } from '@/lib/game/shuffle'
 import { saveGameState, hasActiveGame } from '@/lib/game/session-storage'
 import type { GameState, PlaneCard, SchemeCard, ArchenemyState } from '@/lib/game/types'
@@ -20,6 +21,12 @@ export default function SetupPage() {
   const { data: corpus, isLoading, error } = usePlaneCorpus()
   const { data: schemes } = useSchemeCorpus()
   const activePodId = useAppStore((s) => s.activePodId)
+  const setActiveSessionId = useAppStore((s) => s.setActiveSessionId)
+  const setIsHost = useAppStore((s) => s.setIsHost)
+  const activeSessionId = useAppStore((s) => s.activeSessionId)
+  const createSession = useCreateSession()
+  const startSessionMutation = useStartSession()
+  const { data: sessionPlayers } = useSessionPlayers(activeSessionId ?? undefined)
   const { data: pods } = useUserPods()
   const activePod = pods?.find((p) => p.id === activePodId)
   const { data: leaderboard } = usePodLeaderboard(activePodId ?? undefined, activePod?.archenemy_threshold ?? 5)
@@ -57,6 +64,13 @@ export default function SetupPage() {
       }
     }
 
+    const players = sessionPlayers?.map((sp) => ({
+      id: sp.user_id,
+      display_name: sp.profile?.display_name ?? 'Player',
+    })) ?? [{ id: 'host', display_name: 'Host' }]
+
+    const turnOrder = players.map((p) => p.id)
+
     const state: GameState = {
       id: crypto.randomUUID(),
       config: { playerCount, deckSize: size, isArchenemy: archenemyMode },
@@ -69,14 +83,41 @@ export default function SetupPage() {
       planesVisited: 1,
       startedAt: Date.now(),
       archenemy: archenemyState,
+      players,
+      turnOrder,
+      currentTurnIndex: 0,
+      currentTurnRolls: [],
+      turnHistory: [],
     }
 
     saveGameState(state)
+
+    if (activeSessionId) {
+      startSessionMutation.mutate({
+        sessionId: activeSessionId,
+        initialState: state,
+        firstPlayerId: turnOrder[0],
+      })
+    }
+
     router.push('/game')
   }
 
   function resumeGame() {
     router.push('/game')
+  }
+
+  function handleCreateMultiplayerGame() {
+    createSession.mutate(
+      { podId: activePodId ?? undefined },
+      {
+        onSuccess: (session) => {
+          setActiveSessionId(session.id)
+          setIsHost(true)
+          router.push(`/lobby?code=${session.session_code}`)
+        },
+      }
+    )
   }
 
   return (
@@ -221,6 +262,22 @@ export default function SetupPage() {
               Start Game
             </Button>
           </motion.div>
+
+          {/* Multiplayer button */}
+          <motion.button
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            onClick={handleCreateMultiplayerGame}
+            disabled={createSession.isPending}
+            className="w-full rounded-2xl border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5 p-5 text-center transition-all hover:bg-[var(--color-accent)]/10 cursor-pointer"
+          >
+            <p className="text-[17px] font-semibold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+              {createSession.isPending ? 'Creating...' : 'Create Multiplayer Game'}
+            </p>
+            <p className="text-[12px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+              Get a code for friends to join
+            </p>
+          </motion.button>
         </motion.div>
       </div>
     </main>

@@ -33,7 +33,7 @@ export function EndGameDialog({ currentPlane, onClose, onConfirm }: EndGameDialo
         plane: {
           id: currentPlane.id,
           name: currentPlane.name,
-          image_uri: currentPlane.image_uris.art_crop,
+          image_uri: currentPlane.image_uris.border_crop,
         },
       })
       setConquered(true)

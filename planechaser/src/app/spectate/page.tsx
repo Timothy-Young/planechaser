@@ -9,7 +9,6 @@ import { PlayerList } from '@/components/player-list'
 import { TurnIndicator } from '@/components/turn-indicator'
 import { useSessionPlayers, useSessionSubscription } from '@/hooks/useGameSession'
 import { useAppStore } from '@/store/app-store'
-import { chaosCost } from '@/lib/game/engine'
 import type { GameSession } from '@/lib/game/session-types'
 import type { GameState } from '@/lib/game/types'
 
@@ -85,7 +84,6 @@ export default function SpectatePage() {
   const currentPlane = gameState.deck[gameState.currentPlaneIndex]
   const currentPlayerId = gameState.turnOrder[gameState.currentTurnIndex]
   const currentPlayer = gameState.players.find((p) => p.id === currentPlayerId)
-  const cost = chaosCost(gameState.rollCountThisTurn)
 
   return (
     <main className="min-h-screen flex flex-col bg-[var(--color-bg)] p-4">
@@ -99,13 +97,12 @@ export default function SpectatePage() {
 
         <TurnIndicator
           playerName={currentPlayer?.display_name ?? 'Unknown'}
-          rollCost={cost}
         />
 
         {currentPlane && (
           <div className="relative aspect-[5/7] rounded-xl overflow-hidden">
             <Image
-              src={currentPlane.image_uris.normal}
+              src={currentPlane.image_uris.border_crop}
               alt={currentPlane.name}
               fill
               className="object-contain"

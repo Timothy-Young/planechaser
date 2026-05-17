@@ -5,6 +5,7 @@ import type { DieRoll } from '@/lib/game/types'
 
 interface RollHistoryPopoverProps {
   rolls: DieRoll[]
+  playerName: string
   open: boolean
   onClose: () => void
 }
@@ -15,7 +16,7 @@ const RESULT_DISPLAY: Record<string, { symbol: string; color: string }> = {
   chaos: { symbol: '🌀', color: '#ef4444' },
 }
 
-export function RollHistoryPopover({ rolls, open, onClose }: RollHistoryPopoverProps) {
+export function RollHistoryPopover({ rolls, playerName, open, onClose }: RollHistoryPopoverProps) {
   return (
     <AnimatePresence>
       {open && (
@@ -31,7 +32,7 @@ export function RollHistoryPopover({ rolls, open, onClose }: RollHistoryPopoverP
               className="text-[10px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium mb-2"
               style={{ fontFamily: 'var(--font-heading)' }}
             >
-              This Turn&apos;s Rolls
+              {playerName}&apos;s Rolls
             </p>
             {rolls.length === 0 ? (
               <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>

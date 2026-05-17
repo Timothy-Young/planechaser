@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Volume2, VolumeX, Music, Home, Sun, Moon, Trees } from 'lucide-react'
-import { gameReducer, chaosCost } from '@/lib/game/engine'
+import { gameReducer } from '@/lib/game/engine'
 import { loadGameState, saveGameState, clearGameState } from '@/lib/game/session-storage'
 import { PlaneCard } from '@/components/plane-card'
 import { DieRoller } from '@/components/die-roller'
@@ -370,7 +370,6 @@ export default function GamePage() {
             playerName={
               state.players.find((p) => p.id === state.turnOrder[state.currentTurnIndex])?.display_name ?? 'Player'
             }
-            rollCost={chaosCost(state.rollCountThisTurn)}
           />
         )}
 
@@ -395,6 +394,7 @@ export default function GamePage() {
           <DieRoller
             rollCount={state.rollCountThisTurn}
             currentTurnRolls={state.currentTurnRolls}
+            playerName={state.players.find((p) => p.id === state.turnOrder[state.currentTurnIndex])?.display_name ?? 'Player'}
             onRoll={handleRoll}
             disabled={state.lastDieResult === 'planeswalk' || state.showChaosOverlay}
           />

@@ -112,26 +112,14 @@ export default function Home() {
           </div>
 
           {/* Mock plane card */}
-          <div className="relative aspect-[3/2] overflow-hidden">
+          <div className="relative aspect-[5/7] overflow-hidden">
             <Image
-              src="https://cards.scryfall.io/art_crop/front/d/8/d8da872d-55e0-4596-ba8e-f9ff7b2c0a86.jpg?1680815480"
+              src="https://cards.scryfall.io/border_crop/front/d/8/d8da872d-55e0-4596-ba8e-f9ff7b2c0a86.jpg?1680815480"
               alt="Nyx — Plane of Theros"
               fill
-              className="object-cover"
+              className="object-contain"
               sizes="360px"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-3">
-              <p className="text-[14px] font-bold text-white drop-shadow-lg" style={{ fontFamily: 'var(--font-heading)' }}>Nyx</p>
-              <p className="text-[9px] text-white/60" style={{ fontFamily: 'var(--font-body)' }}>Plane — Theros</p>
-            </div>
-          </div>
-
-          {/* Mock oracle text */}
-          <div className="px-3 py-2 border-t border-[var(--color-border)]">
-            <p className="text-[10px] text-[var(--color-text-muted)] leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
-              As long as you control an enchantment, creatures you control get +1/+1. Whenever chaos ensues, you may put an enchantment card from your hand onto the battlefield.
-            </p>
           </div>
 
           {/* Mock controls */}

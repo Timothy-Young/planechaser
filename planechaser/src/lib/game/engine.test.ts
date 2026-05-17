@@ -68,15 +68,15 @@ describe('chaosCost', () => {
   })
 
   it('second roll costs 1', () => {
-    expect(chaosCost(1)).toBe(0)
+    expect(chaosCost(1)).toBe(1)
   })
 
-  it('third roll costs 1 mana', () => {
-    expect(chaosCost(2)).toBe(1)
+  it('third roll costs 2 mana', () => {
+    expect(chaosCost(2)).toBe(2)
   })
 
   it('escalates with each roll', () => {
-    expect(chaosCost(5)).toBe(4)
+    expect(chaosCost(5)).toBe(5)
   })
 })
 

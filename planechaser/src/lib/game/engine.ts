@@ -9,8 +9,8 @@ export function rollPlanarDie(): DieResult {
 }
 
 export function chaosCost(rollCount: number): number {
-  // First roll is free, each subsequent roll costs 1 more mana
-  return Math.max(0, rollCount - 1)
+  // First roll is free (0 mana), second costs 1, third costs 2, etc.
+  return rollCount
 }
 
 const MAX_UNDO_HISTORY = 5
@@ -138,6 +138,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
   if (action.type === 'DISMISS_CHAOS') {
     return { ...state, showChaosOverlay: false }
+  }
+
+  // PLANESWALK and SETTLE_DIE are automatic consequences, not user actions — skip history
+  if (action.type === 'PLANESWALK' || action.type === 'SETTLE_DIE') {
+    return applyAction(state, action)
   }
 
   // For all other actions: snapshot current state (sans history), cap at MAX_UNDO_HISTORY

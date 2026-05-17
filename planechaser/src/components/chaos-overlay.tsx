@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import type { PlaneCard } from '@/lib/game/types'
 
@@ -9,16 +10,14 @@ interface ChaosOverlayProps {
 }
 
 function extractChaosText(oracleText: string): string {
-  const chaosMarker = oracleText.indexOf('chaos ensues')
-  if (chaosMarker !== -1) {
-    const afterMarker = oracleText.slice(chaosMarker + 'chaos ensues'.length)
-    const cleaned = afterMarker.replace(/^[\s—\-:]+/, '').trim()
-    if (cleaned) return cleaned
-  }
   const lines = oracleText.split('\n')
-  const chaosLine = lines.find((l) => l.toLowerCase().includes('chaos'))
+  const chaosLine = lines.find((l) => l.toLowerCase().includes('chaos ensues'))
   if (chaosLine) {
-    return chaosLine.replace(/.*chaos ensues[\s—\-:]*/i, '').trim() || chaosLine
+    const afterMarker = chaosLine.replace(/.*?[Ww]henever you roll chaos[,.]?\s*/i, '').trim()
+    if (afterMarker) return afterMarker
+    const afterEnsues = chaosLine.replace(/.*chaos ensues[\s—\-:,]*/i, '').trim()
+    if (afterEnsues) return afterEnsues
+    return chaosLine
   }
   return oracleText
 }
@@ -32,36 +31,54 @@ export function ChaosOverlay({ plane, onDismiss }: ChaosOverlayProps) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onDismiss}
-      className="fixed inset-0 z-50 flex items-center justify-center cursor-pointer"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
     >
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
       <motion.div
-        initial={{ scale: 0.8, y: 20 }}
+        initial={{ scale: 0.85, y: 20 }}
         animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.8, y: 20 }}
-        className="relative z-10 max-w-[360px] mx-4 p-8 rounded-2xl border border-red-500/40 bg-red-950/80 backdrop-blur-md text-center space-y-4"
+        exit={{ scale: 0.85, y: 20 }}
+        className="relative z-10 flex flex-col items-center gap-4 mx-4 max-w-[380px]"
       >
-        <motion.span
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-          className="text-[64px] block"
-        >
-          🌀
-        </motion.span>
-        <h2
-          className="text-2xl font-bold text-red-400 tracking-wide"
-          style={{ fontFamily: 'var(--font-heading)' }}
-        >
-          CHAOS!
-        </h2>
+        {/* Card image */}
+        <div className="relative w-full aspect-[488/680] rounded-xl overflow-hidden shadow-2xl border border-red-500/30">
+          <Image
+            src={plane.image_uris.border_crop}
+            alt={plane.name}
+            fill
+            className="object-cover"
+            sizes="380px"
+            priority
+          />
+        </div>
+
+        {/* Chaos text callout */}
+        <div className="w-full rounded-xl border border-red-500/40 bg-red-950/90 backdrop-blur-md p-4 text-center space-y-2">
+          <div className="flex items-center justify-center gap-2">
+            <motion.span
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              className="text-[24px]"
+            >
+              🌀
+            </motion.span>
+            <h2
+              className="text-lg font-bold text-red-400 tracking-wide"
+              style={{ fontFamily: 'var(--font-heading)' }}
+            >
+              Chaos ensues:
+            </h2>
+          </div>
+          <p
+            className="text-[14px] text-white/90 leading-relaxed"
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
+            {chaosText}
+          </p>
+        </div>
+
         <p
-          className="text-[15px] text-white/90 leading-relaxed"
-          style={{ fontFamily: 'var(--font-body)' }}
-        >
-          {chaosText}
-        </p>
-        <p
-          className="text-[11px] text-white/40 mt-4"
+          className="text-[11px] text-white/40"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           Tap anywhere to dismiss

@@ -18,11 +18,12 @@ const FACE_DISPLAY: Record<DieResult, { symbol: string; label: string; color: st
 interface DieRollerProps {
   rollCount: number
   currentTurnRolls: DieRoll[]
+  playerName: string
   onRoll: (result: DieResult) => void
   disabled?: boolean
 }
 
-export function DieRoller({ rollCount, currentTurnRolls, onRoll, disabled }: DieRollerProps) {
+export function DieRoller({ rollCount, currentTurnRolls, playerName, onRoll, disabled }: DieRollerProps) {
   const [rolling, setRolling] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [displayFace, setDisplayFace] = useState<DieResult | null>(null)
@@ -74,38 +75,40 @@ export function DieRoller({ rollCount, currentTurnRolls, onRoll, disabled }: Die
 
   return (
     <div className="relative flex flex-col items-center gap-3">
-      <AnimatePresence mode="wait">
-        {currentFace && (
-          <motion.div
-            key={settled ? 'settled' : 'rolling'}
-            initial={{ scale: 0.6, opacity: 0 }}
-            animate={{
-              scale: settled ? [1, 1.2, 1] : 1,
-              opacity: 1,
-            }}
-            exit={{ scale: 0.6, opacity: 0 }}
-            transition={{ duration: settled ? 0.5 : 0.08 }}
-            className="flex flex-col items-center"
-          >
-            <span
-              className="text-[56px] md:text-[72px] leading-none drop-shadow-lg"
-              style={{ color: currentFace.color, textShadow: currentFace.glow }}
+      <div className="h-[100px] md:h-[120px] flex items-center justify-center">
+        <AnimatePresence mode="wait">
+          {currentFace && (
+            <motion.div
+              key={settled ? 'settled' : 'rolling'}
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{
+                scale: settled ? [1, 1.2, 1] : 1,
+                opacity: 1,
+              }}
+              exit={{ scale: 0.6, opacity: 0 }}
+              transition={{ duration: settled ? 0.5 : 0.08 }}
+              className="flex flex-col items-center"
             >
-              {currentFace.symbol}
-            </span>
-            {settled && (
-              <motion.span
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-[16px] md:text-[20px] font-bold mt-2 tracking-wider"
-                style={{ color: currentFace.color, fontFamily: 'var(--font-heading)', textShadow: currentFace.glow }}
+              <span
+                className="text-[56px] md:text-[72px] leading-none drop-shadow-lg"
+                style={{ color: currentFace.color, textShadow: currentFace.glow }}
               >
-                {currentFace.label}
-              </motion.span>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+                {currentFace.symbol}
+              </span>
+              {settled && (
+                <motion.span
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-[16px] md:text-[20px] font-bold mt-2 tracking-wider"
+                  style={{ color: currentFace.color, fontFamily: 'var(--font-heading)', textShadow: currentFace.glow }}
+                >
+                  {currentFace.label}
+                </motion.span>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       <div className="die-container">
         <motion.button
@@ -144,6 +147,7 @@ export function DieRoller({ rollCount, currentTurnRolls, onRoll, disabled }: Die
 
       <RollHistoryPopover
         rolls={currentTurnRolls}
+        playerName={playerName}
         open={showHistory}
         onClose={() => setShowHistory(false)}
       />

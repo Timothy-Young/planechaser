@@ -22,8 +22,32 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     dieRollHistory: [],
     planesVisited: 1,
     startedAt: Date.now(),
+    players: [],
+    turnOrder: [],
+    currentTurnIndex: 0,
+    currentTurnRolls: [],
+    turnHistory: [],
     ...overrides,
   }
+}
+
+function makeTestState(overrides: Partial<GameState> = {}): GameState {
+  return makeState({
+    rollCountThisTurn: 2,
+    players: [
+      { id: 'p1', display_name: 'Alice' },
+      { id: 'p2', display_name: 'Bob' },
+      { id: 'p3', display_name: 'Charlie' },
+    ],
+    turnOrder: ['p1', 'p2', 'p3'],
+    currentTurnIndex: 0,
+    currentTurnRolls: [
+      { result: 'blank', timestamp: 1000 },
+      { result: 'chaos', timestamp: 2000 },
+    ],
+    turnHistory: [],
+    ...overrides,
+  })
 }
 
 describe('rollPlanarDie', () => {
@@ -91,5 +115,56 @@ describe('gameReducer', () => {
     const state = makeState({ dieState: 'settled' })
     const next = gameReducer(state, { type: 'SETTLE_DIE' })
     expect(next.dieState).toBe('idle')
+  })
+})
+
+describe('END_TURN', () => {
+  it('advances currentTurnIndex to next player', () => {
+    const state = makeTestState({ currentTurnIndex: 0 })
+    const next = gameReducer(state, { type: 'END_TURN' })
+    expect(next.currentTurnIndex).toBe(1)
+  })
+
+  it('wraps around to first player after last', () => {
+    const state = makeTestState({ currentTurnIndex: 2 })
+    const next = gameReducer(state, { type: 'END_TURN' })
+    expect(next.currentTurnIndex).toBe(0)
+  })
+
+  it('resets rollCountThisTurn to 0', () => {
+    const state = makeTestState({ rollCountThisTurn: 3 })
+    const next = gameReducer(state, { type: 'END_TURN' })
+    expect(next.rollCountThisTurn).toBe(0)
+  })
+
+  it('clears lastDieResult and resets dieState', () => {
+    const state = makeTestState({ lastDieResult: 'chaos', dieState: 'settled' })
+    const next = gameReducer(state, { type: 'END_TURN' })
+    expect(next.lastDieResult).toBeNull()
+    expect(next.dieState).toBe('idle')
+  })
+
+  it('saves completed turn to turnHistory', () => {
+    const state = makeTestState({
+      currentTurnRolls: [
+        { result: 'blank', timestamp: 1000 },
+        { result: 'chaos', timestamp: 2000 },
+      ],
+    })
+    const next = gameReducer(state, { type: 'END_TURN' })
+    expect(next.turnHistory).toHaveLength(1)
+    expect(next.turnHistory[0].playerId).toBe('p1')
+    expect(next.turnHistory[0].playerName).toBe('Alice')
+    expect(next.turnHistory[0].rolls).toHaveLength(2)
+    expect(next.turnHistory[0].chaosTriggered).toBe(true)
+    expect(next.turnHistory[0].planeswalked).toBe(false)
+  })
+
+  it('clears currentTurnRolls for next player', () => {
+    const state = makeTestState({
+      currentTurnRolls: [{ result: 'blank', timestamp: 1000 }],
+    })
+    const next = gameReducer(state, { type: 'END_TURN' })
+    expect(next.currentTurnRolls).toEqual([])
   })
 })

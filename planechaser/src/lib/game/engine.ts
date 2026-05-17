@@ -13,7 +13,15 @@ export function chaosCost(rollCount: number): number {
   return Math.max(0, rollCount - 1)
 }
 
-export function gameReducer(state: GameState, action: GameAction): GameState {
+const MAX_UNDO_HISTORY = 5
+
+function stripHistory(state: GameState): Omit<GameState, 'stateHistory'> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { stateHistory: _omitted, ...rest } = state
+  return rest
+}
+
+function applyAction(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'ROLL_DIE': {
       const roll = { result: action.result, timestamp: Date.now() }
@@ -24,6 +32,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         rollCountThisTurn: state.rollCountThisTurn + 1,
         dieRollHistory: [...state.dieRollHistory, roll],
         currentTurnRolls: [...(state.currentTurnRolls ?? []), roll],
+        showChaosOverlay: action.result === 'chaos',
       }
     }
 
@@ -109,5 +118,32 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         },
       }
     }
+
+    // UNDO and DISMISS_CHAOS are handled by gameReducer directly
+    default:
+      return state
   }
+}
+
+export function gameReducer(state: GameState, action: GameAction): GameState {
+  if (action.type === 'UNDO') {
+    if (state.stateHistory.length === 0) return state
+    const previous = state.stateHistory[state.stateHistory.length - 1]
+    const remainingHistory = state.stateHistory.slice(0, -1)
+    return {
+      ...previous,
+      stateHistory: remainingHistory,
+    }
+  }
+
+  if (action.type === 'DISMISS_CHAOS') {
+    return { ...state, showChaosOverlay: false }
+  }
+
+  // For all other actions: snapshot current state (sans history), cap at MAX_UNDO_HISTORY
+  const snapshot = stripHistory(state)
+  const newHistory = [...state.stateHistory, snapshot].slice(-MAX_UNDO_HISTORY)
+
+  const nextState = applyAction({ ...state, stateHistory: newHistory }, action)
+  return nextState
 }

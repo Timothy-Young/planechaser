@@ -82,6 +82,10 @@ export interface GameState {
   currentTurnIndex: number
   currentTurnRolls: DieRoll[]
   turnHistory: TurnRecord[]
+  // Undo system
+  stateHistory: Omit<GameState, 'stateHistory'>[]
+  // Chaos overlay
+  showChaosOverlay: boolean
 }
 
 export type GameAction =
@@ -92,6 +96,8 @@ export type GameAction =
   | { type: 'RESET_TURN' }
   | { type: 'DRAW_SCHEME' }
   | { type: 'ABANDON_SCHEME'; schemeId: string }
+  | { type: 'UNDO' }
+  | { type: 'DISMISS_CHAOS' }
 
 export interface TurnRecord {
   playerId: string

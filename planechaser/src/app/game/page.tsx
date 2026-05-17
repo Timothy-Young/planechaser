@@ -8,6 +8,7 @@ import { Volume2, VolumeX, Music, Home, Sun, Moon, Trees } from 'lucide-react'
 import { gameReducer } from '@/lib/game/engine'
 import { loadGameState, saveGameState, clearGameState } from '@/lib/game/session-storage'
 import { PlaneCard } from '@/components/plane-card'
+import { RevealCardsModal } from '@/components/reveal-cards-modal'
 import { DieRoller } from '@/components/die-roller'
 import { EndGameDialog } from '@/components/end-game-dialog'
 import { ArchenemyEndDialog } from '@/components/archenemy-end-dialog'
@@ -23,7 +24,7 @@ import { AchievementToast } from '@/components/achievement-toast'
 import { audioManager } from '@/lib/audio/audio-manager'
 import { getPlaneEnvironment, AMBIENT_URLS } from '@/lib/game/plane-environments'
 import { useAppStore } from '@/store/app-store'
-import type { GameState, DieResult } from '@/lib/game/types'
+import type { GameState, DieResult, PlaneCard as PlaneCardType } from '@/lib/game/types'
 
 export default function GamePage() {
   const router = useRouter()
@@ -95,6 +96,25 @@ export default function GamePage() {
     audioManager.playAmbient(url)
   }, [state?.currentPlaneIndex])
 
+  useEffect(() => {
+    if (!state?.phenomenonActive) return
+
+    const timer = setTimeout(() => {
+      setSlideDirection('right')
+      setState((prev) => {
+        if (!prev) return prev
+        const next = gameReducer(prev, { type: 'RESOLVE_PHENOMENON' })
+        const landedCard = next.deck[next.currentPlaneIndex]
+        if (landedCard?.card_type === 'phenomenon') {
+          return { ...next, phenomenonActive: true }
+        }
+        return next
+      })
+    }, 3000)
+
+    return () => clearTimeout(timer)
+  }, [state?.phenomenonActive, state?.currentPlaneIndex])
+
   const handleRoll = useCallback((result: DieResult) => {
     setState((prev) => {
       if (!prev) return prev
@@ -107,18 +127,72 @@ export default function GamePage() {
       setTimeout(() => {
         setState((prev) => {
           if (!prev) return prev
+          const next = gameReducer(prev, { type: 'PLANESWALK' })
+          const landedCard = next.deck[next.currentPlaneIndex]
+          if (landedCard?.card_type === 'phenomenon') {
+            return { ...next, phenomenonActive: true }
+          }
+          return next
+        })
+      }, 1200)
+    }
+  }, [])
+
+  const handleSpecialChaos = useCallback((plane: PlaneCardType) => {
+    if (plane.chaos_effect_type === 'reveal_and_chaos') {
+      const revealCount = (plane.chaos_effect_config as { revealCount: number })?.revealCount ?? 3
+      setState((prev) => {
+        if (!prev) return prev
+        const startIdx = (prev.currentPlaneIndex + 1) % prev.deck.length
+        const revealed: PlaneCardType[] = []
+        for (let i = 0; i < revealCount && i < prev.deck.length - 1; i++) {
+          revealed.push(prev.deck[(startIdx + i) % prev.deck.length])
+        }
+        return gameReducer(prev, { type: 'BEGIN_REVEAL_CHAOS', cards: revealed, effectType: 'reveal_and_chaos' })
+      })
+    } else if (plane.chaos_effect_type === 'scry_top') {
+      setState((prev) => {
+        if (!prev) return prev
+        const nextIdx = (prev.currentPlaneIndex + 1) % prev.deck.length
+        const topCard = prev.deck[nextIdx]
+        return gameReducer(prev, { type: 'BEGIN_REVEAL_CHAOS', cards: [topCard], effectType: 'scry_top' })
+      })
+    } else if (plane.chaos_effect_type === 'force_planeswalk') {
+      setSlideDirection('right')
+      setTimeout(() => {
+        setState((prev) => {
+          if (!prev) return prev
           return gameReducer(prev, { type: 'PLANESWALK' })
         })
       }, 1200)
     }
   }, [])
 
+  const handleReorderBottom = useCallback((cardIds: string[]) => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'REORDER_BOTTOM', cardIds })
+    })
+  }, [])
+
+  const handleDismissReveal = useCallback(() => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'DISMISS_REVEAL' })
+    })
+  }, [])
+
   const handleDismissChaos = useCallback(() => {
     setState((prev) => {
       if (!prev) return prev
-      return gameReducer(prev, { type: 'DISMISS_CHAOS' })
+      const plane = prev.deck[prev.currentPlaneIndex]
+      const dismissed = gameReducer(prev, { type: 'DISMISS_CHAOS' })
+      if (plane?.chaos_effect_type && plane.chaos_effect_type !== 'standard') {
+        setTimeout(() => handleSpecialChaos(plane), 300)
+      }
+      return dismissed
     })
-  }, [])
+  }, [handleSpecialChaos])
 
   const handleUndo = useCallback(() => {
     setState((prev) => {
@@ -268,6 +342,39 @@ export default function GamePage() {
       <AnimatePresence>
         {state.showChaosOverlay && currentPlane && (
           <ChaosOverlay plane={currentPlane} onDismiss={handleDismissChaos} />
+        )}
+      </AnimatePresence>
+
+      {/* Phenomenon indicator */}
+      <AnimatePresence>
+        {state.phenomenonActive && currentPlane && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 flex items-end justify-center pb-32 pointer-events-none"
+          >
+            <div className="bg-amber-900/90 backdrop-blur-sm border border-amber-500/40 rounded-xl px-6 py-3 text-center">
+              <p className="text-amber-400 font-bold text-sm" style={{ fontFamily: 'var(--font-heading)' }}>
+                Phenomenon!
+              </p>
+              <p className="text-amber-200/70 text-xs mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+                Planeswalking again in a moment...
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Reveal cards modal */}
+      <AnimatePresence>
+        {state.revealState && !state.revealState.resolved && (
+          <RevealCardsModal
+            cards={state.revealState.cards}
+            effectType={state.revealState.effectType}
+            onDismiss={handleDismissReveal}
+            onReorder={handleReorderBottom}
+          />
         )}
       </AnimatePresence>
 

@@ -15,6 +15,7 @@ import { SchemeCard } from '@/components/scheme-card'
 import { Button } from '@/components/ui/button'
 import { useSyncGameState, useEndSession } from '@/hooks/useGameSession'
 import { TurnIndicator } from '@/components/turn-indicator'
+import { ChaosOverlay } from '@/components/chaos-overlay'
 import { useRecordGameSession, useUserStats } from '@/hooks/usePods'
 import { useUserAchievements, useGrantAchievements } from '@/hooks/useAchievements'
 import { evaluateAchievements } from '@/lib/achievements/evaluator'
@@ -29,7 +30,6 @@ export default function GamePage() {
   const [state, setState] = useState<GameState | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('right')
-  const [showChaos, setShowChaos] = useState(false)
   const [showEndGame, setShowEndGame] = useState(false)
   const [lastDrawnScheme, setLastDrawnScheme] = useState<string | null>(null)
   const [newBadges, setNewBadges] = useState<string[]>([])
@@ -101,11 +101,6 @@ export default function GamePage() {
       return gameReducer(prev, { type: 'ROLL_DIE', result })
     })
 
-    if (result === 'chaos') {
-      setShowChaos(true)
-      setTimeout(() => setShowChaos(false), 2000)
-    }
-
     if (result === 'planeswalk') {
       setSlideDirection('right')
       audioManager.playPlaneswalkLayered()
@@ -116,6 +111,20 @@ export default function GamePage() {
         })
       }, 1200)
     }
+  }, [])
+
+  const handleDismissChaos = useCallback(() => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'DISMISS_CHAOS' })
+    })
+  }, [])
+
+  const handleUndo = useCallback(() => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'UNDO' })
+    })
   }, [])
 
   const handleEndTurn = useCallback(() => {
@@ -255,25 +264,10 @@ export default function GamePage() {
         <AchievementToast achievementKeys={newBadges} onDone={() => setNewBadges([])} />
       )}
 
-      {/* Chaos flash overlay */}
+      {/* Chaos overlay - tap to dismiss */}
       <AnimatePresence>
-        {showChaos && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center"
-          >
-            <div className="absolute inset-0 bg-red-900/20 animate-pulse" />
-            <motion.span
-              initial={{ scale: 0.5, rotate: 0 }}
-              animate={{ scale: 1.5, rotate: 360 }}
-              transition={{ duration: 0.8 }}
-              className="text-[80px]"
-            >
-              🌀
-            </motion.span>
-          </motion.div>
+        {state.showChaosOverlay && currentPlane && (
+          <ChaosOverlay plane={currentPlane} onDismiss={handleDismissChaos} />
         )}
       </AnimatePresence>
 
@@ -402,11 +396,20 @@ export default function GamePage() {
             rollCount={state.rollCountThisTurn}
             currentTurnRolls={state.currentTurnRolls}
             onRoll={handleRoll}
-            disabled={state.lastDieResult === 'planeswalk'}
+            disabled={state.lastDieResult === 'planeswalk' || state.showChaosOverlay}
           />
         </div>
 
         <div className="flex gap-3 w-full max-w-[440px] pb-4">
+          <Button
+            onClick={handleUndo}
+            variant="outline"
+            disabled={state.stateHistory.length === 0}
+            className="h-12 px-4 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10 disabled:opacity-30"
+            style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}
+          >
+            Undo
+          </Button>
           <Button
             onClick={handleEndTurn}
             variant="outline"

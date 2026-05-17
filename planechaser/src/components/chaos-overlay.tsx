@@ -40,16 +40,20 @@ export function ChaosOverlay({ plane, onDismiss }: ChaosOverlayProps) {
         exit={{ scale: 0.85, y: 20 }}
         className="relative z-10 flex flex-col items-center gap-4 mx-4 max-w-[380px]"
       >
-        {/* Card image */}
-        <div className="relative w-full aspect-[488/680] rounded-xl overflow-hidden shadow-2xl border border-red-500/30">
-          <Image
-            src={plane.image_uris.border_crop}
-            alt={plane.name}
-            fill
-            className="object-cover"
-            sizes="380px"
-            priority
-          />
+        {/* Card image — rotated landscape */}
+        <div className="relative w-full aspect-[7/5] rounded-xl overflow-hidden shadow-2xl border border-red-500/30">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative h-[140%] aspect-[5/7] rotate-90">
+              <Image
+                src={plane.image_uris.border_crop}
+                alt={plane.name}
+                fill
+                className="object-contain"
+                sizes="380px"
+                priority
+              />
+            </div>
+          </div>
         </div>
 
         {/* Chaos text callout */}

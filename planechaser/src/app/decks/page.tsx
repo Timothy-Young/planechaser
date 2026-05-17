@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Plus, Trash2, Layers, Star } from 'lucide-react'
@@ -22,6 +22,15 @@ export default function DecksPage() {
   const createDefaultDeck = useCreateDefaultDeck()
   const [newDeckName, setNewDeckName] = useState('')
   const [showCreate, setShowCreate] = useState(false)
+  const [autoCreating, setAutoCreating] = useState(false)
+
+  useEffect(() => {
+    if (!isLoading && user && decks && decks.length === 0 && corpus && !autoCreating && !createDefaultDeck.isPending) {
+      setAutoCreating(true)
+      const planeOnlyIds = corpus.filter((c) => c.card_type === 'plane').map((c) => c.id)
+      createDefaultDeck.mutate(planeOnlyIds)
+    }
+  }, [isLoading, user, decks, corpus, autoCreating, createDefaultDeck])
 
   const hasDecks = decks && decks.length > 0
 

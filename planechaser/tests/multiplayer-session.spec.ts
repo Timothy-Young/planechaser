@@ -33,6 +33,8 @@ describe('Multiplayer session flow', () => {
       turnHistory: [],
       stateHistory: [],
       showChaosOverlay: false,
+      revealState: null,
+      phenomenonActive: false,
     }
 
     const after1 = gameReducer(state, { type: 'END_TURN' })
@@ -70,6 +72,8 @@ describe('Multiplayer session flow', () => {
       turnHistory: [],
       stateHistory: [],
       showChaosOverlay: false,
+      revealState: null,
+      phenomenonActive: false,
     }
 
     const afterRoll = gameReducer(state, { type: 'ROLL_DIE', result: 'blank' })

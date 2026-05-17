@@ -23,7 +23,12 @@ export default function SpectatePage() {
   const handleSessionUpdate = useCallback((session: GameSession) => {
     setSessionStatus(session.status)
     if (session.game_state) {
-      setGameState(session.game_state as unknown as GameState)
+      const gs = session.game_state as unknown as GameState
+      setGameState({
+        ...gs,
+        revealState: gs.revealState ?? null,
+        phenomenonActive: gs.phenomenonActive ?? false,
+      })
     }
   }, [])
 

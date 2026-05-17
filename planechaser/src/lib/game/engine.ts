@@ -1,4 +1,4 @@
-import type { GameState, GameAction, DieResult, TurnRecord } from './types'
+import type { GameState, GameAction, DieResult, TurnRecord, PlaneCard } from './types'
 
 export function rollPlanarDie(): DieResult {
   const roll = Math.random()
@@ -119,6 +119,50 @@ function applyAction(state: GameState, action: GameAction): GameState {
       }
     }
 
+    case 'RESOLVE_PHENOMENON': {
+      const nextIndex = (state.currentPlaneIndex + 1) % state.deck.length
+      return {
+        ...state,
+        currentPlaneIndex: nextIndex,
+        planesVisited: state.planesVisited + 1,
+        phenomenonActive: false,
+      }
+    }
+
+    case 'BEGIN_REVEAL_CHAOS': {
+      return {
+        ...state,
+        revealState: {
+          cards: action.cards,
+          source: 'chaos',
+          effectType: action.effectType,
+          resolved: false,
+        },
+      }
+    }
+
+    case 'DISMISS_REVEAL': {
+      return {
+        ...state,
+        revealState: null,
+        showChaosOverlay: false,
+      }
+    }
+
+    case 'REORDER_BOTTOM': {
+      const reorderedIds = new Set(action.cardIds)
+      const remainingDeck = state.deck.filter((c) => !reorderedIds.has(c.id))
+      const reorderedCards = action.cardIds
+        .map((id) => state.deck.find((c) => c.id === id))
+        .filter((c): c is PlaneCard => c !== undefined)
+
+      return {
+        ...state,
+        deck: [...remainingDeck, ...reorderedCards],
+        revealState: state.revealState ? { ...state.revealState, resolved: true } : null,
+      }
+    }
+
     // UNDO and DISMISS_CHAOS are handled by gameReducer directly
     default:
       return state
@@ -141,7 +185,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   }
 
   // PLANESWALK and SETTLE_DIE are automatic consequences, not user actions — skip history
-  if (action.type === 'PLANESWALK' || action.type === 'SETTLE_DIE') {
+  if (action.type === 'PLANESWALK' || action.type === 'SETTLE_DIE'
+    || action.type === 'RESOLVE_PHENOMENON' || action.type === 'BEGIN_REVEAL_CHAOS'
+    || action.type === 'DISMISS_REVEAL' || action.type === 'REORDER_BOTTOM') {
     return applyAction(state, action)
   }
 

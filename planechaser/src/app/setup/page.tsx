@@ -4,14 +4,13 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { usePlaneCorpus } from '@/hooks/usePlaneCorpus'
-import { useSchemeCorpus } from '@/hooks/useSchemeCorpus'
+import { usePlaneCorpus, useSchemeCorpus } from '@/hooks/useCardCorpus'
 import { useUserPods, usePodLeaderboard } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
 import { useCreateSession, useStartSession, useSessionPlayers } from '@/hooks/useGameSession'
 import { shuffleDeck } from '@/lib/game/shuffle'
 import { saveGameState, hasActiveGame } from '@/lib/game/session-storage'
-import type { GameState, PlaneCard, SchemeCard, ArchenemyState } from '@/lib/game/types'
+import type { GameState, SchemeCard, ArchenemyState } from '@/lib/game/types'
 
 const PLAYER_OPTIONS = [2, 3, 4, 5, 6]
 const DECK_SIZES = [10, 20, 30, 0]
@@ -45,7 +44,7 @@ export default function SetupPage() {
     if (!corpus || corpus.length === 0) return
 
     const size = deckSize === 0 ? corpus.length : Math.min(deckSize, corpus.length)
-    const deck = shuffleDeck(corpus).slice(0, size) as PlaneCard[]
+    const deck = shuffleDeck(corpus).slice(0, size)
 
     let archenemyState: ArchenemyState | undefined
     if (archenemyMode && archenemy && schemes && schemes.length > 0) {
@@ -90,6 +89,8 @@ export default function SetupPage() {
       turnHistory: [],
       stateHistory: [],
       showChaosOverlay: false,
+      revealState: null,
+      phenomenonActive: false,
     }
 
     saveGameState(state)

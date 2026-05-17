@@ -20,6 +20,8 @@ const mockState: GameState = {
   turnHistory: [],
   stateHistory: [],
   showChaosOverlay: false,
+  revealState: null,
+  phenomenonActive: false,
 }
 
 describe('session storage', () => {

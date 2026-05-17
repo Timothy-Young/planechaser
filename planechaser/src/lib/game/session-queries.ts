@@ -63,15 +63,26 @@ export async function joinGameSession(params: JoinSessionParams): Promise<GameSe
 export async function getSessionPlayers(sessionId: string): Promise<SessionPlayer[]> {
   const { data, error } = await supabase()
     .from('game_session_players')
-    .select('*, profiles(display_name)')
+    .select('*')
     .eq('session_id', sessionId)
     .order('joined_at')
 
   if (error) throw error
 
+  const userIds = (data ?? []).map((row: Record<string, unknown>) => row.user_id as string)
+
+  const { data: profiles } = await supabase()
+    .from('profiles')
+    .select('id, display_name')
+    .in('id', userIds)
+
+  const profileMap = new Map(
+    (profiles ?? []).map((p: Record<string, unknown>) => [p.id as string, p.display_name as string])
+  )
+
   return (data ?? []).map((row: Record<string, unknown>) => ({
     ...row,
-    profile: row.profiles as { display_name: string } | undefined,
+    profile: { display_name: profileMap.get(row.user_id as string) ?? 'Unknown' },
   })) as SessionPlayer[]
 }
 

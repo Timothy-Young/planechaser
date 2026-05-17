@@ -67,14 +67,25 @@ export async function getUserPods(userId: string): Promise<Pod[]> {
 export async function getPodMembers(podId: string): Promise<PodMember[]> {
   const { data, error } = await supabase()
     .from('pod_members')
-    .select('*, profiles(display_name)')
+    .select('*')
     .eq('pod_id', podId)
 
   if (error) throw error
 
+  const userIds = (data ?? []).map((row: Record<string, unknown>) => row.user_id as string)
+
+  const { data: profiles } = await supabase()
+    .from('profiles')
+    .select('id, display_name')
+    .in('id', userIds)
+
+  const profileMap = new Map(
+    (profiles ?? []).map((p: Record<string, unknown>) => [p.id as string, p.display_name as string])
+  )
+
   return (data ?? []).map((row: Record<string, unknown>) => ({
     ...row,
-    profile: row.profiles as { display_name: string } | undefined,
+    profile: { display_name: profileMap.get(row.user_id as string) ?? 'Unknown' },
   })) as PodMember[]
 }
 

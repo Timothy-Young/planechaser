@@ -13,6 +13,13 @@ const mockState: GameState = {
   dieRollHistory: [],
   planesVisited: 1,
   startedAt: Date.now(),
+  players: [],
+  turnOrder: [],
+  currentTurnIndex: 0,
+  currentTurnRolls: [],
+  turnHistory: [],
+  stateHistory: [],
+  showChaosOverlay: false,
 }
 
 describe('session storage', () => {

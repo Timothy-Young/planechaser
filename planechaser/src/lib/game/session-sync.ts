@@ -5,8 +5,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 type SessionChangeHandler = (session: GameSession) => void
 type PlayersChangeHandler = () => void
 
-let sessionChannel: RealtimeChannel | null = null
-let playersChannel: RealtimeChannel | null = null
+const activeChannels: Set<RealtimeChannel> = new Set()
 
 export function subscribeToSession(
   sessionId: string,
@@ -14,8 +13,8 @@ export function subscribeToSession(
 ): () => void {
   const client = createClient()
 
-  sessionChannel = client
-    .channel(`session-${sessionId}`)
+  const channel = client
+    .channel(`session-${sessionId}-${Date.now()}`)
     .on(
       'postgres_changes',
       {
@@ -30,9 +29,11 @@ export function subscribeToSession(
     )
     .subscribe()
 
+  activeChannels.add(channel)
+
   return () => {
-    sessionChannel?.unsubscribe()
-    sessionChannel = null
+    channel.unsubscribe()
+    activeChannels.delete(channel)
   }
 }
 
@@ -42,8 +43,8 @@ export function subscribeToSessionPlayers(
 ): () => void {
   const client = createClient()
 
-  playersChannel = client
-    .channel(`session-players-${sessionId}`)
+  const channel = client
+    .channel(`session-players-${sessionId}-${Date.now()}`)
     .on(
       'postgres_changes',
       {
@@ -58,15 +59,17 @@ export function subscribeToSessionPlayers(
     )
     .subscribe()
 
+  activeChannels.add(channel)
+
   return () => {
-    playersChannel?.unsubscribe()
-    playersChannel = null
+    channel.unsubscribe()
+    activeChannels.delete(channel)
   }
 }
 
 export function unsubscribeAll(): void {
-  sessionChannel?.unsubscribe()
-  playersChannel?.unsubscribe()
-  sessionChannel = null
-  playersChannel = null
+  for (const channel of activeChannels) {
+    channel.unsubscribe()
+  }
+  activeChannels.clear()
 }

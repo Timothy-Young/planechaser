@@ -61,7 +61,10 @@ CREATE POLICY "Session players viewable by session participants"
       SELECT id FROM active_game_sessions
       WHERE host_user_id = auth.uid()
     )
-    OR user_id = auth.uid()
+    OR session_id IN (
+      SELECT session_id FROM game_session_players
+      WHERE user_id = auth.uid()
+    )
   );
 
 CREATE POLICY "Users can join sessions"

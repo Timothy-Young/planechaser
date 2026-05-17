@@ -7,5 +7,5 @@ export function generateSessionCode(): string {
 }
 
 export function isValidSessionCode(code: string): boolean {
-  return /^[A-Z0-9]{6}$/.test(code)
+  return /^[A-HJ-NP-Z2-9]{6}$/.test(code)
 }

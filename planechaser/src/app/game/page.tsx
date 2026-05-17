@@ -81,7 +81,7 @@ export default function GamePage() {
         state,
         currentTurnUserId: currentPlayerId,
       })
-    }, 100)
+    }, 300)
 
     return () => clearTimeout(timeout)
   }, [state, activeSessionId, isHost])

@@ -10,6 +10,10 @@ interface AppState {
   setUser: (user: User | null) => void
   activePodId: string | null
   setActivePodId: (podId: string | null) => void
+  activeSessionId: string | null
+  setActiveSessionId: (sessionId: string | null) => void
+  isHost: boolean
+  setIsHost: (isHost: boolean) => void
   theme: Theme
   toggleTheme: () => void
 }
@@ -21,6 +25,10 @@ export const useAppStore = create<AppState>()(
       setUser: (user) => set({ user }),
       activePodId: null,
       setActivePodId: (activePodId) => set({ activePodId }),
+      activeSessionId: null,
+      setActiveSessionId: (activeSessionId) => set({ activeSessionId }),
+      isHost: false,
+      setIsHost: (isHost) => set({ isHost }),
       theme: 'dark' as Theme,
       toggleTheme: () => set({ theme: get().theme === 'dark' ? 'light' : 'dark' }),
     }),

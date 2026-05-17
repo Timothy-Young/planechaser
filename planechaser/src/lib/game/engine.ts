@@ -1,4 +1,4 @@
-import type { GameState, GameAction, DieResult } from './types'
+import type { GameState, GameAction, DieResult, TurnRecord } from './types'
 
 export function rollPlanarDie(): DieResult {
   const roll = Math.random()
@@ -23,6 +23,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         lastDieResult: action.result,
         rollCountThisTurn: state.rollCountThisTurn + 1,
         dieRollHistory: [...state.dieRollHistory, roll],
+        currentTurnRolls: [...(state.currentTurnRolls ?? []), roll],
       }
     }
 
@@ -38,6 +39,32 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         rollCountThisTurn: 0,
         lastDieResult: null,
         dieState: 'idle',
+      }
+    }
+
+    case 'END_TURN': {
+      const currentPlayerId = state.turnOrder[state.currentTurnIndex]
+      const currentPlayer = state.players.find((p) => p.id === currentPlayerId)
+
+      const turnRecord: TurnRecord = {
+        playerId: currentPlayerId ?? 'unknown',
+        playerName: currentPlayer?.display_name ?? 'Unknown',
+        rolls: state.currentTurnRolls,
+        planeswalked: state.currentTurnRolls.some((r) => r.result === 'planeswalk'),
+        chaosTriggered: state.currentTurnRolls.some((r) => r.result === 'chaos'),
+        endedAt: Date.now(),
+      }
+
+      const nextTurnIndex = (state.currentTurnIndex + 1) % state.turnOrder.length
+
+      return {
+        ...state,
+        currentTurnIndex: nextTurnIndex,
+        rollCountThisTurn: 0,
+        lastDieResult: null,
+        dieState: 'idle',
+        currentTurnRolls: [],
+        turnHistory: [...state.turnHistory, turnRecord],
       }
     }
 

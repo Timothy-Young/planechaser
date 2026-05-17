@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Volume2, VolumeX, Music, Home, Sun, Moon, Trees } from 'lucide-react'
-import { gameReducer } from '@/lib/game/engine'
+import { gameReducer, chaosCost } from '@/lib/game/engine'
 import { loadGameState, saveGameState, clearGameState } from '@/lib/game/session-storage'
 import { PlaneCard } from '@/components/plane-card'
 import { DieRoller } from '@/components/die-roller'
@@ -13,6 +13,8 @@ import { EndGameDialog } from '@/components/end-game-dialog'
 import { ArchenemyEndDialog } from '@/components/archenemy-end-dialog'
 import { SchemeCard } from '@/components/scheme-card'
 import { Button } from '@/components/ui/button'
+import { useSyncGameState, useEndSession } from '@/hooks/useGameSession'
+import { TurnIndicator } from '@/components/turn-indicator'
 import { useRecordGameSession, useUserStats } from '@/hooks/usePods'
 import { useUserAchievements, useGrantAchievements } from '@/hooks/useAchievements'
 import { evaluateAchievements } from '@/lib/achievements/evaluator'
@@ -42,6 +44,11 @@ export default function GamePage() {
   const activePodId = useAppStore((s) => s.activePodId)
   const theme = useAppStore((s) => s.theme)
   const toggleTheme = useAppStore((s) => s.toggleTheme)
+  const syncState = useSyncGameState()
+  const endSessionMutation = useEndSession()
+  const activeSessionId = useAppStore((s) => s.activeSessionId)
+  const isHost = useAppStore((s) => s.isHost)
+  const setActiveSessionId = useAppStore((s) => s.setActiveSessionId)
 
   useEffect(() => {
     audioManager.init()
@@ -63,6 +70,21 @@ export default function GamePage() {
   useEffect(() => {
     if (state) saveGameState(state)
   }, [state])
+
+  useEffect(() => {
+    if (!state || !activeSessionId || !isHost) return
+
+    const timeout = setTimeout(() => {
+      const currentPlayerId = state.turnOrder?.[state.currentTurnIndex] ?? ''
+      syncState.mutate({
+        sessionId: activeSessionId,
+        state,
+        currentTurnUserId: currentPlayerId,
+      })
+    }, 300)
+
+    return () => clearTimeout(timeout)
+  }, [state, activeSessionId, isHost])
 
   useEffect(() => {
     if (!state) return
@@ -99,7 +121,7 @@ export default function GamePage() {
   const handleEndTurn = useCallback(() => {
     setState((prev) => {
       if (!prev) return prev
-      return gameReducer(prev, { type: 'RESET_TURN' })
+      return gameReducer(prev, { type: 'END_TURN' })
     })
   }, [])
 
@@ -146,9 +168,13 @@ export default function GamePage() {
       }
     }
     audioManager.stopAll()
+    if (activeSessionId && isHost) {
+      endSessionMutation.mutate(activeSessionId)
+      setActiveSessionId(null)
+    }
     clearGameState()
     router.push('/setup')
-  }, [router, state, user, activePodId, recordSession, userStats, earnedAchievements, grantAchievements])
+  }, [router, state, user, activePodId, activeSessionId, isHost, recordSession, userStats, earnedAchievements, grantAchievements, endSessionMutation, setActiveSessionId])
 
   const handleDrawScheme = useCallback(() => {
     setState((prev) => {
@@ -342,6 +368,16 @@ export default function GamePage() {
           <div className="w-full max-w-[300px]">
             <SchemeCard card={lastScheme} />
           </div>
+        )}
+
+        {/* Turn indicator */}
+        {state.players && state.players.length > 1 && (
+          <TurnIndicator
+            playerName={
+              state.players.find((p) => p.id === state.turnOrder[state.currentTurnIndex])?.display_name ?? 'Player'
+            }
+            rollCost={chaosCost(state.rollCountThisTurn)}
+          />
         )}
 
         {/* Plane card */}

@@ -1,11 +1,12 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
-import { Swords, Users, User, Heart, Sun, Moon } from 'lucide-react'
+import { Swords, Users, User, Heart, Sun, Moon, UserPlus } from 'lucide-react'
 import { useAppStore } from '@/store/app-store'
 
 const NAV_ITEMS = [
   { path: '/setup', label: 'Play', icon: Swords },
+  { path: '/join', label: 'Join', icon: UserPlus },
   { path: '/pods', label: 'Pods', icon: Users },
   { path: '/profile', label: 'Profile', icon: User },
   { path: '/support', label: 'Support', icon: Heart },

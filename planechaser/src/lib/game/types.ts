@@ -76,12 +76,28 @@ export interface GameState {
   planesVisited: number
   startedAt: number
   archenemy?: ArchenemyState
+  // Multiplayer turn tracking
+  players: Player[]
+  turnOrder: string[]
+  currentTurnIndex: number
+  currentTurnRolls: DieRoll[]
+  turnHistory: TurnRecord[]
 }
 
 export type GameAction =
   | { type: 'ROLL_DIE'; result: DieResult }
   | { type: 'SETTLE_DIE' }
   | { type: 'PLANESWALK' }
+  | { type: 'END_TURN' }
   | { type: 'RESET_TURN' }
   | { type: 'DRAW_SCHEME' }
   | { type: 'ABANDON_SCHEME'; schemeId: string }
+
+export interface TurnRecord {
+  playerId: string
+  playerName: string
+  rolls: DieRoll[]
+  planeswalked: boolean
+  chaosTriggered: boolean
+  endedAt: number
+}

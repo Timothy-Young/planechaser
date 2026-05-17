@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { DieResult } from '@/lib/game/types'
+import type { DieResult, DieRoll } from '@/lib/game/types'
+import { RollHistoryPopover } from './roll-history-popover'
 import { rollPlanarDie, chaosCost } from '@/lib/game/engine'
 import { audioManager } from '@/lib/audio/audio-manager'
 
@@ -16,12 +17,14 @@ const FACE_DISPLAY: Record<DieResult, { symbol: string; label: string; color: st
 
 interface DieRollerProps {
   rollCount: number
+  currentTurnRolls: DieRoll[]
   onRoll: (result: DieResult) => void
   disabled?: boolean
 }
 
-export function DieRoller({ rollCount, onRoll, disabled }: DieRollerProps) {
+export function DieRoller({ rollCount, currentTurnRolls, onRoll, disabled }: DieRollerProps) {
   const [rolling, setRolling] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   const [displayFace, setDisplayFace] = useState<DieResult | null>(null)
   const [settled, setSettled] = useState(false)
   const [rotateX, setRotateX] = useState(0)
@@ -70,7 +73,7 @@ export function DieRoller({ rollCount, onRoll, disabled }: DieRollerProps) {
   const currentFace = displayFace ? FACE_DISPLAY[displayFace] : null
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="relative flex flex-col items-center gap-3">
       <AnimatePresence mode="wait">
         {currentFace && (
           <motion.div
@@ -131,9 +134,19 @@ export function DieRoller({ rollCount, onRoll, disabled }: DieRollerProps) {
         </motion.button>
       </div>
 
-      <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+      <button
+        onClick={() => setShowHistory(!showHistory)}
+        className="text-[12px] text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors cursor-pointer"
+        style={{ fontFamily: 'var(--font-body)' }}
+      >
         {cost === 0 ? 'Free roll' : `Cost: ${cost} mana`}
-      </p>
+      </button>
+
+      <RollHistoryPopover
+        rolls={currentTurnRolls}
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+      />
     </div>
   )
 }

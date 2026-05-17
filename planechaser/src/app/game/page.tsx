@@ -400,6 +400,7 @@ export default function GamePage() {
           )}
           <DieRoller
             rollCount={state.rollCountThisTurn}
+            currentTurnRolls={state.currentTurnRolls}
             onRoll={handleRoll}
             disabled={state.lastDieResult === 'planeswalk'}
           />

@@ -390,11 +390,12 @@ export default function GamePage() {
         />
       )}
 
-      {showEndGame && currentPlane && isArchenemy && state.archenemy && (
+      {showEndGame && currentPlane && isArchenemy && state.archenemy && activePodId && (
         <ArchenemyEndDialog
-          currentPlane={currentPlane}
           archenemyId={state.archenemy.archenemyId}
           archenemyName={state.archenemy.archenemyName}
+          players={state.players}
+          podId={activePodId}
           onClose={() => setShowEndGame(false)}
           onConfirm={handleEndGame}
         />

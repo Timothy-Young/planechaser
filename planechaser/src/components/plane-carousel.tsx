@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import Image from 'next/image'
 import useEmblaCarousel from 'embla-carousel-react'
 import { CardZoomModal } from './card-zoom-modal'
 
@@ -47,12 +48,18 @@ export function PlaneCarousel({ slides, emptyMessage }: PlaneCarouselProps) {
                 className="w-full rounded-2xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)]/80 text-left"
               >
                 <div className="relative w-full aspect-[7/5] overflow-hidden">
-                  <img
-                    src={slide.imageUrl}
-                    alt={slide.name}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="relative h-[140%] aspect-[5/7] rotate-90">
+                      <Image
+                        src={slide.imageUrl}
+                        alt={slide.name}
+                        fill
+                        className="object-contain"
+                        sizes="(max-width: 480px) 80vw, 400px"
+                        loading="lazy"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="flex items-end justify-between px-3 py-2">
                   <span className="text-[13px] font-semibold text-[var(--color-text)] truncate" style={{ fontFamily: 'var(--font-heading)' }}>
@@ -70,7 +77,7 @@ export function PlaneCarousel({ slides, emptyMessage }: PlaneCarouselProps) {
         </div>
       </div>
 
-      <CardZoomModal src={zoomSrc} alt={zoomAlt} onClose={() => setZoomSrc(null)} rotate={false} />
+      <CardZoomModal src={zoomSrc} alt={zoomAlt} onClose={() => setZoomSrc(null)} />
     </>
   )
 }

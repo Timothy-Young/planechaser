@@ -29,6 +29,7 @@ export function EndGameDialog({ currentPlane, players, onClose, onConfirm }: End
   const [conqueredFrom, setConqueredFrom] = useState<string | null>(null)
 
   const podId = activePodId ?? pods?.[0]?.id
+  const canConquer = !!user && !!podId
 
   async function handleConfirm() {
     if (!selectedPlayer || !podId) return
@@ -85,7 +86,7 @@ export function EndGameDialog({ currentPlane, players, onClose, onConfirm }: End
       >
         <AnimatePresence mode="wait">
 
-          {/* Step 1: Winner Selection */}
+          {/* Step 1: Winner Selection (or simple end if no pod) */}
           {step === 'select' && (
             <motion.div
               key="select"
@@ -109,39 +110,50 @@ export function EndGameDialog({ currentPlane, players, onClose, onConfirm }: End
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <p
-                  className="text-[12px] font-medium text-[var(--color-text-muted)] uppercase tracking-widest text-center"
-                  style={{ fontFamily: 'var(--font-heading)' }}
-                >
-                  Who won this game?
-                </p>
+              {canConquer && (
                 <div className="space-y-2">
-                  {players.map((player) => {
-                    const isSelected = selectedPlayer?.id === player.id
-                    return (
-                      <motion.button
-                        key={player.id}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() => setSelectedPlayer(player)}
-                        className="w-full h-12 rounded-xl border text-left px-4 transition-colors"
-                        style={{
-                          fontFamily: 'var(--font-body)',
-                          fontSize: '15px',
-                          background: isSelected
-                            ? 'linear-gradient(135deg, var(--color-accent-deep), var(--color-accent))'
-                            : 'var(--color-bg)',
-                          borderColor: isSelected ? 'var(--color-accent)' : 'var(--color-border)',
-                          color: isSelected ? '#fff' : 'var(--color-text)',
-                          boxShadow: isSelected ? '0 4px 20px rgba(124, 58, 237, 0.3)' : 'none',
-                        }}
-                      >
-                        {player.display_name}
-                      </motion.button>
-                    )
-                  })}
+                  <p
+                    className="text-[12px] font-medium text-[var(--color-text-muted)] uppercase tracking-widest text-center"
+                    style={{ fontFamily: 'var(--font-heading)' }}
+                  >
+                    Who won this game?
+                  </p>
+                  <div className="space-y-2">
+                    {players.map((player) => {
+                      const isSelected = selectedPlayer?.id === player.id
+                      return (
+                        <motion.button
+                          key={player.id}
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => setSelectedPlayer(player)}
+                          className="w-full h-12 rounded-xl border text-left px-4 transition-colors"
+                          style={{
+                            fontFamily: 'var(--font-body)',
+                            fontSize: '15px',
+                            background: isSelected
+                              ? 'linear-gradient(135deg, var(--color-accent-deep), var(--color-accent))'
+                              : 'var(--color-bg)',
+                            borderColor: isSelected ? 'var(--color-accent)' : 'var(--color-border)',
+                            color: isSelected ? '#fff' : 'var(--color-text)',
+                            boxShadow: isSelected ? '0 4px 20px rgba(124, 58, 237, 0.3)' : 'none',
+                          }}
+                        >
+                          {player.display_name}
+                        </motion.button>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {!canConquer && (
+                <p
+                  className="text-[12px] text-[var(--color-text-muted)] text-center"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  Join a pod to start conquering planes
+                </p>
+              )}
 
               <div className="flex gap-3 pt-1">
                 <Button
@@ -157,7 +169,7 @@ export function EndGameDialog({ currentPlane, players, onClose, onConfirm }: End
                   className="flex-1 h-11 bg-[var(--color-cta)] hover:opacity-90 text-[var(--color-text)] rounded-xl"
                   style={{ fontFamily: 'var(--font-heading)', fontSize: '14px' }}
                 >
-                  {selectedPlayer ? 'Next' : 'End Without Conquest'}
+                  {selectedPlayer ? 'Next' : 'End Game'}
                 </Button>
               </div>
             </motion.div>

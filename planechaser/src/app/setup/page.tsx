@@ -94,7 +94,7 @@ export default function SetupPage() {
     const playableCards = cardsToUse.filter((card) => !conqueredPlaneIds.has(card.id))
 
     if (playableCards.length === 0) {
-      setDeckError('All planes in this deck are conquered! Add more planes or pick a different deck.')
+      setDeckError('You have conquered every plane in this deck! Build a new deck or add more planes to keep exploring the multiverse.')
       return
     }
 
@@ -411,11 +411,16 @@ export default function SetupPage() {
               </p>
             )}
 
-            {/* Deck error */}
+            {/* All conquered message */}
             {deckError && (
-              <p className="text-[12px] text-[var(--color-destructive)] text-center" style={{ fontFamily: 'var(--font-body)' }}>
-                {deckError}
-              </p>
+              <div className="rounded-xl border border-[var(--color-gold)]/30 bg-[var(--color-gold)]/8 p-4 text-center space-y-1">
+                <p className="text-[14px] font-bold text-[var(--color-gold)]" style={{ fontFamily: 'var(--font-heading)' }}>
+                  Total Domination!
+                </p>
+                <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+                  {deckError}
+                </p>
+              </div>
             )}
 
             {/* Start button */}

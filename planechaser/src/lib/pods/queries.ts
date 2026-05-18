@@ -253,6 +253,24 @@ export async function stealConqueredPlane(
     .eq('id', conquestId)
 }
 
+export async function deleteConqueredPlane(conquestId: string): Promise<void> {
+  const { error } = await supabase()
+    .from('conquered_planes')
+    .delete()
+    .eq('id', conquestId)
+
+  if (error) throw error
+}
+
+export async function updateLastArchenemy(podId: string, userId: string): Promise<void> {
+  const { error } = await supabase()
+    .from('pods')
+    .update({ last_archenemy_user_id: userId })
+    .eq('id', podId)
+
+  if (error) throw error
+}
+
 // --- Game Sessions ---
 
 export async function recordGameSession(params: {

@@ -13,6 +13,8 @@ import {
   getUserConquests,
   getUserStats,
   stealConqueredPlane,
+  deleteConqueredPlane,
+  updateLastArchenemy,
   recordGameSession,
   getGameSessions,
   getGameSession,
@@ -133,6 +135,29 @@ export function useStealPlane() {
       qc.invalidateQueries({ queryKey: ['conquests'] })
       qc.invalidateQueries({ queryKey: ['pod-leaderboard'] })
       qc.invalidateQueries({ queryKey: ['user-stats'] })
+    },
+  })
+}
+
+export function useDeleteConqueredPlane() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (conquestId: string) => deleteConqueredPlane(conquestId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['conquests'] })
+      qc.invalidateQueries({ queryKey: ['pod-leaderboard'] })
+      qc.invalidateQueries({ queryKey: ['user-stats'] })
+    },
+  })
+}
+
+export function useUpdateLastArchenemy() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { podId: string; userId: string }) =>
+      updateLastArchenemy(params.podId, params.userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pods'] })
     },
   })
 }

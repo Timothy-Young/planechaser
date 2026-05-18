@@ -5,6 +5,7 @@ export interface Pod {
   archenemy_threshold: number
   created_by: string
   created_at: string
+  last_archenemy_user_id: string | null
 }
 
 export interface PodMember {

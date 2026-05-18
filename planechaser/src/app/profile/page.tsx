@@ -57,13 +57,14 @@ export default function ProfilePage() {
     if (!conquests || !corpus) return []
     return conquests.map((c) => {
       const card = corpus.find((cr) => cr.id === c.plane_scryfall_id)
+        ?? cardByName.get(c.plane_name)
       return {
         name: c.plane_name,
         imageUrl: card?.image_uris?.border_crop ?? c.plane_image_uri,
         subtitle: `Conquered on ${new Date(c.conquered_at).toLocaleDateString()}`,
       }
     })
-  }, [conquests, corpus])
+  }, [conquests, corpus, cardByName])
 
   const historySlides: PlaneSlide[] = useMemo(() => {
     if (!visitHistory) return []

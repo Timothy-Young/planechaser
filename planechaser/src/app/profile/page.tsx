@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { LogOut, Trophy, History, Swords, Dice5, MapPin, Crown, Pencil, Check, X } from 'lucide-react'
@@ -11,6 +11,7 @@ import { AchievementBadge } from '@/components/achievement-badge'
 import { ACHIEVEMENTS } from '@/lib/achievements/definitions'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
+import { usePlaneCorpus } from '@/hooks/useCardCorpus'
 
 type ProfileTab = 'conquests' | 'history'
 
@@ -36,6 +37,11 @@ export default function ProfilePage() {
   const { data: profile } = useUserProfile()
   const updateProfile = useUpdateProfile()
   const [tab, setTab] = useState<ProfileTab>('conquests')
+  const { data: corpus } = usePlaneCorpus()
+  const cardByName = useMemo(() => {
+    if (!corpus) return new Map<string, (typeof corpus)[number]>()
+    return new Map(corpus.map((c) => [c.name, c]))
+  }, [corpus])
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
 
@@ -144,17 +150,25 @@ export default function ProfilePage() {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-3 gap-2"
         >
-          {STAT_CONFIG.map(({ key, label, icon: Icon, color }) => (
-            <div key={key} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 backdrop-blur-sm p-3 text-center">
-              <Icon size={14} className="mx-auto mb-1 opacity-40" style={{ color }} />
-              <p className="text-[20px] font-bold" style={{ fontFamily: 'var(--font-heading)', color }}>
-                {stats?.[key] ?? 0}
-              </p>
-              <p className="text-[9px] uppercase tracking-wider text-[var(--color-text-muted)] mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
-                {label}
-              </p>
-            </div>
-          ))}
+          {STAT_CONFIG.map(({ key, label, icon: Icon, color }) => {
+            const isClickable = key === 'games_played'
+            const Wrapper = isClickable ? 'button' : 'div'
+            return (
+              <Wrapper
+                key={key}
+                {...(isClickable ? { onClick: () => router.push('/games') } : {})}
+                className={`rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 backdrop-blur-sm p-3 text-center ${isClickable ? 'cursor-pointer hover:border-[var(--color-accent)]/50 transition-colors' : ''}`}
+              >
+                <Icon size={14} className="mx-auto mb-1 opacity-40" style={{ color }} />
+                <p className="text-[20px] font-bold" style={{ fontFamily: 'var(--font-heading)', color }}>
+                  {stats?.[key] ?? 0}
+                </p>
+                <p className={`text-[9px] uppercase tracking-wider text-[var(--color-text-muted)] mt-0.5 ${isClickable ? 'underline decoration-dotted underline-offset-2' : ''}`} style={{ fontFamily: 'var(--font-body)' }}>
+                  {label}
+                </p>
+              </Wrapper>
+            )
+          })}
         </motion.div>
 
         {/* Active pod */}
@@ -226,28 +240,38 @@ export default function ProfilePage() {
         {tab === 'conquests' && (
           <div className="space-y-3">
             {conquests && conquests.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">
-                {conquests.map((c) => (
-                  <div key={c.id} className="rounded-xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)]/60 group">
-                    <div className="relative aspect-[3/2] overflow-hidden">
-                      <img
-                        src={c.plane_image_uri}
-                        alt={c.plane_name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    </div>
-                    <div className="px-2.5 py-2">
-                      <p className="text-[11px] font-semibold text-[var(--color-text)] truncate" style={{ fontFamily: 'var(--font-heading)' }}>
-                        {c.plane_name}
-                      </p>
-                      <p className="text-[9px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-                        {new Date(c.conquered_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+              <div className="grid grid-cols-1 gap-3">
+                {conquests.map((c, i) => {
+                  const card = corpus?.find((cr) => cr.id === c.plane_scryfall_id)
+                  const imageUrl = card?.image_uris?.border_crop ?? c.plane_image_uri
+                  return (
+                    <motion.div
+                      key={c.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="rounded-2xl border border-[var(--color-gold)]/30 bg-[var(--color-surface)]/80 overflow-hidden"
+                    >
+                      <div className="relative w-full aspect-[7/5] overflow-hidden">
+                        <img
+                          src={imageUrl}
+                          alt={c.plane_name}
+                          className="w-full h-full object-cover"
+                          style={{ transform: 'rotate(90deg) scale(1.42)', transformOrigin: 'center center' }}
+                          loading="lazy"
+                        />
+                        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-[var(--color-gold)]/90 text-[10px] font-semibold text-black" style={{ fontFamily: 'var(--font-heading)' }}>
+                          {new Date(c.conquered_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="p-3">
+                        <p className="text-[14px] font-semibold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-heading)' }}>
+                          {c.plane_name}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )
+                })}
               </div>
             ) : (
               <p className="text-center text-[12px] text-[var(--color-text-muted)] py-6" style={{ fontFamily: 'var(--font-body)' }}>
@@ -259,18 +283,34 @@ export default function ProfilePage() {
 
         {/* Visit history tab */}
         {tab === 'history' && (
-          <div className="space-y-1">
+          <div className="space-y-3">
             {visitHistory && visitHistory.length > 0 ? (
-              visitHistory.map((v, i) => (
-                <div key={i} className="flex items-center justify-between rounded-xl bg-[var(--color-surface)]/60 px-4 py-3 border border-[var(--color-border-subtle)]">
-                  <span className="text-[12px] text-[var(--color-text)]" style={{ fontFamily: 'var(--font-body)' }}>
-                    {v.planeName}
-                  </span>
-                  <span className="text-[10px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-                    {new Date(v.sessionDate).toLocaleDateString()}
-                  </span>
-                </div>
-              ))
+              visitHistory.map((v, i) => {
+                const card = cardByName.get(v.planeName)
+                return (
+                  <div key={i} className="rounded-xl bg-[var(--color-surface)]/60 border border-[var(--color-border-subtle)] overflow-hidden">
+                    {card && (
+                      <div className="w-full aspect-[7/5] overflow-hidden">
+                        <img
+                          src={card.image_uris.normal}
+                          alt={card.name}
+                          className="w-full h-full object-cover"
+                          style={{ transform: 'rotate(90deg) scale(1.42)', transformOrigin: 'center center' }}
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <span className="text-[12px] text-[var(--color-text)]" style={{ fontFamily: 'var(--font-body)' }}>
+                        {v.planeName}
+                      </span>
+                      <span className="text-[10px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+                        {new Date(v.sessionDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })
             ) : (
               <p className="text-center text-[12px] text-[var(--color-text-muted)] py-6" style={{ fontFamily: 'var(--font-body)' }}>
                 No visit history yet. Play a game to start tracking!

@@ -101,7 +101,8 @@ export function useConquerPlane() {
       podId: string
       plane: { id: string; name: string; image_uri: string }
       gameSessionId?: string
-    }) => conquerPlane(params.userId, params.podId, params.plane, params.gameSessionId),
+      conqueredFromUserId?: string
+    }) => conquerPlane(params.userId, params.podId, params.plane, params.gameSessionId, params.conqueredFromUserId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['conquests'] })
       qc.invalidateQueries({ queryKey: ['pod-leaderboard'] })

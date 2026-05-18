@@ -27,6 +27,8 @@ export interface ConqueredPlane {
   plane_image_uri: string
   conquered_at: string
   game_session_id: string | null
+  conquered_from_user_id: string | null
+  conquered_from_name?: string  // populated by join, not stored in DB
 }
 
 export interface LeaderboardEntry {

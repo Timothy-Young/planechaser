@@ -100,6 +100,7 @@ export async function conquerPlane(
   podId: string,
   plane: { id: string; name: string; image_uri: string },
   gameSessionId?: string,
+  conqueredFromUserId?: string,
 ): Promise<ConqueredPlane> {
   const { data, error } = await supabase()
     .from('conquered_planes')
@@ -110,6 +111,7 @@ export async function conquerPlane(
       plane_name: plane.name,
       plane_image_uri: plane.image_uri,
       game_session_id: gameSessionId ?? null,
+      conquered_from_user_id: conqueredFromUserId ?? null,
     })
     .select()
     .single()
@@ -129,7 +131,35 @@ export async function getUserConquests(userId: string, podId?: string): Promise<
 
   const { data, error } = await query
   if (error) throw error
-  return (data ?? []) as ConqueredPlane[]
+
+  const conquests = (data ?? []) as ConqueredPlane[]
+
+  // Look up display names for provenance (non-null conquered_from_user_id)
+  const fromUserIds = [
+    ...new Set(
+      conquests
+        .map((c) => c.conquered_from_user_id)
+        .filter((id): id is string => id !== null)
+    ),
+  ]
+
+  if (fromUserIds.length === 0) return conquests
+
+  const { data: profiles } = await supabase()
+    .from('profiles')
+    .select('id, display_name')
+    .in('id', fromUserIds)
+
+  const nameMap = new Map(
+    (profiles ?? []).map((p: Record<string, unknown>) => [p.id as string, p.display_name as string])
+  )
+
+  return conquests.map((c) => ({
+    ...c,
+    conquered_from_name: c.conquered_from_user_id
+      ? (nameMap.get(c.conquered_from_user_id) ?? 'Unknown')
+      : undefined,
+  }))
 }
 
 // --- Leaderboard ---
@@ -202,6 +232,7 @@ export async function stealConqueredPlane(
       plane_name: original.plane_name,
       plane_image_uri: original.plane_image_uri,
       game_session_id: null,
+      conquered_from_user_id: original.user_id,
     })
 
   await supabase()

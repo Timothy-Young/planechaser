@@ -220,6 +220,8 @@ export default function GamePage() {
         dieRollHistory: state.dieRollHistory,
         isArchenemy: !!state.archenemy,
         podId: activePodId ?? undefined,
+        turnLog: state.turnHistory,
+        players: state.players,
       })
 
       if (userStats && earnedAchievements) {

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import type { Pod, PodMember, ConqueredPlane, LeaderboardEntry } from './types'
+import type { TurnRecord } from '@/lib/game/types'
 
 function supabase() {
   return createClient()
@@ -217,6 +218,8 @@ export async function recordGameSession(params: {
   dieRollHistory: { result: string; timestamp: number }[]
   isArchenemy: boolean
   podId?: string
+  turnLog?: TurnRecord[]
+  players?: { id: string; display_name: string }[]
 }) {
   const { error } = await supabase()
     .from('game_sessions')
@@ -226,9 +229,33 @@ export async function recordGameSession(params: {
       die_roll_history: params.dieRollHistory,
       win_condition: params.isArchenemy ? 'archenemy' : 'normal',
       pod_id: params.podId ?? null,
+      turn_log: params.turnLog ?? [],
+      players_snapshot: params.players ?? [],
     })
 
   if (error) throw error
+}
+
+export async function getGameSessions(userId: string) {
+  const { data, error } = await supabase()
+    .from('game_sessions')
+    .select('id, started_at, ended_at, win_condition, planes_visited, die_roll_history, players_snapshot, pod_id')
+    .eq('host_user_id', userId)
+    .order('started_at', { ascending: false })
+
+  if (error) throw error
+  return data ?? []
+}
+
+export async function getGameSession(sessionId: string) {
+  const { data, error } = await supabase()
+    .from('game_sessions')
+    .select('*')
+    .eq('id', sessionId)
+    .single()
+
+  if (error) throw error
+  return data
 }
 
 // --- Stats ---

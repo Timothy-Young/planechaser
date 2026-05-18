@@ -31,6 +31,30 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
   const { data: session, isLoading } = useGameSession(id)
   const { data: corpus } = usePlaneCorpus()
 
+  const turnLog: TurnLogEntry[] = session?.turn_log || []
+  const planesVisited: string[] = session?.planes_visited || []
+  const playersSnapshot: { id: string; name: string }[] = session?.players_snapshot || []
+  const isArchenemy = session?.game_type === 'archenemy'
+
+  const totalRolls = turnLog.reduce((sum, turn) => sum + (turn.rolls?.length || 0), 0)
+
+  const cardByName = useMemo(() => {
+    if (!corpus) return new Map()
+    return new Map(corpus.map((c) => [c.name, c]))
+  }, [corpus])
+
+  const planeSlides: PlaneSlide[] = useMemo(() => {
+    return planesVisited
+      .map((name) => {
+        const card = cardByName.get(name)
+        return {
+          name,
+          imageUrl: card?.image_uris?.border_crop ?? '',
+        }
+      })
+      .filter((s) => s.imageUrl)
+  }, [planesVisited, cardByName])
+
   if (isLoading) {
     return (
       <main className="min-h-screen pb-nav flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
@@ -47,30 +71,6 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
       </main>
     )
   }
-
-  const turnLog: TurnLogEntry[] = session.turn_log || []
-  const planesVisited: string[] = session.planes_visited || []
-  const playersSnapshot: { id: string; name: string }[] = session.players_snapshot || []
-  const isArchenemy = session.game_type === 'archenemy'
-
-  const totalRolls = turnLog.reduce((sum, turn) => sum + (turn.rolls?.length || 0), 0)
-
-  const cardByName = useMemo(() => {
-    if (!corpus) return new Map()
-    return new Map(corpus.map((c) => [c.name, c]))
-  }, [corpus])
-
-  const planeSlides: PlaneSlide[] = useMemo(() => {
-    return planesVisited
-      .map((name) => {
-        const card = cardByName.get(name)
-        return {
-          name,
-          imageUrl: card?.image_uris?.normal ?? '',
-        }
-      })
-      .filter((s) => s.imageUrl)
-  }, [planesVisited, cardByName])
 
   const gameDate = new Date(session.started_at)
   const dateStr = gameDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })

@@ -59,7 +59,7 @@ export default function ProfilePage() {
       const card = corpus.find((cr) => cr.id === c.plane_scryfall_id)
       return {
         name: c.plane_name,
-        imageUrl: card?.image_uris?.normal ?? c.plane_image_uri,
+        imageUrl: card?.image_uris?.border_crop ?? c.plane_image_uri,
         subtitle: `Conquered on ${new Date(c.conquered_at).toLocaleDateString()}`,
       }
     })
@@ -71,7 +71,7 @@ export default function ProfilePage() {
       const card = cardByName.get(v.planeName)
       return {
         name: v.planeName,
-        imageUrl: card?.image_uris?.normal ?? '',
+        imageUrl: card?.image_uris?.border_crop ?? '',
         subtitle: new Date(v.sessionDate).toLocaleDateString(),
       }
     }).filter((s) => s.imageUrl)

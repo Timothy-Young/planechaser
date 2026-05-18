@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useMemo, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { usePlaneCorpus, useSchemeCorpus } from '@/hooks/useCardCorpus'
-import { useUserPods, usePodLeaderboard, useUserConquests } from '@/hooks/usePods'
+import { useUserPods, usePodLeaderboard, useUserConquests, usePodMembers } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
 import { useCreateSession, useStartSession, useSessionPlayers } from '@/hooks/useGameSession'
 import { useUserDecks, useCreateDefaultDeck } from '@/hooks/useDecks'
@@ -18,7 +18,18 @@ const PLAYER_OPTIONS = [2, 3, 4, 5, 6]
 type DeckMode = 'saved' | 'random'
 
 export default function SetupPage() {
+  return (
+    <Suspense>
+      <SetupPageInner />
+    </Suspense>
+  )
+}
+
+function SetupPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const podStartMode = searchParams.get('podStart') === 'true'
+  const podIdFromParam = searchParams.get('podId')
   const { data: corpus, isLoading, error } = usePlaneCorpus()
   const { data: schemes } = useSchemeCorpus()
   const activePodId = useAppStore((s) => s.activePodId)
@@ -32,6 +43,9 @@ export default function SetupPage() {
   const activePod = pods?.find((p) => p.id === activePodId)
   const { data: leaderboard } = usePodLeaderboard(activePodId ?? undefined, activePod?.archenemy_threshold ?? 5)
   const { data: conquests } = useUserConquests()
+  const podStartPodId = podIdFromParam ?? activePodId ?? undefined
+  const { data: podMembers } = usePodMembers(podStartMode ? podStartPodId : undefined)
+  const podStartPod = pods?.find((p) => p.id === podStartPodId)
 
   const archenemy = leaderboard?.find((e) => e.is_archenemy)
 
@@ -117,10 +131,15 @@ export default function SetupPage() {
       }
     }
 
-    const players = sessionPlayers?.map((sp) => ({
-      id: sp.user_id,
-      display_name: sp.profile?.display_name ?? 'Player',
-    })) ?? [{ id: 'host', display_name: 'Host' }]
+    const players = podStartMode && podMembers && podMembers.length > 0
+      ? podMembers.map((m) => ({
+          id: m.user_id,
+          display_name: m.profile?.display_name ?? 'Player',
+        }))
+      : sessionPlayers?.map((sp) => ({
+          id: sp.user_id,
+          display_name: sp.profile?.display_name ?? 'Player',
+        })) ?? [{ id: 'host', display_name: 'Host' }]
 
     const turnOrder = players.map((p) => p.id)
 
@@ -216,6 +235,11 @@ export default function SetupPage() {
             <p className="text-[13px] text-[var(--color-text-muted)] tracking-wide" style={{ fontFamily: 'var(--font-body)' }}>
               New Planechase Session
             </p>
+            {podStartMode && podStartPod && (
+              <p className="text-[12px] text-[var(--color-accent)] font-medium" style={{ fontFamily: 'var(--font-body)' }}>
+                Starting with pod: {podStartPod.name} ({podMembers?.length ?? '…'} players)
+              </p>
+            )}
           </div>
 
           {/* Resume game */}
@@ -434,21 +458,23 @@ export default function SetupPage() {
             </Button>
           </motion.div>
 
-          {/* Multiplayer button */}
-          <motion.button
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            onClick={handleCreateMultiplayerGame}
-            disabled={createSession.isPending}
-            className="w-full rounded-2xl border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5 p-5 text-center transition-all hover:bg-[var(--color-accent)]/10 cursor-pointer"
-          >
-            <p className="text-[17px] font-semibold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
-              {createSession.isPending ? 'Creating...' : 'Create Multiplayer Game'}
-            </p>
-            <p className="text-[12px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
-              Get a code for friends to join
-            </p>
-          </motion.button>
+          {/* Multiplayer button — hidden when starting directly from pod */}
+          {!podStartMode && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              onClick={handleCreateMultiplayerGame}
+              disabled={createSession.isPending}
+              className="w-full rounded-2xl border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5 p-5 text-center transition-all hover:bg-[var(--color-accent)]/10 cursor-pointer"
+            >
+              <p className="text-[17px] font-semibold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+                {createSession.isPending ? 'Creating...' : 'Create Multiplayer Game'}
+              </p>
+              <p className="text-[12px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+                Get a code for friends to join
+              </p>
+            </motion.button>
+          )}
         </motion.div>
       </div>
     </main>

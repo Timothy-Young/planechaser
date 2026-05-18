@@ -3,7 +3,7 @@
 import { use, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Play, LogOut, Crown, Settings } from 'lucide-react'
+import { ArrowLeft, Play, LogOut, Crown, Settings, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePodMembers, usePodLeaderboard, useLeavePod, useUserPods } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
@@ -30,6 +30,12 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
   function handleSetActive() {
     setActivePodId(podId)
     router.push('/setup')
+  }
+
+  function handleStartWithPod() {
+    if (!pod) return
+    setActivePodId(podId)
+    router.push(`/setup?podStart=true&podId=${podId}`)
   }
 
   const isOwner = pod?.created_by === user?.id
@@ -148,15 +154,35 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3">
-          <Button onClick={handleSetActive} className="flex-1 h-12 bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] hover:opacity-90 text-white rounded-xl" style={{ fontFamily: 'var(--font-heading)', fontSize: '14px', boxShadow: '0 4px 20px rgba(124, 58, 237, 0.3)' }}>
-            <Play size={16} className="mr-1.5" /> Play in this Pod
+        <div className="space-y-2">
+          <Button
+            onClick={handleStartWithPod}
+            disabled={!pod}
+            className="w-full h-12 bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] hover:opacity-90 text-[var(--color-text)] rounded-xl"
+            style={{ fontFamily: 'var(--font-heading)', fontSize: '14px', boxShadow: '0 4px 20px rgba(124, 58, 237, 0.3)' }}
+          >
+            <Users size={16} className="mr-1.5" /> Start with Pod
           </Button>
-          {!isOwner && (
-            <Button onClick={handleLeave} variant="outline" className="h-12 px-4 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10 rounded-xl" style={{ fontFamily: 'var(--font-body)', fontSize: '12px' }}>
-              <LogOut size={14} className="mr-1" /> Leave
+          <div className="flex gap-3">
+            <Button
+              onClick={handleSetActive}
+              variant="outline"
+              className="flex-1 h-11 border-[var(--color-border)] bg-[var(--color-surface)]/40 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface)]/70 rounded-xl"
+              style={{ fontFamily: 'var(--font-heading)', fontSize: '13px' }}
+            >
+              <Play size={14} className="mr-1.5" /> Play in this Pod
             </Button>
-          )}
+            {!isOwner && (
+              <Button
+                onClick={handleLeave}
+                variant="outline"
+                className="h-11 px-4 border-[var(--color-border)] bg-[var(--color-surface)]/40 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface)]/70 rounded-xl"
+                style={{ fontFamily: 'var(--font-body)', fontSize: '12px' }}
+              >
+                <LogOut size={14} className="mr-1" /> Leave
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

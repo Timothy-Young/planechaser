@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { usePlaneCorpus, useSchemeCorpus } from '@/hooks/useCardCorpus'
-import { useUserPods, usePodLeaderboard } from '@/hooks/usePods'
+import { useUserPods, usePodLeaderboard, useUserConquests } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
 import { useCreateSession, useStartSession, useSessionPlayers } from '@/hooks/useGameSession'
 import { useUserDecks, useCreateDefaultDeck } from '@/hooks/useDecks'
@@ -31,6 +31,7 @@ export default function SetupPage() {
   const { data: pods } = useUserPods()
   const activePod = pods?.find((p) => p.id === activePodId)
   const { data: leaderboard } = usePodLeaderboard(activePodId ?? undefined, activePod?.archenemy_threshold ?? 5)
+  const { data: conquests } = useUserConquests()
 
   const archenemy = leaderboard?.find((e) => e.is_archenemy)
 
@@ -42,6 +43,7 @@ export default function SetupPage() {
   const [resumeAvailable, setResumeAvailable] = useState(false)
   const [deckMode, setDeckMode] = useState<DeckMode>('saved')
   const [randomSize, setRandomSize] = useState(40)
+  const [deckError, setDeckError] = useState<string | null>(null)
   const SNAP_POINTS = [10, 20, 30, 40]
 
   const selectedDeck = decks?.find((d) => d.id === selectedDeckId) ?? decks?.[0]
@@ -51,6 +53,11 @@ export default function SetupPage() {
     const idSet = new Set(selectedDeck.plane_ids)
     return corpus.filter((c) => idSet.has(c.id))
   }, [corpus, selectedDeck])
+
+  const conqueredPlaneIds = useMemo(() => {
+    if (!conquests) return new Set<string>()
+    return new Set(conquests.map((c) => c.plane_scryfall_id))
+  }, [conquests])
 
   useEffect(() => {
     setResumeAvailable(hasActiveGame())
@@ -69,6 +76,10 @@ export default function SetupPage() {
     }
   }, [decks, selectedDeckId])
 
+  useEffect(() => {
+    setDeckError(null)
+  }, [selectedDeckId, deckMode])
+
   function startGame(archenemyMode = false) {
     let cardsToUse: PlaneCard[]
     if (deckMode === 'random') {
@@ -80,7 +91,14 @@ export default function SetupPage() {
     }
     if (cardsToUse.length === 0) return
 
-    const deck = shuffleDeck(cardsToUse)
+    const playableCards = cardsToUse.filter((card) => !conqueredPlaneIds.has(card.id))
+
+    if (playableCards.length === 0) {
+      setDeckError('All planes in this deck are conquered! Add more planes or pick a different deck.')
+      return
+    }
+
+    const deck = shuffleDeck(playableCards)
 
     let archenemyState: ArchenemyState | undefined
     if (archenemyMode && archenemy && schemes && schemes.length > 0) {
@@ -307,20 +325,23 @@ export default function SetupPage() {
                   </div>
                 ) : decks && decks.length > 0 ? (
                   <div className="grid grid-cols-1 gap-2">
-                    {decks.map((d) => (
-                      <button
-                        key={d.id}
-                        onClick={() => setSelectedDeckId(d.id)}
-                        className={`h-11 rounded-xl text-[13px] font-semibold px-4 text-left transition-all ${
-                          selectedDeck?.id === d.id
-                            ? 'bg-[var(--color-accent-deep)] text-white glow-purple'
-                            : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
-                        }`}
-                        style={{ fontFamily: 'var(--font-heading)' }}
-                      >
-                        {d.name} ({d.plane_ids.length} cards)
-                      </button>
-                    ))}
+                    {decks.map((d) => {
+                      const conqueredCount = d.plane_ids.filter((id) => conqueredPlaneIds.has(id)).length
+                      return (
+                        <button
+                          key={d.id}
+                          onClick={() => setSelectedDeckId(d.id)}
+                          className={`h-11 rounded-xl text-[13px] font-semibold px-4 text-left transition-all ${
+                            selectedDeck?.id === d.id
+                              ? 'bg-[var(--color-accent-deep)] text-white glow-purple'
+                              : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
+                          }`}
+                          style={{ fontFamily: 'var(--font-heading)' }}
+                        >
+                          {d.name} ({d.plane_ids.length} cards{conqueredCount > 0 ? `, ${conqueredCount} conquered` : ''})
+                        </button>
+                      )
+                    })}
                   </div>
                 ) : (
                   <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
@@ -387,6 +408,13 @@ export default function SetupPage() {
             {error && (
               <p className="text-[12px] text-[var(--color-destructive)] text-center" style={{ fontFamily: 'var(--font-body)' }}>
                 Failed to load planes. Check connection and refresh.
+              </p>
+            )}
+
+            {/* Deck error */}
+            {deckError && (
+              <p className="text-[12px] text-[var(--color-destructive)] text-center" style={{ fontFamily: 'var(--font-body)' }}>
+                {deckError}
               </p>
             )}
 

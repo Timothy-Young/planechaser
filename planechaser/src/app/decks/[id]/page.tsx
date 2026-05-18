@@ -32,6 +32,8 @@ export default function DeckBuilderPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string> | null>(null)
   const [deckName, setDeckName] = useState<string | null>(null)
   const [showDeckPanel, setShowDeckPanel] = useState(false)
+  const [includeVisited, setIncludeVisited] = useState(true)
+  const [includeConquered, setIncludeConquered] = useState(true)
 
   const currentIds = selectedIds ?? new Set(deck?.plane_ids ?? [])
   const currentName = deckName ?? deck?.name ?? ''
@@ -66,8 +68,12 @@ export default function DeckBuilderPage() {
           c.set_name.toLowerCase().includes(q),
       )
     }
+    // Visited filter
+    if (!includeVisited) cards = cards.filter((c) => !visitedIds.has(c.id))
+    // Conquered filter
+    if (!includeConquered) cards = cards.filter((c) => !conqueredIds.has(c.id))
     return cards
-  }, [corpus, filterMode, searchQuery])
+  }, [corpus, filterMode, searchQuery, includeVisited, includeConquered, visitedIds, conqueredIds])
 
   const toggleCard = useCallback((cardId: string) => {
     setSelectedIds((prev) => {
@@ -197,6 +203,31 @@ export default function DeckBuilderPage() {
               {currentIds.size < MIN_DECK_SIZE && ` (min ${MIN_DECK_SIZE})`}
             </button>
           </div>
+
+          {/* Advanced filters */}
+          <div className="flex items-center gap-4 flex-wrap">
+            <label className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)] cursor-pointer" style={{ fontFamily: 'var(--font-body)' }}>
+              <input
+                type="checkbox"
+                checked={includeVisited}
+                onChange={(e) => setIncludeVisited(e.target.checked)}
+                className="accent-[var(--color-accent-deep)]"
+              />
+              Include visited
+            </label>
+            <label className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)] cursor-pointer" style={{ fontFamily: 'var(--font-body)' }}>
+              <input
+                type="checkbox"
+                checked={includeConquered}
+                onChange={(e) => setIncludeConquered(e.target.checked)}
+                className="accent-[var(--color-accent-deep)]"
+              />
+              Include conquered
+            </label>
+            <span className="ml-auto text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+              {filteredCards.length} card{filteredCards.length !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -251,12 +282,18 @@ export default function DeckBuilderPage() {
                   }`}
                 >
                   {/* Card image */}
-                  <img
-                    src={card.image_uris.normal}
-                    alt={card.name}
-                    className={`w-full aspect-[5/7] object-cover ${isSelected ? 'brightness-100' : 'brightness-75'}`}
-                    loading="lazy"
-                  />
+                  <div className={`relative w-full ${card.card_type === 'phenomenon' ? 'aspect-[5/7]' : 'aspect-[7/5]'} overflow-hidden`}>
+                    <img
+                      src={card.image_uris.normal}
+                      alt={card.name}
+                      className={`absolute inset-0 w-full h-full object-cover ${isSelected ? 'brightness-100' : 'brightness-75'}`}
+                      style={card.card_type !== 'phenomenon' ? {
+                        transform: 'rotate(90deg) scale(1.42)',
+                        transformOrigin: 'center center',
+                      } : undefined}
+                      loading="lazy"
+                    />
+                  </div>
 
                   {/* Badges */}
                   <div className="absolute top-1.5 right-1.5 flex flex-col gap-1">

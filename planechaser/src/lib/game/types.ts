@@ -115,5 +115,12 @@ export interface TurnRecord {
   rolls: DieRoll[]
   planeswalked: boolean
   chaosTriggered: boolean
+  planeAtStart: string
+  planeAtStartId: string
+  newPlane?: string
+  newPlaneId?: string
+  chaosEffects: string[]
+  conquests: { planeName: string; conqueredBy: string }[]
+  schemeRevealed?: string
   endedAt: number
 }

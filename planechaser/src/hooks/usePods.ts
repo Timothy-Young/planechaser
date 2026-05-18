@@ -13,10 +13,13 @@ import {
   getUserStats,
   stealConqueredPlane,
   recordGameSession,
+  getGameSessions,
+  getGameSession,
   getPlaneVisitHistory,
   getUserProfile,
   updateUserProfile,
 } from '@/lib/pods/queries'
+import type { TurnRecord } from '@/lib/game/types'
 import { useAppStore } from '@/store/app-store'
 
 export function useUserPods() {
@@ -129,11 +132,31 @@ export function useRecordGameSession() {
       dieRollHistory: { result: string; timestamp: number }[]
       isArchenemy: boolean
       podId?: string
+      turnLog?: TurnRecord[]
+      players?: { id: string; display_name: string }[]
     }) => recordGameSession(params),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['user-stats'] })
       qc.invalidateQueries({ queryKey: ['visit-history'] })
+      qc.invalidateQueries({ queryKey: ['game-sessions'] })
     },
+  })
+}
+
+export function useGameSessions() {
+  const user = useAppStore((s) => s.user)
+  return useQuery({
+    queryKey: ['game-sessions', user?.id],
+    queryFn: () => getGameSessions(user!.id),
+    enabled: !!user,
+  })
+}
+
+export function useGameSession(sessionId: string | undefined) {
+  return useQuery({
+    queryKey: ['game-session', sessionId],
+    queryFn: () => getGameSession(sessionId!),
+    enabled: !!sessionId,
   })
 }
 

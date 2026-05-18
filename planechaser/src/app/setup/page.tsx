@@ -11,9 +11,11 @@ import { useCreateSession, useStartSession, useSessionPlayers } from '@/hooks/us
 import { useUserDecks, useCreateDefaultDeck } from '@/hooks/useDecks'
 import { shuffleDeck } from '@/lib/game/shuffle'
 import { saveGameState, hasActiveGame } from '@/lib/game/session-storage'
-import type { GameState, SchemeCard, ArchenemyState } from '@/lib/game/types'
+import type { GameState, SchemeCard, ArchenemyState, PlaneCard } from '@/lib/game/types'
 
 const PLAYER_OPTIONS = [2, 3, 4, 5, 6]
+
+type DeckMode = 'saved' | 'random'
 
 export default function SetupPage() {
   const router = useRouter()
@@ -38,6 +40,9 @@ export default function SetupPage() {
 
   const [playerCount, setPlayerCount] = useState(4)
   const [resumeAvailable, setResumeAvailable] = useState(false)
+  const [deckMode, setDeckMode] = useState<DeckMode>('saved')
+  const [randomSize, setRandomSize] = useState(40)
+  const SNAP_POINTS = [10, 20, 30, 40]
 
   const selectedDeck = decks?.find((d) => d.id === selectedDeckId) ?? decks?.[0]
 
@@ -65,8 +70,15 @@ export default function SetupPage() {
   }, [decks, selectedDeckId])
 
   function startGame(archenemyMode = false) {
-    const cardsToUse = deckCards ?? corpus
-    if (!cardsToUse || cardsToUse.length === 0) return
+    let cardsToUse: PlaneCard[]
+    if (deckMode === 'random') {
+      const allPlanes = (corpus ?? []).filter((c) => c.card_type === 'plane')
+      const size = randomSize >= allPlanes.length ? allPlanes.length : randomSize
+      cardsToUse = shuffleDeck(allPlanes).slice(0, size)
+    } else {
+      cardsToUse = deckCards ?? corpus ?? []
+    }
+    if (cardsToUse.length === 0) return
 
     const deck = shuffleDeck(cardsToUse)
 
@@ -134,6 +146,19 @@ export default function SetupPage() {
     router.push('/game')
   }
 
+  function handleArchenemyGame() {
+    createSession.mutate(
+      { podId: activePodId ?? undefined },
+      {
+        onSuccess: (session) => {
+          setActiveSessionId(session.id)
+          setIsHost(true)
+          router.push(`/lobby?code=${session.session_code}&archenemy=true`)
+        },
+      }
+    )
+  }
+
   function handleCreateMultiplayerGame() {
     createSession.mutate(
       { podId: activePodId ?? undefined },
@@ -198,8 +223,8 @@ export default function SetupPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.1 }}
-              onClick={() => startGame(true)}
-              disabled={isLoading || !corpus || corpus.length === 0 || !schemes}
+              onClick={() => handleArchenemyGame()}
+              disabled={createSession.isPending}
               className="w-full rounded-2xl border border-[var(--color-cta)]/40 bg-[var(--color-cta)]/8 p-5 text-center transition-all hover:bg-[var(--color-cta)]/15 glow-red disabled:opacity-50"
             >
               <p className="text-[17px] font-bold text-[var(--color-cta)]" style={{ fontFamily: 'var(--font-heading)' }}>
@@ -241,39 +266,114 @@ export default function SetupPage() {
               </div>
             </div>
 
-            {/* Deck selector */}
+            {/* Deck mode toggle */}
             <div className="space-y-3">
               <label className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium" style={{ fontFamily: 'var(--font-heading)' }}>
                 Planar Deck
               </label>
-              {decksLoading ? (
-                <div className="flex items-center gap-2 py-2">
-                  <div className="w-3 h-3 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
-                  <span className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>Loading decks...</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDeckMode('saved')}
+                  className={`flex-1 h-10 rounded-xl text-[13px] font-semibold transition-all ${
+                    deckMode === 'saved'
+                      ? 'bg-[var(--color-accent-deep)] text-white glow-purple'
+                      : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
+                  }`}
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                >
+                  Saved Deck
+                </button>
+                <button
+                  onClick={() => setDeckMode('random')}
+                  className={`flex-1 h-10 rounded-xl text-[13px] font-semibold transition-all ${
+                    deckMode === 'random'
+                      ? 'bg-[var(--color-accent-deep)] text-white glow-purple'
+                      : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
+                  }`}
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                >
+                  Random
+                </button>
+              </div>
+            </div>
+
+            {/* Saved deck mode */}
+            {deckMode === 'saved' && (
+              <div className="space-y-2">
+                {decksLoading ? (
+                  <div className="flex items-center gap-2 py-2">
+                    <div className="w-3 h-3 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+                    <span className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>Loading decks...</span>
+                  </div>
+                ) : decks && decks.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    {decks.map((d) => (
+                      <button
+                        key={d.id}
+                        onClick={() => setSelectedDeckId(d.id)}
+                        className={`h-11 rounded-xl text-[13px] font-semibold px-4 text-left transition-all ${
+                          selectedDeck?.id === d.id
+                            ? 'bg-[var(--color-accent-deep)] text-white glow-purple'
+                            : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
+                        }`}
+                        style={{ fontFamily: 'var(--font-heading)' }}
+                      >
+                        {d.name} ({d.plane_ids.length} cards)
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+                    No decks yet — one will be created automatically.
+                  </p>
+                )}
+                <button
+                  onClick={() => router.push('/decks')}
+                  className="w-full h-10 rounded-xl text-[13px] font-semibold border border-dashed border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-accent)]/40 transition-all"
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                >
+                  + Create New Deck
+                </button>
+              </div>
+            )}
+
+            {/* Random mode */}
+            {deckMode === 'random' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+                    {(() => {
+                      const totalPlanes = corpus?.filter(c => c.card_type === 'plane').length ?? 185
+                      return randomSize >= totalPlanes ? 'All planes' : `${randomSize} random planes`
+                    })()}
+                  </span>
                 </div>
-              ) : decks && decks.length > 0 ? (
-                <div className="grid grid-cols-1 gap-2">
-                  {decks.map((d) => (
+                <input
+                  type="range"
+                  min={10}
+                  max={corpus?.filter(c => c.card_type === 'plane').length ?? 185}
+                  value={randomSize}
+                  onChange={(e) => setRandomSize(Number(e.target.value))}
+                  className="w-full accent-[var(--color-accent-deep)]"
+                />
+                <div className="flex justify-between">
+                  {[...SNAP_POINTS, corpus?.filter(c => c.card_type === 'plane').length ?? 185].map((n) => (
                     <button
-                      key={d.id}
-                      onClick={() => setSelectedDeckId(d.id)}
-                      className={`h-11 rounded-xl text-[13px] font-semibold px-4 text-left transition-all ${
-                        selectedDeck?.id === d.id
-                          ? 'bg-[var(--color-accent-deep)] text-white glow-purple'
-                          : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
+                      key={n}
+                      onClick={() => setRandomSize(n)}
+                      className={`text-[11px] px-2 py-1 rounded-lg transition-all ${
+                        randomSize === n
+                          ? 'bg-[var(--color-accent-deep)] text-white'
+                          : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
                       }`}
                       style={{ fontFamily: 'var(--font-heading)' }}
                     >
-                      {d.name} ({d.plane_ids.length} cards)
+                      {n >= (corpus?.filter(c => c.card_type === 'plane').length ?? 185) ? 'All' : n}
                     </button>
                   ))}
                 </div>
-              ) : (
-                <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-                  No decks yet — one will be created automatically.
-                </p>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Status */}
             {isLoading && (
@@ -293,7 +393,7 @@ export default function SetupPage() {
             {/* Start button */}
             <Button
               onClick={() => startGame(false)}
-              disabled={isLoading || !deckCards || deckCards.length === 0}
+              disabled={isLoading || (deckMode === 'saved' ? (!deckCards || deckCards.length === 0) : (!corpus || corpus.length === 0))}
               className="w-full h-14 text-[17px] bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] hover:opacity-90 text-white transition-all"
               style={{ fontFamily: 'var(--font-heading)', boxShadow: '0 4px 30px rgba(124, 58, 237, 0.4)' }}
             >

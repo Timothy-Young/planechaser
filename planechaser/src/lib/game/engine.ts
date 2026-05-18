@@ -55,12 +55,22 @@ function applyAction(state: GameState, action: GameAction): GameState {
       const currentPlayerId = state.turnOrder[state.currentTurnIndex]
       const currentPlayer = state.players.find((p) => p.id === currentPlayerId)
 
+      const currentPlane = state.deck[state.currentPlaneIndex]
+      const didPlaneswalk = state.currentTurnRolls.some((r) => r.result === 'planeswalk')
+      const chaosRolls = state.currentTurnRolls.filter((r) => r.result === 'chaos')
+
       const turnRecord: TurnRecord = {
         playerId: currentPlayerId ?? 'unknown',
         playerName: currentPlayer?.display_name ?? 'Unknown',
         rolls: state.currentTurnRolls,
-        planeswalked: state.currentTurnRolls.some((r) => r.result === 'planeswalk'),
-        chaosTriggered: state.currentTurnRolls.some((r) => r.result === 'chaos'),
+        planeswalked: didPlaneswalk,
+        chaosTriggered: chaosRolls.length > 0,
+        planeAtStart: currentPlane?.name ?? 'Unknown',
+        planeAtStartId: currentPlane?.id ?? '',
+        chaosEffects: chaosRolls.length > 0 && currentPlane?.oracle_text
+          ? [currentPlane.oracle_text.split('\n').find((l: string) => /chaos/i.test(l)) ?? '']
+          : [],
+        conquests: [],
         endedAt: Date.now(),
       }
 

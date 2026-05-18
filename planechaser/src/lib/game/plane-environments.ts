@@ -268,20 +268,20 @@ export const PLANE_ENVIRONMENTS: Record<string, EnvironmentType> = {
 } as const;
 
 export const AMBIENT_URLS: Record<EnvironmentType, string> = {
-  gothic: 'https://cdn.freesound.org/previews/617/617747_2282212-lq.mp3',
-  jungle: 'https://cdn.freesound.org/previews/749/749737_16219462-lq.mp3',
-  wasteland: 'https://cdn.freesound.org/previews/567/567550_11664190-lq.mp3',
-  city: 'https://cdn.freesound.org/previews/543/543510_1648170-lq.mp3',
-  volcanic: 'https://cdn.freesound.org/previews/474/474852_9395330-lq.mp3',
-  ethereal: 'https://cdn.freesound.org/previews/825/825435_7038073-lq.mp3',
-  arctic: 'https://cdn.freesound.org/previews/608/608270_2282212-lq.mp3',
-  forest: 'https://cdn.freesound.org/previews/800/800712_12846320-lq.mp3',
-  underwater: 'https://cdn.freesound.org/previews/706/706096_9034501-lq.mp3',
-  mechanical: 'https://cdn.freesound.org/previews/269/269597_4965320-lq.mp3',
-  desert: 'https://cdn.freesound.org/previews/843/843326_1648170-lq.mp3',
-  celestial: 'https://cdn.freesound.org/previews/744/744115_16085323-lq.mp3',
-  swamp: 'https://cdn.freesound.org/previews/99/99193_1163166-lq.mp3',
-  battlefield: 'https://cdn.freesound.org/previews/542/542827_3377875-lq.mp3',
+  gothic: '/audio/ambient/gothic.mp3',
+  jungle: '/audio/ambient/jungle.mp3',
+  wasteland: '/audio/ambient/wasteland.mp3',
+  city: '/audio/ambient/city.mp3',
+  volcanic: '/audio/ambient/volcanic.mp3',
+  ethereal: '/audio/ambient/ethereal.mp3',
+  arctic: '/audio/ambient/arctic.mp3',
+  forest: '/audio/ambient/forest.mp3',
+  underwater: '/audio/ambient/underwater.mp3',
+  mechanical: '/audio/ambient/mechanical.mp3',
+  desert: '/audio/ambient/desert.mp3',
+  celestial: '/audio/ambient/celestial.mp3',
+  swamp: '/audio/ambient/swamp.mp3',
+  battlefield: '/audio/ambient/battlefield.mp3',
 };
 
 export function getPlaneEnvironment(planeName: string): EnvironmentType {

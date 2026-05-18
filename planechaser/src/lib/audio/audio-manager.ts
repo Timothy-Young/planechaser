@@ -11,16 +11,16 @@ type SFXKey =
   | 'cardSlide'
 
 const SFX_URLS: Record<SFXKey, string> = {
-  dieRoll: 'https://cdn.freesound.org/previews/766/766177_13450799-lq.mp3',
-  chaos: 'https://cdn.freesound.org/previews/207/207755_2605156-lq.mp3',
-  chaosImpact: 'https://cdn.freesound.org/previews/829/829499_9839964-lq.mp3',
-  planeswalk: 'https://cdn.freesound.org/previews/456/456966_5121236-lq.mp3',
-  planeswalkSwell: 'https://cdn.freesound.org/previews/411/411169_7395592-lq.mp3',
-  planeswalkWhoosh: 'https://cdn.freesound.org/previews/749/749413_16214459-lq.mp3',
-  blank: 'https://cdn.freesound.org/previews/240/240776_4107740-lq.mp3',
-  achievement: 'https://cdn.freesound.org/previews/270/270402_5123851-lq.mp3',
-  buttonClick: 'https://cdn.freesound.org/previews/242/242501_4284968-lq.mp3',
-  cardSlide: 'https://cdn.freesound.org/previews/240/240777_4107740-lq.mp3',
+  dieRoll: '/audio/sfx/die-roll.mp3',
+  chaos: '/audio/sfx/chaos.mp3',
+  chaosImpact: '/audio/sfx/chaos-impact.mp3',
+  planeswalk: '/audio/sfx/planeswalk.mp3',
+  planeswalkSwell: '/audio/sfx/planeswalk-swell.mp3',
+  planeswalkWhoosh: '/audio/sfx/planeswalk-whoosh.mp3',
+  blank: '/audio/sfx/blank.mp3',
+  achievement: '/audio/sfx/achievement.mp3',
+  buttonClick: '/audio/sfx/button-click.mp3',
+  cardSlide: '/audio/sfx/card-slide.mp3',
 }
 
 type MusicKey =
@@ -33,13 +33,13 @@ type MusicKey =
   | 'theInnOfTheLastHome'
 
 const MUSIC_URLS: Record<MusicKey, string> = {
-  medievil: 'https://cdn.freesound.org/previews/649/649132_12946258-lq.mp3',
-  natureAmbo: 'https://cdn.freesound.org/previews/634/634140_2282212-lq.mp3',
-  skyrim: 'https://cdn.freesound.org/previews/770/770560_858088-lq.mp3',
-  dreamIntro: 'https://cdn.freesound.org/previews/264/264199_3525275-lq.mp3',
-  ancientManuscripts: 'https://cdn.freesound.org/previews/620/620673_1766049-lq.mp3',
-  pianoWindChimes: 'https://cdn.freesound.org/previews/803/803509_17289332-lq.mp3',
-  theInnOfTheLastHome: 'https://cdn.freesound.org/previews/725/725830_34173-lq.mp3',
+  medievil: '/audio/music/medievil.mp3',
+  natureAmbo: '/audio/music/nature-ambo.mp3',
+  skyrim: '/audio/music/skyrim.mp3',
+  dreamIntro: '/audio/music/dream-intro.mp3',
+  ancientManuscripts: '/audio/music/ancient-manuscripts.mp3',
+  pianoWindChimes: '/audio/music/piano-wind-chimes.mp3',
+  theInnOfTheLastHome: '/audio/music/the-inn-of-the-last-home.mp3',
 }
 
 const MUSIC_KEYS = Object.keys(MUSIC_URLS) as MusicKey[]

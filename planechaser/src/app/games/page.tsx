@@ -130,7 +130,7 @@ export default function GamesPage() {
                       <div className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
                         <Users size={13} className="shrink-0" />
                         <span className="truncate">
-                          {game.players_snapshot.map((p) => p.display_name).join(', ')}
+                          {(game.players_snapshot as { id: string; display_name: string }[]).map((p) => p.display_name).join(', ')}
                         </span>
                       </div>
                     )}

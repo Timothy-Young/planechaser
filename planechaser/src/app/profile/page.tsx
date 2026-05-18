@@ -39,7 +39,7 @@ export default function ProfilePage() {
   const [tab, setTab] = useState<ProfileTab>('conquests')
   const { data: corpus } = usePlaneCorpus()
   const cardByName = useMemo(() => {
-    if (!corpus) return new Map<string, (typeof corpus)[number]>()
+    if (!corpus) return new Map()
     return new Map(corpus.map((c) => [c.name, c]))
   }, [corpus])
   const [editingName, setEditingName] = useState(false)

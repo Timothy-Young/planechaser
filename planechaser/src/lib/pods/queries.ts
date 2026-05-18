@@ -45,6 +45,18 @@ export async function joinPodByCode(inviteCode: string, userId: string): Promise
   return pod as Pod
 }
 
+export async function updatePod(
+  podId: string,
+  updates: { name?: string; archenemy_threshold?: number }
+): Promise<void> {
+  const { error } = await supabase()
+    .from('pods')
+    .update(updates)
+    .eq('id', podId)
+
+  if (error) throw error
+}
+
 export async function leavePod(podId: string, userId: string): Promise<void> {
   const { error } = await supabase()
     .from('pod_members')

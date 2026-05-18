@@ -6,6 +6,7 @@ import {
   createPod,
   joinPodByCode,
   leavePod,
+  updatePod,
   getPodMembers,
   getPodLeaderboard,
   conquerPlane,
@@ -90,6 +91,18 @@ export function useLeavePod() {
   return useMutation({
     mutationFn: (podId: string) => leavePod(podId, user!.id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['pods'] }),
+  })
+}
+
+export function useUpdatePod() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { podId: string; updates: { name?: string; archenemy_threshold?: number } }) =>
+      updatePod(params.podId, params.updates),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pods'] })
+      qc.invalidateQueries({ queryKey: ['pod-leaderboard'] })
+    },
   })
 }
 

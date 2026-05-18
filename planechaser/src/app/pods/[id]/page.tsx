@@ -1,19 +1,21 @@
 'use client'
 
-import { use } from 'react'
+import { use, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Play, LogOut, Crown } from 'lucide-react'
+import { ArrowLeft, Play, LogOut, Crown, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePodMembers, usePodLeaderboard, useLeavePod, useUserPods } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
+import { PodSettingsModal } from '@/components/pod-settings-modal'
 
 export default function PodDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: podId } = use(params)
   const router = useRouter()
   const user = useAppStore((s) => s.user)
   const setActivePodId = useAppStore((s) => s.setActivePodId)
-  const { data: pods } = useUserPods()
+  const [showSettings, setShowSettings] = useState(false)
+  const { data: pods, refetch: refetchPods } = useUserPods()
   const pod = pods?.find((p) => p.id === podId)
   const { data: members } = usePodMembers(podId)
   const { data: leaderboard } = usePodLeaderboard(podId, pod?.archenemy_threshold ?? 5)
@@ -40,10 +42,19 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
       </div>
 
       {/* Header */}
-      <header className="relative z-10 flex items-center px-4 py-3 glass-strong border-b border-[var(--color-border)]">
+      <header className="relative z-10 flex items-center justify-between px-4 py-3 glass-strong border-b border-[var(--color-border)]">
         <button onClick={() => router.push('/pods')} className="flex items-center gap-1 text-[13px] text-[var(--color-accent)] font-medium" style={{ fontFamily: 'var(--font-heading)' }}>
           <ArrowLeft size={16} /> Pods
         </button>
+        {isOwner && (
+          <button
+            onClick={() => setShowSettings(true)}
+            className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors p-1"
+            aria-label="Pod settings"
+          >
+            <Settings size={18} />
+          </button>
+        )}
       </header>
 
       <div className="relative z-10 flex-1 px-4 py-6 max-w-[520px] mx-auto w-full space-y-6">
@@ -148,6 +159,17 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
           )}
         </div>
       </div>
+
+      {/* Pod Settings Modal */}
+      {showSettings && pod && (
+        <PodSettingsModal
+          pod={pod}
+          onClose={() => {
+            setShowSettings(false)
+            refetchPods()
+          }}
+        />
+      )}
     </main>
   )
 }

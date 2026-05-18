@@ -61,7 +61,9 @@ export default function ProfilePage() {
       return {
         name: c.plane_name,
         imageUrl: card?.image_uris?.border_crop ?? c.plane_image_uri,
-        subtitle: `Conquered on ${new Date(c.conquered_at).toLocaleDateString()}`,
+        subtitle: c.conquered_from_name
+          ? `Conquered from ${c.conquered_from_name} · ${new Date(c.conquered_at).toLocaleDateString()}`
+          : `Conquered · ${new Date(c.conquered_at).toLocaleDateString()}`,
       }
     })
   }, [conquests, corpus, cardByName])

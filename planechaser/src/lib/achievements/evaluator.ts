@@ -56,6 +56,7 @@ export function evaluateAchievements(
   check('conqueror', stats.planes_conquered >= 5)
   check('dominator', stats.planes_conquered >= 15)
   check('overlord', stats.planes_conquered >= 25)
+  check('planar_dominion', stats.planes_conquered >= 185)
 
   // Archenemy milestones (cumulative)
   check('villain_origin', stats.archenemy_games >= 1)

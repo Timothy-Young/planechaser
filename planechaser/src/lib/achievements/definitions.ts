@@ -30,6 +30,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { key: 'conqueror', name: 'Conqueror', description: 'Conquer 5 planes', icon: '⚡', category: 'conquest' },
   { key: 'dominator', name: 'Dominator', description: 'Conquer 15 planes', icon: '🔥', category: 'conquest' },
   { key: 'overlord', name: 'Overlord', description: 'Conquer 25 planes', icon: '💀', category: 'conquest' },
+  { key: 'planar_dominion', name: 'Planar Dominion', description: 'Conquer all 185 planes', icon: '🌍', category: 'conquest' },
 
   // Archenemy milestones
   { key: 'villain_origin', name: 'Villain Origin', description: 'Play your first Archenemy game', icon: '😈', category: 'archenemy' },

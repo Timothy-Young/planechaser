@@ -384,6 +384,7 @@ export default function GamePage() {
       {showEndGame && currentPlane && !isArchenemy && (
         <EndGameDialog
           currentPlane={currentPlane}
+          players={state.players}
           onClose={() => setShowEndGame(false)}
           onConfirm={handleEndGame}
         />

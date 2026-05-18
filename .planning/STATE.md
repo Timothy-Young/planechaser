@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Plans 01-01, 01-02, 01-03 implemented — awaiting human checkpoint
 last_updated: "2026-05-14T07:40:00.000Z"
-last_activity: 2026-05-14 — Plans 01-01/02/03 executed; scaffold, Scryfall pipeline, auth screen built
+last_activity: 2026-05-18 — Completed quick task 260518-m21: Audio polish (local audio files)
 progress:
   total_phases: 5
   completed_phases: 0
@@ -93,6 +93,12 @@ Recent decisions affecting current work:
 - [Pre-build]: Confirm Scryfall query `t:plane is:planechase` returns full plane corpus before Phase 1 card cache build
 - [Phase 2]: Dethrone vote mechanic needs UX design decision (sequential taps vs. timeout majority) before Phase 3 implementation
 - [Phase 5]: Verify `@ducanh2912/next-pwa` + Next.js 15 App Router compatibility before PWA work
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260518-m21 | Audio polish: Download freesound.org audio files to local public/audio/, update URL references | 2026-05-18 | 6da5abe | [260518-m21-audio-polish](./quick/260518-m21-audio-polish-download-freesound-org-audi/) |
 
 ## Deferred Items
 

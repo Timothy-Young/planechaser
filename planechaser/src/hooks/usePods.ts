@@ -6,6 +6,7 @@ import {
   createPod,
   joinPodByCode,
   leavePod,
+  updatePod,
   getPodMembers,
   getPodLeaderboard,
   conquerPlane,
@@ -93,6 +94,18 @@ export function useLeavePod() {
   })
 }
 
+export function useUpdatePod() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { podId: string; updates: { name?: string; archenemy_threshold?: number } }) =>
+      updatePod(params.podId, params.updates),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pods'] })
+      qc.invalidateQueries({ queryKey: ['pod-leaderboard'] })
+    },
+  })
+}
+
 export function useConquerPlane() {
   const qc = useQueryClient()
   return useMutation({
@@ -101,7 +114,8 @@ export function useConquerPlane() {
       podId: string
       plane: { id: string; name: string; image_uri: string }
       gameSessionId?: string
-    }) => conquerPlane(params.userId, params.podId, params.plane, params.gameSessionId),
+      conqueredFromUserId?: string
+    }) => conquerPlane(params.userId, params.podId, params.plane, params.gameSessionId, params.conqueredFromUserId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['conquests'] })
       qc.invalidateQueries({ queryKey: ['pod-leaderboard'] })

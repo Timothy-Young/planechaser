@@ -1,19 +1,21 @@
 'use client'
 
-import { use } from 'react'
+import { use, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Play, LogOut, Crown } from 'lucide-react'
+import { ArrowLeft, Play, LogOut, Crown, Settings, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePodMembers, usePodLeaderboard, useLeavePod, useUserPods } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
+import { PodSettingsModal } from '@/components/pod-settings-modal'
 
 export default function PodDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: podId } = use(params)
   const router = useRouter()
   const user = useAppStore((s) => s.user)
   const setActivePodId = useAppStore((s) => s.setActivePodId)
-  const { data: pods } = useUserPods()
+  const [showSettings, setShowSettings] = useState(false)
+  const { data: pods, refetch: refetchPods } = useUserPods()
   const pod = pods?.find((p) => p.id === podId)
   const { data: members } = usePodMembers(podId)
   const { data: leaderboard } = usePodLeaderboard(podId, pod?.archenemy_threshold ?? 5)
@@ -30,6 +32,12 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
     router.push('/setup')
   }
 
+  function handleStartWithPod() {
+    if (!pod) return
+    setActivePodId(podId)
+    router.push(`/setup?podStart=true&podId=${podId}`)
+  }
+
   const isOwner = pod?.created_by === user?.id
   const archenemy = leaderboard?.find((e) => e.is_archenemy)
 
@@ -40,10 +48,19 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
       </div>
 
       {/* Header */}
-      <header className="relative z-10 flex items-center px-4 py-3 glass-strong border-b border-[var(--color-border)]">
+      <header className="relative z-10 flex items-center justify-between px-4 py-3 glass-strong border-b border-[var(--color-border)]">
         <button onClick={() => router.push('/pods')} className="flex items-center gap-1 text-[13px] text-[var(--color-accent)] font-medium" style={{ fontFamily: 'var(--font-heading)' }}>
           <ArrowLeft size={16} /> Pods
         </button>
+        {isOwner && (
+          <button
+            onClick={() => setShowSettings(true)}
+            className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors p-1"
+            aria-label="Pod settings"
+          >
+            <Settings size={18} />
+          </button>
+        )}
       </header>
 
       <div className="relative z-10 flex-1 px-4 py-6 max-w-[520px] mx-auto w-full space-y-6">
@@ -137,17 +154,48 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3">
-          <Button onClick={handleSetActive} className="flex-1 h-12 bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] hover:opacity-90 text-white rounded-xl" style={{ fontFamily: 'var(--font-heading)', fontSize: '14px', boxShadow: '0 4px 20px rgba(124, 58, 237, 0.3)' }}>
-            <Play size={16} className="mr-1.5" /> Play in this Pod
+        <div className="space-y-2">
+          <Button
+            onClick={handleStartWithPod}
+            disabled={!pod}
+            className="w-full h-12 bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] hover:opacity-90 text-[var(--color-text)] rounded-xl"
+            style={{ fontFamily: 'var(--font-heading)', fontSize: '14px', boxShadow: '0 4px 20px rgba(124, 58, 237, 0.3)' }}
+          >
+            <Users size={16} className="mr-1.5" /> Start with Pod
           </Button>
-          {!isOwner && (
-            <Button onClick={handleLeave} variant="outline" className="h-12 px-4 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10 rounded-xl" style={{ fontFamily: 'var(--font-body)', fontSize: '12px' }}>
-              <LogOut size={14} className="mr-1" /> Leave
+          <div className="flex gap-3">
+            <Button
+              onClick={handleSetActive}
+              variant="outline"
+              className="flex-1 h-11 border-[var(--color-border)] bg-[var(--color-surface)]/40 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface)]/70 rounded-xl"
+              style={{ fontFamily: 'var(--font-heading)', fontSize: '13px' }}
+            >
+              <Play size={14} className="mr-1.5" /> Play in this Pod
             </Button>
-          )}
+            {!isOwner && (
+              <Button
+                onClick={handleLeave}
+                variant="outline"
+                className="h-11 px-4 border-[var(--color-border)] bg-[var(--color-surface)]/40 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface)]/70 rounded-xl"
+                style={{ fontFamily: 'var(--font-body)', fontSize: '12px' }}
+              >
+                <LogOut size={14} className="mr-1" /> Leave
+              </Button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Pod Settings Modal */}
+      {showSettings && pod && (
+        <PodSettingsModal
+          pod={pod}
+          onClose={() => {
+            setShowSettings(false)
+            refetchPods()
+          }}
+        />
+      )}
     </main>
   )
 }

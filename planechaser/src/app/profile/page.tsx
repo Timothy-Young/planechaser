@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { LogOut, Trophy, History, Swords, Dice5, MapPin, Crown, Pencil, Check, X } from 'lucide-react'
+import { LogOut, Trophy, History, Swords, Dice5, MapPin, Crown, Pencil, Check, X, Sun, Moon } from 'lucide-react'
 import { useAppStore } from '@/store/app-store'
 import { useUserStats, useUserConquests, useUserPods, usePlaneVisitHistory, useUserProfile, useUpdateProfile } from '@/hooks/usePods'
 import { useUserAchievements } from '@/hooks/useAchievements'
@@ -12,6 +12,8 @@ import { ACHIEVEMENTS } from '@/lib/achievements/definitions'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { usePlaneCorpus } from '@/hooks/useCardCorpus'
+import { PlaneCarousel } from '@/components/plane-carousel'
+import type { PlaneSlide } from '@/components/plane-carousel'
 
 type ProfileTab = 'conquests' | 'history'
 
@@ -29,6 +31,8 @@ export default function ProfilePage() {
   const user = useAppStore((s) => s.user)
   const setUser = useAppStore((s) => s.setUser)
   const activePodId = useAppStore((s) => s.activePodId)
+  const theme = useAppStore((s) => s.theme)
+  const toggleTheme = useAppStore((s) => s.toggleTheme)
   const { data: stats } = useUserStats()
   const { data: conquests } = useUserConquests()
   const { data: pods } = useUserPods()
@@ -48,6 +52,30 @@ export default function ProfilePage() {
   const activePod = pods?.find((p) => p.id === activePodId)
   const displayName = profile?.display_name ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'Player'
   const avatarUrl = profile?.avatar_url ?? user?.user_metadata?.avatar_url
+
+  const conquestSlides: PlaneSlide[] = useMemo(() => {
+    if (!conquests || !corpus) return []
+    return conquests.map((c) => {
+      const card = corpus.find((cr) => cr.id === c.plane_scryfall_id)
+      return {
+        name: c.plane_name,
+        imageUrl: card?.image_uris?.normal ?? c.plane_image_uri,
+        subtitle: `Conquered on ${new Date(c.conquered_at).toLocaleDateString()}`,
+      }
+    })
+  }, [conquests, corpus])
+
+  const historySlides: PlaneSlide[] = useMemo(() => {
+    if (!visitHistory) return []
+    return visitHistory.map((v) => {
+      const card = cardByName.get(v.planeName)
+      return {
+        name: v.planeName,
+        imageUrl: card?.image_uris?.normal ?? '',
+        subtitle: new Date(v.sessionDate).toLocaleDateString(),
+      }
+    }).filter((s) => s.imageUrl)
+  }, [visitHistory, cardByName])
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -238,89 +266,25 @@ export default function ProfilePage() {
 
         {/* Conquests tab */}
         {tab === 'conquests' && (
-          <div className="space-y-3">
-            {conquests && conquests.length > 0 ? (
-              <div className="grid grid-cols-1 gap-3">
-                {conquests.map((c, i) => {
-                  const card = corpus?.find((cr) => cr.id === c.plane_scryfall_id)
-                  const imageUrl = card?.image_uris?.border_crop ?? c.plane_image_uri
-                  return (
-                    <motion.div
-                      key={c.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="rounded-2xl border border-[var(--color-gold)]/30 bg-[var(--color-surface)]/80 overflow-hidden"
-                    >
-                      <div className="relative w-full aspect-[7/5] overflow-hidden">
-                        <img
-                          src={imageUrl}
-                          alt={c.plane_name}
-                          className="w-full h-full object-cover"
-                          style={{ transform: 'rotate(90deg) scale(1.42)', transformOrigin: 'center center' }}
-                          loading="lazy"
-                        />
-                        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-[var(--color-gold)]/90 text-[10px] font-semibold text-black" style={{ fontFamily: 'var(--font-heading)' }}>
-                          {new Date(c.conquered_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <div className="p-3">
-                        <p className="text-[14px] font-semibold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-heading)' }}>
-                          {c.plane_name}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )
-                })}
-              </div>
-            ) : (
-              <p className="text-center text-[12px] text-[var(--color-text-muted)] py-6" style={{ fontFamily: 'var(--font-body)' }}>
-                No conquests yet. Win a game and claim a plane!
-              </p>
-            )}
-          </div>
+          <PlaneCarousel slides={conquestSlides} emptyMessage="No conquests yet. Win a game and claim a plane!" />
         )}
 
         {/* Visit history tab */}
         {tab === 'history' && (
-          <div className="space-y-3">
-            {visitHistory && visitHistory.length > 0 ? (
-              visitHistory.map((v, i) => {
-                const card = cardByName.get(v.planeName)
-                return (
-                  <div key={i} className="rounded-xl bg-[var(--color-surface)]/60 border border-[var(--color-border-subtle)] overflow-hidden">
-                    {card && (
-                      <div className="w-full aspect-[7/5] overflow-hidden">
-                        <img
-                          src={card.image_uris.normal}
-                          alt={card.name}
-                          className="w-full h-full object-cover"
-                          style={{ transform: 'rotate(90deg) scale(1.42)', transformOrigin: 'center center' }}
-                          loading="lazy"
-                        />
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between px-4 py-3">
-                      <span className="text-[12px] text-[var(--color-text)]" style={{ fontFamily: 'var(--font-body)' }}>
-                        {v.planeName}
-                      </span>
-                      <span className="text-[10px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-                        {new Date(v.sessionDate).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                )
-              })
-            ) : (
-              <p className="text-center text-[12px] text-[var(--color-text-muted)] py-6" style={{ fontFamily: 'var(--font-body)' }}>
-                No visit history yet. Play a game to start tracking!
-              </p>
-            )}
-          </div>
+          <PlaneCarousel slides={historySlides} emptyMessage="No visit history yet. Play a game to start tracking!" />
         )}
 
-        {/* Sign out */}
-        <div className="pt-2">
+        {/* Theme + Sign out */}
+        <div className="pt-2 space-y-3">
+          <Button
+            onClick={toggleTheme}
+            variant="outline"
+            className="w-full h-11 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10"
+            style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}
+          >
+            {theme === 'dark' ? <Sun size={14} className="mr-2" /> : <Moon size={14} className="mr-2" />}
+            {theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          </Button>
           <Button
             onClick={handleSignOut}
             variant="outline"

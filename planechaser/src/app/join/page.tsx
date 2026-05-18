@@ -46,7 +46,7 @@ export default function JoinPage() {
       >
         <div className="text-center">
           <h1
-            className="text-2xl font-bold text-white"
+            className="text-2xl font-bold text-[var(--color-text)]"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             Join Game
@@ -68,8 +68,8 @@ export default function JoinPage() {
             maxLength={6}
             className="
               w-full text-center text-3xl font-bold tracking-[0.3em]
-              bg-white/5 border border-white/20 rounded-xl
-              px-4 py-4 text-white placeholder:text-white/20
+              bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl
+              px-4 py-4 text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/40
               focus:outline-none focus:border-[var(--color-accent)]/60
             "
             style={{ fontFamily: 'var(--font-heading)' }}

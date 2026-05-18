@@ -1,10 +1,13 @@
 'use client'
 
-import { use } from 'react'
+import { use, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Dice5, Zap, Navigation, Crown, Shield } from 'lucide-react'
 import { useGameSession } from '@/hooks/usePods'
+import { usePlaneCorpus } from '@/hooks/useCardCorpus'
+import { PlaneCarousel } from '@/components/plane-carousel'
+import type { PlaneSlide } from '@/components/plane-carousel'
 
 interface TurnLogEntry {
   playerId: string
@@ -26,6 +29,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
   const { id } = use(params)
   const router = useRouter()
   const { data: session, isLoading } = useGameSession(id)
+  const { data: corpus } = usePlaneCorpus()
 
   if (isLoading) {
     return (
@@ -50,6 +54,23 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
   const isArchenemy = session.game_type === 'archenemy'
 
   const totalRolls = turnLog.reduce((sum, turn) => sum + (turn.rolls?.length || 0), 0)
+
+  const cardByName = useMemo(() => {
+    if (!corpus) return new Map()
+    return new Map(corpus.map((c) => [c.name, c]))
+  }, [corpus])
+
+  const planeSlides: PlaneSlide[] = useMemo(() => {
+    return planesVisited
+      .map((name) => {
+        const card = cardByName.get(name)
+        return {
+          name,
+          imageUrl: card?.image_uris?.normal ?? '',
+        }
+      })
+      .filter((s) => s.imageUrl)
+  }, [planesVisited, cardByName])
 
   const gameDate = new Date(session.started_at)
   const dateStr = gameDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -220,21 +241,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
             <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-heading)' }}>
               Planes Visited
             </h2>
-            {planesVisited.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                {planesVisited.map((plane, index) => (
-                  <div
-                    key={index}
-                    className="px-3 py-2 rounded-lg text-sm"
-                    style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
-                  >
-                    {plane}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>No plane data recorded for this game.</p>
-            )}
+            <PlaneCarousel slides={planeSlides} emptyMessage="No plane data recorded for this game." />
           </>
         )}
       </div>

@@ -45,7 +45,6 @@ function applyAction(state: GameState, action: GameAction): GameState {
         ...state,
         currentPlaneIndex: nextIndex,
         planesVisited: state.planesVisited + 1,
-        rollCountThisTurn: 0,
         lastDieResult: null,
         dieState: 'idle',
       }
@@ -55,6 +54,7 @@ function applyAction(state: GameState, action: GameAction): GameState {
       const currentPlayerId = state.turnOrder[state.currentTurnIndex]
       const currentPlayer = state.players.find((p) => p.id === currentPlayerId)
 
+      const startPlane = state.deck[state.turnStartPlaneIndex]
       const currentPlane = state.deck[state.currentPlaneIndex]
       const didPlaneswalk = state.currentTurnRolls.some((r) => r.result === 'planeswalk')
       const chaosRolls = state.currentTurnRolls.filter((r) => r.result === 'chaos')
@@ -65,10 +65,12 @@ function applyAction(state: GameState, action: GameAction): GameState {
         rolls: state.currentTurnRolls,
         planeswalked: didPlaneswalk,
         chaosTriggered: chaosRolls.length > 0,
-        planeAtStart: currentPlane?.name ?? 'Unknown',
-        planeAtStartId: currentPlane?.id ?? '',
-        chaosEffects: chaosRolls.length > 0 && currentPlane?.oracle_text
-          ? [currentPlane.oracle_text.split('\n').find((l: string) => /chaos/i.test(l)) ?? '']
+        planeAtStart: startPlane?.name ?? 'Unknown',
+        planeAtStartId: startPlane?.id ?? '',
+        newPlane: didPlaneswalk ? currentPlane?.name : undefined,
+        newPlaneId: didPlaneswalk ? currentPlane?.id : undefined,
+        chaosEffects: chaosRolls.length > 0 && startPlane?.oracle_text
+          ? [startPlane.oracle_text.split('\n').find((l: string) => /chaos/i.test(l)) ?? '']
           : [],
         conquests: [],
         endedAt: Date.now(),
@@ -83,6 +85,7 @@ function applyAction(state: GameState, action: GameAction): GameState {
         lastDieResult: null,
         dieState: 'idle',
         currentTurnRolls: [],
+        turnStartPlaneIndex: state.currentPlaneIndex,
         turnHistory: [...state.turnHistory, turnRecord],
       }
     }

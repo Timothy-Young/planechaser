@@ -134,8 +134,8 @@ class AudioManager {
   playPlaneswalkLayered() {
     if (!this._sfxEnabled) return
     this.duckMusic()
-    this.playSFX('planeswalkSwell', 0.8)
-    setTimeout(() => this.playSFX('planeswalkWhoosh', 0.9), 400)
+    this.playSFX('planeswalkSwell', 0.8, 3000)
+    setTimeout(() => this.playSFX('planeswalkWhoosh', 0.9, 3000), 400)
     setTimeout(() => this.playSFX('cardSlide', 0.6), 800)
   }
 

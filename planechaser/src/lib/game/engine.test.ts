@@ -29,6 +29,7 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     turnOrder: [],
     currentTurnIndex: 0,
     currentTurnRolls: [],
+    turnStartPlaneIndex: 0,
     turnHistory: [],
     stateHistory: [],
     showChaosOverlay: false,
@@ -95,12 +96,12 @@ describe('gameReducer', () => {
     expect(next.dieState).toBe('settled')
   })
 
-  it('PLANESWALK advances to the next plane and resets turn', () => {
+  it('PLANESWALK advances to the next plane without resetting roll count', () => {
     const state = makeState({ currentPlaneIndex: 0, planesVisited: 1, rollCountThisTurn: 3 })
     const next = gameReducer(state, { type: 'PLANESWALK' })
     expect(next.currentPlaneIndex).toBe(1)
     expect(next.planesVisited).toBe(2)
-    expect(next.rollCountThisTurn).toBe(0)
+    expect(next.rollCountThisTurn).toBe(3)
     expect(next.lastDieResult).toBeNull()
   })
 

@@ -81,6 +81,7 @@ export default function PodsPage() {
                 key={pod.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
+                whileTap={{ scale: 0.98 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() => selectPod(pod)}
                 className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 backdrop-blur-sm p-4 text-left transition-all hover:border-[var(--color-accent)]/40 group flex items-center justify-between"

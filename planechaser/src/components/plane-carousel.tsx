@@ -45,7 +45,7 @@ export function PlaneCarousel({ slides, emptyMessage }: PlaneCarouselProps) {
             >
               <button
                 onClick={() => handleTap(slide)}
-                className="w-full rounded-2xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)]/80 text-left"
+                className="w-full rounded-2xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)]/80 text-left cursor-pointer"
               >
                 <div className="relative w-full aspect-[7/5] overflow-hidden">
                   <div className="absolute inset-0 flex items-center justify-center">

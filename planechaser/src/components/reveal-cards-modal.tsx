@@ -88,14 +88,14 @@ export function RevealCardsModal({ cards, effectType, onDismiss, onReorder }: Re
                   <button
                     onClick={() => moveCard(i, 'up')}
                     disabled={i === 0}
-                    className="text-xs text-white/40 hover:text-white disabled:opacity-20 px-2 py-1"
+                    className="text-xs text-white/40 hover:text-white disabled:opacity-20 px-2 py-1 cursor-pointer disabled:cursor-not-allowed"
                   >
                     &#9650;
                   </button>
                   <button
                     onClick={() => moveCard(i, 'down')}
                     disabled={i === orderedCards.length - 1}
-                    className="text-xs text-white/40 hover:text-white disabled:opacity-20 px-2 py-1"
+                    className="text-xs text-white/40 hover:text-white disabled:opacity-20 px-2 py-1 cursor-pointer disabled:cursor-not-allowed"
                   >
                     &#9660;
                   </button>
@@ -107,7 +107,7 @@ export function RevealCardsModal({ cards, effectType, onDismiss, onReorder }: Re
 
         <button
           onClick={handleConfirm}
-          className="w-full py-3 rounded-xl bg-[var(--color-accent)] text-white font-bold text-sm transition-opacity hover:opacity-90"
+          className="w-full py-3 rounded-xl bg-[var(--color-accent)] text-white font-bold text-sm transition-opacity hover:opacity-90 cursor-pointer"
           style={{ fontFamily: 'var(--font-heading)' }}
         >
           {showReorder ? 'Place on Bottom & Continue' : 'Continue'}

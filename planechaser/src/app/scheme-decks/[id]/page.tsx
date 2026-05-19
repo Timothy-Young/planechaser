@@ -226,6 +226,7 @@ export default function SchemeDeckBuilderPage() {
                 <motion.button
                   key={card.id}
                   layout
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => toggleCard(card.id)}
                   className={`relative rounded-xl overflow-hidden border-2 transition-all ${
                     isSelected

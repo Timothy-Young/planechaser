@@ -120,7 +120,7 @@ export function DieRoller({ rollCount, currentTurnRolls, playerName, onRoll, dis
           }}
           transition={{ duration: 0.07 }}
           whileTap={{ scale: 0.92 }}
-          className="relative w-[72px] h-[72px] md:w-[80px] md:h-[80px] rounded-2xl bg-[var(--color-surface-raised)] border border-[var(--color-border)] transition-all disabled:opacity-40"
+          className="relative w-[72px] h-[72px] md:w-[80px] md:h-[80px] rounded-2xl bg-[var(--color-surface-raised)] border border-[var(--color-border)] transition-all disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
           style={{
             boxShadow: rolling
               ? '0 0 30px var(--color-glow-purple), inset 0 0 15px rgba(168, 85, 247, 0.1)'

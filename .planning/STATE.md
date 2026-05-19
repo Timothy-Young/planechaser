@@ -99,6 +99,7 @@ Recent decisions affecting current work:
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260518-m21 | Audio polish: Download freesound.org audio files to local public/audio/, update URL references | 2026-05-18 | 6da5abe | [260518-m21-audio-polish](./quick/260518-m21-audio-polish-download-freesound-org-audi/) |
+| 260518-mur | Polish audit: whileTap animations and cursor consistency across all interactive elements | 2026-05-18 | 2ae0fa8 | [260518-mur-polish-audit](./quick/260518-mur-polish-audit-whiletap-animations-and-cur/) |
 
 ## Deferred Items
 

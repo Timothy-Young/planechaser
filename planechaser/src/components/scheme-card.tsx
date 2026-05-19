@@ -42,7 +42,7 @@ export function SchemeCard({ card, onAbandon }: SchemeCardProps) {
               </span>
               <button
                 onClick={(e) => { e.stopPropagation(); onAbandon() }}
-                className="text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-cta)] transition-colors"
+                className="text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-cta)] transition-colors cursor-pointer"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 Abandon scheme

@@ -404,7 +404,7 @@ export default function GamePage() {
       {/* Top bar */}
       <header className="relative z-10 flex items-center justify-between px-4 py-3 glass-strong">
         <div className="flex items-center gap-2">
-          <button onClick={() => router.push('/setup')} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
+          <button onClick={() => router.push('/setup')} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer">
             <Home size={14} className="text-[var(--color-accent)]" />
             <span className="text-[14px] text-[var(--color-accent)] font-bold tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
               PlaneChaser
@@ -421,16 +421,16 @@ export default function GamePage() {
             <span>{state.planesVisited}/{state.deck.length}</span>
             <span>{state.dieRollHistory.length} rolls</span>
           </div>
-          <button onClick={toggleSfx} className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
+          <button onClick={toggleSfx} className="p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
             {sfxOn ? <Volume2 size={16} className="text-[var(--color-text-muted)]" /> : <VolumeX size={16} className="text-[var(--color-text-muted)] opacity-40" />}
           </button>
-          <button onClick={toggleMusic} className={`p-1.5 rounded-lg hover:bg-white/5 transition-colors ${musicOn ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)] opacity-40'}`}>
+          <button onClick={toggleMusic} className={`p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer ${musicOn ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)] opacity-40'}`}>
             <Music size={16} />
           </button>
-          <button onClick={toggleAmbient} className={`p-1.5 rounded-lg hover:bg-white/5 transition-colors ${ambientOn ? 'text-green-400' : 'text-[var(--color-text-muted)] opacity-40'}`}>
+          <button onClick={toggleAmbient} className={`p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer ${ambientOn ? 'text-green-400' : 'text-[var(--color-text-muted)] opacity-40'}`}>
             <Trees size={16} />
           </button>
-          <button onClick={toggleTheme} className="p-1.5 rounded-lg hover:bg-white/5 transition-colors text-[var(--color-text-muted)]">
+          <button onClick={toggleTheme} className="p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer text-[var(--color-text-muted)]">
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           </button>
         </div>

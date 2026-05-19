@@ -19,7 +19,7 @@ export function CardZoomModal({ src, alt, onClose, rotate = true }: CardZoomModa
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 cursor-pointer"
           onClick={onClose}
         >
           <motion.div

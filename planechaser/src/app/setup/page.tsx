@@ -253,6 +253,7 @@ function SetupPageInner() {
             <motion.button
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
+              whileTap={{ scale: 0.97 }}
               onClick={resumeGame}
               className="w-full rounded-2xl border border-[var(--color-accent)]/40 bg-[var(--color-accent)]/8 p-5 text-center transition-all hover:bg-[var(--color-accent)]/15 glow-purple"
             >
@@ -278,6 +279,7 @@ function SetupPageInner() {
                 <motion.button
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => {
                     setArchenemyMode(true)
                     const eligible = leaderboard?.filter((e) => e.is_archenemy) ?? []
@@ -602,6 +604,7 @@ function SetupPageInner() {
             <motion.button
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
+              whileTap={{ scale: 0.97 }}
               onClick={handleCreateMultiplayerGame}
               disabled={createSession.isPending}
               className="w-full rounded-2xl border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5 p-5 text-center transition-all hover:bg-[var(--color-accent)]/10 cursor-pointer"

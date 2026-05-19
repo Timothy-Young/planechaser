@@ -95,6 +95,7 @@ export default function GamesPage() {
                   key={game.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
+                  whileTap={{ scale: 0.98 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => router.push(`/games/${game.id}`)}
                   className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm p-4 text-left transition-all hover:border-[var(--color-accent)]/40 hover:bg-[var(--color-surface)]"

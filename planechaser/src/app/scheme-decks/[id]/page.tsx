@@ -3,11 +3,12 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Search, Save, X, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Search, Save, X, RefreshCw, ZoomIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useSchemeDeck, useUpdateSchemeDeck } from '@/hooks/useSchemeDecks'
 import { useSchemeCorpus } from '@/hooks/useCardCorpus'
+import { CardZoomModal } from '@/components/card-zoom-modal'
 
 const MIN_DECK_SIZE = 20
 
@@ -27,6 +28,7 @@ export default function SchemeDeckBuilderPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string> | null>(null)
   const [deckName, setDeckName] = useState<string | null>(null)
   const [showDeckPanel, setShowDeckPanel] = useState(false)
+  const [zoomCard, setZoomCard] = useState<{ src: string; name: string } | null>(null)
 
   const currentIds = selectedIds ?? new Set(deck?.scheme_ids ?? [])
   const currentName = deckName ?? deck?.name ?? ''
@@ -103,6 +105,13 @@ export default function SchemeDeckBuilderPage() {
 
   return (
     <main className="min-h-screen flex flex-col bg-[var(--color-bg)] pb-nav">
+      <CardZoomModal
+        src={zoomCard?.src ?? null}
+        alt={zoomCard?.name ?? ''}
+        onClose={() => setZoomCard(null)}
+        rotate={false}
+      />
+
       {/* Header */}
       <div className="sticky top-0 z-20 glass-strong border-b border-[var(--color-border)] px-4 py-3">
         <div className="max-w-[420px] mx-auto space-y-3">
@@ -260,6 +269,17 @@ export default function SchemeDeckBuilderPage() {
                       <span className="text-white text-[11px] font-bold">&#10003;</span>
                     </div>
                   )}
+
+                  {/* Zoom button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setZoomCard({ src: card.image_uris.border_crop, name: card.name })
+                    }}
+                    className="absolute bottom-8 right-1.5 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center hover:bg-black/80 transition-colors"
+                  >
+                    <ZoomIn size={12} className="text-white" />
+                  </button>
 
                   {/* Card name overlay */}
                   <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent px-2 pb-1.5 pt-4">

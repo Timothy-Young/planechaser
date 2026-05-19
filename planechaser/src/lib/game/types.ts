@@ -87,6 +87,7 @@ export interface GameState {
   turnOrder: string[]
   currentTurnIndex: number
   currentTurnRolls: DieRoll[]
+  turnStartPlaneIndex: number
   turnHistory: TurnRecord[]
   stateHistory: Omit<GameState, 'stateHistory'>[]
   showChaosOverlay: boolean

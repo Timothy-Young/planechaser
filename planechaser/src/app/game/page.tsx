@@ -24,7 +24,7 @@ import { AchievementToast } from '@/components/achievement-toast'
 import { audioManager } from '@/lib/audio/audio-manager'
 import { getPlaneEnvironment, AMBIENT_URLS } from '@/lib/game/plane-environments'
 import { useAppStore } from '@/store/app-store'
-import type { GameState, DieResult, PlaneCard as PlaneCardType } from '@/lib/game/types'
+import type { GameState, DieResult, PlaneCard as PlaneCardType, TurnRecord } from '@/lib/game/types'
 
 export default function GamePage() {
   const router = useRouter()
@@ -214,13 +214,38 @@ export default function GamePage() {
         .slice(0, state.planesVisited)
         .map((p) => p.name)
 
+      const finalTurnLog = [...state.turnHistory]
+      if (state.currentTurnRolls.length > 0) {
+        const currentPlayerId = state.turnOrder[state.currentTurnIndex]
+        const currentPlayer = state.players.find((p) => p.id === currentPlayerId)
+        const startPlane = state.deck[state.turnStartPlaneIndex]
+        const currentPlane = state.deck[state.currentPlaneIndex]
+        const didPlaneswalk = state.currentTurnRolls.some((r) => r.result === 'planeswalk')
+        const chaosRolls = state.currentTurnRolls.filter((r) => r.result === 'chaos')
+
+        finalTurnLog.push({
+          playerId: currentPlayerId ?? 'unknown',
+          playerName: currentPlayer?.display_name ?? 'Unknown',
+          rolls: state.currentTurnRolls,
+          planeswalked: didPlaneswalk,
+          chaosTriggered: chaosRolls.length > 0,
+          planeAtStart: startPlane?.name ?? 'Unknown',
+          planeAtStartId: startPlane?.id ?? '',
+          newPlane: didPlaneswalk ? currentPlane?.name : undefined,
+          newPlaneId: didPlaneswalk ? currentPlane?.id : undefined,
+          chaosEffects: [],
+          conquests: [],
+          endedAt: Date.now(),
+        })
+      }
+
       recordSession.mutate({
         hostUserId: user.id,
         planesVisited: visitedPlanes,
         dieRollHistory: state.dieRollHistory,
         isArchenemy: !!state.archenemy,
         podId: activePodId ?? undefined,
-        turnLog: state.turnHistory,
+        turnLog: finalTurnLog,
         players: state.players,
       })
 

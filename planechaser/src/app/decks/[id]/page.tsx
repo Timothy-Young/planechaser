@@ -3,13 +3,14 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Search, Save, X, Shield, Eye, Sparkles } from 'lucide-react'
+import { ArrowLeft, Search, Save, X, Shield, Eye, Sparkles, ZoomIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDeck, useUpdateDeck } from '@/hooks/useDecks'
 import { usePlaneCorpus } from '@/hooks/useCardCorpus'
 import { useUserConquests, usePlaneVisitHistory } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
+import { CardZoomModal } from '@/components/card-zoom-modal'
 
 const MIN_DECK_SIZE = 10
 
@@ -34,6 +35,7 @@ export default function DeckBuilderPage() {
   const [showDeckPanel, setShowDeckPanel] = useState(false)
   const [includeVisited, setIncludeVisited] = useState(true)
   const [includeConquered, setIncludeConquered] = useState(true)
+  const [zoomCard, setZoomCard] = useState<{ src: string; name: string; isPhenomenon: boolean } | null>(null)
 
   const currentIds = selectedIds ?? new Set(deck?.plane_ids ?? [])
   const currentName = deckName ?? deck?.name ?? ''
@@ -131,6 +133,13 @@ export default function DeckBuilderPage() {
 
   return (
     <main className="min-h-screen flex flex-col bg-[var(--color-bg)] pb-nav">
+      <CardZoomModal
+        src={zoomCard?.src ?? null}
+        alt={zoomCard?.name ?? ''}
+        onClose={() => setZoomCard(null)}
+        rotate={zoomCard ? !zoomCard.isPhenomenon : true}
+      />
+
       {/* Header */}
       <div className="sticky top-0 z-20 glass-strong border-b border-[var(--color-border)] px-4 py-3">
         <div className="max-w-[420px] mx-auto space-y-3">
@@ -324,6 +333,17 @@ export default function DeckBuilderPage() {
                       <span className="text-white text-[11px] font-bold">&#10003;</span>
                     </div>
                   )}
+
+                  {/* Zoom button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setZoomCard({ src: card.image_uris.normal, name: card.name, isPhenomenon: card.card_type === 'phenomenon' })
+                    }}
+                    className="absolute bottom-8 right-1.5 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center hover:bg-black/80 transition-colors"
+                  >
+                    <ZoomIn size={12} className="text-white" />
+                  </button>
 
                   {/* Card name overlay */}
                   <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent px-2 pb-1.5 pt-4">

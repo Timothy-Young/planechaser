@@ -1,12 +1,13 @@
 'use client'
 
-import { use, useMemo } from 'react'
+import { use, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Dice5, Zap, Navigation, Crown, Shield } from 'lucide-react'
 import { useGameSession } from '@/hooks/usePods'
 import { usePlaneCorpus } from '@/hooks/useCardCorpus'
 import { PlaneCarousel } from '@/components/plane-carousel'
+import { CardZoomModal } from '@/components/card-zoom-modal'
 import type { PlaneSlide } from '@/components/plane-carousel'
 
 interface TurnLogEntry {
@@ -30,6 +31,8 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
   const router = useRouter()
   const { data: session, isLoading } = useGameSession(id)
   const { data: corpus } = usePlaneCorpus()
+  const [previewPlane, setPreviewPlane] = useState<string | null>(null)
+  const [previewPlaneName, setPreviewPlaneName] = useState('')
 
   const turnLog: TurnLogEntry[] = session?.turn_log || []
   const planesVisited: string[] = session?.planes_visited || []
@@ -54,6 +57,14 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
       })
       .filter((s) => s.imageUrl)
   }, [planesVisited, cardByName])
+
+  function openPlanePreview(planeName: string) {
+    const card = cardByName.get(planeName)
+    if (card) {
+      setPreviewPlane(card.image_uris.normal)
+      setPreviewPlaneName(planeName)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -92,6 +103,13 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
 
   return (
     <main className="min-h-screen pb-nav" style={{ background: 'var(--color-bg)' }}>
+      <CardZoomModal
+        src={previewPlane}
+        alt={previewPlaneName}
+        onClose={() => setPreviewPlane(null)}
+        rotate={true}
+      />
+
       {/* Header */}
       <div className="px-4 pt-6 pb-4">
         <div className="flex items-center gap-3 mb-1">
@@ -190,9 +208,13 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                       {turn.playerName}
                     </div>
                     {turn.planeAtStart && (
-                      <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>
-                        on {turn.planeAtStart}
-                      </div>
+                      <button
+                        onClick={() => openPlanePreview(turn.planeAtStart!)}
+                        className="text-xs mb-1 hover:underline transition-colors"
+                        style={{ color: 'var(--color-text-muted)' }}
+                      >
+                        on <span style={{ color: 'var(--color-accent)' }}>{turn.planeAtStart}</span>
+                      </button>
                     )}
 
                     {/* Roll icons */}
@@ -212,9 +234,23 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                         ⚡ Chaos triggered
                       </div>
                     )}
-                    {turn.planeswalked && turn.newPlane && (
-                      <div className="text-xs font-medium mt-1" style={{ color: 'var(--color-accent)' }}>
-                        ✈ Planeswalked to {turn.newPlane}
+                    {turn.planeswalked && (
+                      <div
+                        className="flex items-center gap-2 mt-2 px-3 py-1.5 rounded-lg"
+                        style={{ background: 'var(--color-accent)', color: 'white' }}
+                      >
+                        <Navigation size={14} />
+                        <span className="text-xs font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
+                          Planeswalked
+                        </span>
+                        {turn.newPlane && (
+                          <button
+                            onClick={() => openPlanePreview(turn.newPlane!)}
+                            className="text-xs font-medium ml-auto hover:underline"
+                          >
+                            → {turn.newPlane}
+                          </button>
+                        )}
                       </div>
                     )}
                     {turn.conquests && turn.conquests.length > 0 && (

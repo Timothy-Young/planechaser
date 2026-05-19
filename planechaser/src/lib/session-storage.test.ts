@@ -17,6 +17,7 @@ const mockState: GameState = {
   turnOrder: [],
   currentTurnIndex: 0,
   currentTurnRolls: [],
+  turnStartPlaneIndex: 0,
   turnHistory: [],
   stateHistory: [],
   showChaosOverlay: false,

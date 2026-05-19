@@ -225,7 +225,7 @@ export default function GamePage() {
 
         finalTurnLog.push({
           playerId: currentPlayerId ?? 'unknown',
-          playerName: currentPlayer?.display_name ?? 'Unknown',
+          playerName: currentPlayer?.display_name || 'Unknown',
           rolls: state.currentTurnRolls,
           planeswalked: didPlaneswalk,
           chaosTriggered: chaosRolls.length > 0,

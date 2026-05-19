@@ -36,7 +36,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
 
   const turnLog: TurnLogEntry[] = session?.turn_log || []
   const planesVisited: string[] = session?.planes_visited || []
-  const playersSnapshot: { id: string; name: string }[] = session?.players_snapshot || []
+  const playersSnapshot: { id: string; display_name: string }[] = session?.players_snapshot || []
   const isArchenemy = session?.game_type === 'archenemy'
 
   const totalRolls = turnLog.reduce((sum, turn) => sum + (turn.rolls?.length || 0), 0)
@@ -166,7 +166,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                 className="px-3 py-1 rounded-full text-sm"
                 style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
               >
-                {player.name}
+                {player.display_name}
               </span>
             ))}
           </div>
@@ -241,14 +241,15 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                       >
                         <Navigation size={14} />
                         <span className="text-xs font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
-                          Planeswalked
+                          Planeswalked{turn.newPlane && ' to '}
                         </span>
                         {turn.newPlane && (
                           <button
                             onClick={() => openPlanePreview(turn.newPlane!)}
-                            className="text-xs font-medium ml-auto hover:underline"
+                            className="text-xs font-bold hover:underline underline-offset-2"
+                            style={{ fontFamily: 'var(--font-heading)' }}
                           >
-                            → {turn.newPlane}
+                            {turn.newPlane}
                           </button>
                         )}
                       </div>

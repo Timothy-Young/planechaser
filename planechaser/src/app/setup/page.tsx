@@ -34,6 +34,7 @@ function SetupPageInner() {
   const podIdFromParam = searchParams.get('podId')
   const { data: corpus, isLoading, error } = usePlaneCorpus()
   const { data: schemes } = useSchemeCorpus()
+  const user = useAppStore((s) => s.user)
   const activePodId = useAppStore((s) => s.activePodId)
   const setActiveSessionId = useAppStore((s) => s.setActiveSessionId)
   const setIsHost = useAppStore((s) => s.setIsHost)
@@ -129,7 +130,7 @@ function SetupPageInner() {
       : sessionPlayers?.map((sp) => ({
           id: sp.user_id,
           display_name: sp.profile?.display_name ?? 'Player',
-        })) ?? [{ id: 'host', display_name: 'Host' }]
+        })) ?? [{ id: user?.id ?? 'host', display_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player' }]
 
     let archenemyState: ArchenemyState | undefined
     if (archenemyMode && designatedArchenemyId && schemes && schemes.length > 0) {

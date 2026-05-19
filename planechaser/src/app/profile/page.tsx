@@ -213,34 +213,6 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Achievements */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="space-y-3"
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-[15px] font-bold text-[var(--color-text)] tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
-              Achievements
-            </h2>
-            <span className="text-[11px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-              {achievements?.length ?? 0} / {ACHIEVEMENTS.length}
-            </span>
-          </div>
-          {achievements && achievements.length > 0 ? (
-            <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-              {achievements.map((a) => (
-                <AchievementBadge key={a.id} achievementKey={a.achievement_key} earnedAt={a.earned_at} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-[12px] text-[var(--color-text-muted)] py-4 rounded-xl border border-dashed border-[var(--color-border)]" style={{ fontFamily: 'var(--font-body)' }}>
-              No achievements yet. Play some games to earn badges!
-            </p>
-          )}
-        </motion.div>
-
         {/* Tabs */}
         <div className="flex rounded-xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)]/40">
           <button
@@ -276,6 +248,34 @@ export default function ProfilePage() {
         {tab === 'history' && (
           <PlaneCarousel slides={historySlides} emptyMessage="No visit history yet. Play a game to start tracking!" />
         )}
+
+        {/* Achievements */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="space-y-3"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-[15px] font-bold text-[var(--color-text)] tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
+              Achievements
+            </h2>
+            <span className="text-[11px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+              {achievements?.length ?? 0} / {ACHIEVEMENTS.length}
+            </span>
+          </div>
+          {achievements && achievements.length > 0 ? (
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+              {achievements.map((a) => (
+                <AchievementBadge key={a.id} achievementKey={a.achievement_key} earnedAt={a.earned_at} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-[12px] text-[var(--color-text-muted)] py-4 rounded-xl border border-dashed border-[var(--color-border)]" style={{ fontFamily: 'var(--font-body)' }}>
+              No achievements yet. Play some games to earn badges!
+            </p>
+          )}
+        </motion.div>
 
         {/* Theme + Sign out */}
         <div className="pt-2 space-y-3">

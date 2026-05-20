@@ -434,6 +434,34 @@ export async function deletePod(podId: string): Promise<void> {
   if (error) throw error
 }
 
+export async function addMemberToPod(podId: string, userId: string): Promise<void> {
+  const { data: pod, error: podError } = await supabase()
+    .from('pods')
+    .select('max_players')
+    .eq('id', podId)
+    .single()
+
+  if (podError || !pod) throw new Error('Pod not found')
+
+  const { count } = await supabase()
+    .from('pod_members')
+    .select('*', { count: 'exact', head: true })
+    .eq('pod_id', podId)
+
+  if (count !== null && count >= (pod as { max_players: number }).max_players) {
+    throw new Error('Pod is full')
+  }
+
+  const { error } = await supabase()
+    .from('pod_members')
+    .insert({ pod_id: podId, user_id: userId, role: 'member' })
+
+  if (error) {
+    if (error.code === '23505') throw new Error('Already a member')
+    throw error
+  }
+}
+
 export async function regenerateInviteCode(podId: string): Promise<string> {
   const newCode = Math.random().toString(36).substring(2, 10)
   const { error } = await supabase()

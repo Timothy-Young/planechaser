@@ -22,6 +22,7 @@ import {
   getUserProfile,
   updateUserProfile,
   removePodMember,
+  addMemberToPod,
   deletePod,
   regenerateInviteCode,
   searchProfiles,
@@ -248,6 +249,18 @@ export function useRemovePodMember() {
   return useMutation({
     mutationFn: (params: { podId: string; userId: string }) =>
       removePodMember(params.podId, params.userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pod-members'] })
+      qc.invalidateQueries({ queryKey: ['pod-leaderboard'] })
+    },
+  })
+}
+
+export function useAddPodMember() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { podId: string; userId: string }) =>
+      addMemberToPod(params.podId, params.userId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['pod-members'] })
       qc.invalidateQueries({ queryKey: ['pod-leaderboard'] })

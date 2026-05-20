@@ -21,6 +21,17 @@ import {
   getPlaneVisitHistory,
   getUserProfile,
   updateUserProfile,
+  removePodMember,
+  deletePod,
+  regenerateInviteCode,
+  searchProfiles,
+  findProfileByFriendCode,
+  sendFriendRequest,
+  respondToFriendRequest,
+  removeFriend,
+  getFriendRequests,
+  getFriends,
+  getUserFriendCode,
 } from '@/lib/pods/queries'
 import type { TurnRecord } from '@/lib/game/types'
 import { useAppStore } from '@/store/app-store'
@@ -73,7 +84,8 @@ export function useCreatePod() {
   const user = useAppStore((s) => s.user)
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (name: string) => createPod(name, user!.id),
+    mutationFn: (params: { name: string; maxPlayers?: number }) =>
+      createPod(params.name, user!.id, params.maxPlayers),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['pods'] }),
   })
 }
@@ -99,7 +111,7 @@ export function useLeavePod() {
 export function useUpdatePod() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { podId: string; updates: { name?: string; archenemy_threshold?: number } }) =>
+    mutationFn: (params: { podId: string; updates: { name?: string; archenemy_threshold?: number; max_players?: number } }) =>
       updatePod(params.podId, params.updates),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['pods'] })
@@ -224,5 +236,108 @@ export function useUpdateProfile() {
     mutationFn: (updates: { display_name?: string; avatar_url?: string }) =>
       updateUserProfile(user!.id, updates),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['profile'] }),
+  })
+}
+
+// --- Pod Management ---
+
+export function useRemovePodMember() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { podId: string; userId: string }) =>
+      removePodMember(params.podId, params.userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pod-members'] })
+      qc.invalidateQueries({ queryKey: ['pod-leaderboard'] })
+    },
+  })
+}
+
+export function useDeletePod() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (podId: string) => deletePod(podId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pods'] }),
+  })
+}
+
+export function useRegenerateInviteCode() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (podId: string) => regenerateInviteCode(podId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pods'] }),
+  })
+}
+
+// --- Friends ---
+
+export function useFriends() {
+  const user = useAppStore((s) => s.user)
+  return useQuery({
+    queryKey: ['friends', user?.id],
+    queryFn: () => getFriends(user!.id),
+    enabled: !!user,
+  })
+}
+
+export function useFriendRequests() {
+  const user = useAppStore((s) => s.user)
+  return useQuery({
+    queryKey: ['friend-requests', user?.id],
+    queryFn: () => getFriendRequests(user!.id),
+    enabled: !!user,
+    refetchInterval: 30_000,
+  })
+}
+
+export function useFriendCode() {
+  const user = useAppStore((s) => s.user)
+  return useQuery({
+    queryKey: ['friend-code', user?.id],
+    queryFn: () => getUserFriendCode(user!.id),
+    enabled: !!user,
+  })
+}
+
+export function useSendFriendRequest() {
+  const user = useAppStore((s) => s.user)
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (toUserId: string) => sendFriendRequest(user!.id, toUserId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['friend-requests'] }),
+  })
+}
+
+export function useRespondToFriendRequest() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { requestId: string; status: 'accepted' | 'declined' }) =>
+      respondToFriendRequest(params.requestId, params.status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['friend-requests'] })
+      qc.invalidateQueries({ queryKey: ['friends'] })
+    },
+  })
+}
+
+export function useRemoveFriend() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (requestId: string) => removeFriend(requestId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['friends'] }),
+  })
+}
+
+export function useSearchProfiles() {
+  const user = useAppStore((s) => s.user)
+  return useMutation({
+    mutationFn: (query: string) => searchProfiles(query, user!.id),
+  })
+}
+
+export function useFindByFriendCode() {
+  const user = useAppStore((s) => s.user)
+  return useMutation({
+    mutationFn: (code: string) => findProfileByFriendCode(code, user!.id),
   })
 }

@@ -3,9 +3,9 @@
 import { use, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Play, LogOut, Crown, Settings, Users } from 'lucide-react'
+import { ArrowLeft, Play, LogOut, Crown, Settings, Users, UserMinus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { usePodMembers, usePodLeaderboard, useLeavePod, useUserPods } from '@/hooks/usePods'
+import { usePodMembers, usePodLeaderboard, useLeavePod, useUserPods, useRemovePodMember } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
 import { PodSettingsModal } from '@/components/pod-settings-modal'
 
@@ -20,6 +20,12 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
   const { data: members } = usePodMembers(podId)
   const { data: leaderboard } = usePodLeaderboard(podId, pod?.archenemy_threshold ?? 5)
   const leavePod = useLeavePod()
+  const removeMember = useRemovePodMember()
+
+  async function handleRemoveMember(userId: string) {
+    if (!confirm('Remove this member from the pod?')) return
+    await removeMember.mutateAsync({ podId, userId })
+  }
 
   async function handleLeave() {
     await leavePod.mutateAsync(podId)
@@ -72,7 +78,8 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
           {pod && (
             <div className="flex items-center justify-center gap-4 text-[11px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
               <span>Code: <span className="text-[var(--color-accent)] font-semibold">{pod.invite_code}</span></span>
-              <span>Archenemy at {pod.archenemy_threshold}</span>
+              <span>{members?.length ?? 0}/{pod.max_players} players</span>
+              <span>AE at {pod.archenemy_threshold}</span>
             </div>
           )}
         </motion.div>
@@ -144,10 +151,22 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
               <div key={m.user_id} className="flex items-center justify-between rounded-xl bg-[var(--color-surface)]/60 px-4 py-3 border border-[var(--color-border-subtle)]">
                 <span className="text-[13px] text-[var(--color-text)]" style={{ fontFamily: 'var(--font-body)' }}>
                   {m.profile?.display_name ?? 'Unknown'}
+                  {m.user_id === user?.id && <span className="text-[var(--color-accent)] ml-1 text-[11px]">(you)</span>}
                 </span>
-                <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider" style={{ fontFamily: 'var(--font-body)' }}>
-                  {m.role}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider" style={{ fontFamily: 'var(--font-body)' }}>
+                    {m.role}
+                  </span>
+                  {isOwner && m.role !== 'owner' && (
+                    <button
+                      onClick={() => handleRemoveMember(m.user_id)}
+                      className="p-1 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-cta)] hover:bg-[var(--color-cta)]/10 transition-colors"
+                      title="Remove member"
+                    >
+                      <UserMinus size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -189,7 +208,7 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
       {/* Pod Settings Modal */}
       {showSettings && pod && (
         <PodSettingsModal
-          pod={pod}
+          pod={{ ...pod, max_players: pod.max_players ?? 4 }}
           onClose={() => {
             setShowSettings(false)
             refetchPods()

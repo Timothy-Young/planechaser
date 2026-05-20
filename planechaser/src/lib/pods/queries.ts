@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import type { Pod, PodMember, ConqueredPlane, LeaderboardEntry } from './types'
+import type { Pod, PodMember, ConqueredPlane, LeaderboardEntry, FriendRequest, Friend } from './types'
 import type { TurnRecord } from '@/lib/game/types'
 
 function supabase() {
@@ -8,10 +8,10 @@ function supabase() {
 
 // --- Pods ---
 
-export async function createPod(name: string, userId: string): Promise<Pod> {
+export async function createPod(name: string, userId: string, maxPlayers: number = 4): Promise<Pod> {
   const { data, error } = await supabase()
     .from('pods')
-    .insert({ name, created_by: userId })
+    .insert({ name, created_by: userId, max_players: maxPlayers })
     .select()
     .single()
 
@@ -33,6 +33,15 @@ export async function joinPodByCode(inviteCode: string, userId: string): Promise
 
   if (findError || !pod) throw new Error('Pod not found')
 
+  const { count } = await supabase()
+    .from('pod_members')
+    .select('*', { count: 'exact', head: true })
+    .eq('pod_id', pod.id)
+
+  if (count !== null && count >= (pod as Pod).max_players) {
+    throw new Error(`Pod is full (${(pod as Pod).max_players}/${(pod as Pod).max_players} players)`)
+  }
+
   const { error: joinError } = await supabase()
     .from('pod_members')
     .insert({ pod_id: pod.id, user_id: userId, role: 'member' })
@@ -47,7 +56,7 @@ export async function joinPodByCode(inviteCode: string, userId: string): Promise
 
 export async function updatePod(
   podId: string,
-  updates: { name?: string; archenemy_threshold?: number }
+  updates: { name?: string; archenemy_threshold?: number; max_players?: number }
 ): Promise<void> {
   const { error } = await supabase()
     .from('pods')
@@ -402,4 +411,190 @@ export async function updateUserProfile(
     .eq('id', userId)
 
   if (error) throw error
+}
+
+// --- Pod Management (owner actions) ---
+
+export async function removePodMember(podId: string, userId: string): Promise<void> {
+  const { error } = await supabase()
+    .from('pod_members')
+    .delete()
+    .eq('pod_id', podId)
+    .eq('user_id', userId)
+
+  if (error) throw error
+}
+
+export async function deletePod(podId: string): Promise<void> {
+  const { error } = await supabase()
+    .from('pods')
+    .delete()
+    .eq('id', podId)
+
+  if (error) throw error
+}
+
+export async function regenerateInviteCode(podId: string): Promise<string> {
+  const newCode = Math.random().toString(36).substring(2, 10)
+  const { error } = await supabase()
+    .from('pods')
+    .update({ invite_code: newCode })
+    .eq('id', podId)
+
+  if (error) throw error
+  return newCode
+}
+
+// --- Friends ---
+
+export async function searchProfiles(query: string, currentUserId: string) {
+  const { data, error } = await supabase()
+    .from('profiles')
+    .select('id, display_name, avatar_url, friend_code')
+    .neq('id', currentUserId)
+    .ilike('display_name', `%${query}%`)
+    .limit(10)
+
+  if (error) throw error
+  return data ?? []
+}
+
+export async function findProfileByFriendCode(code: string, currentUserId: string) {
+  const { data, error } = await supabase()
+    .from('profiles')
+    .select('id, display_name, avatar_url, friend_code')
+    .neq('id', currentUserId)
+    .eq('friend_code', code)
+    .single()
+
+  if (error) return null
+  return data
+}
+
+export async function sendFriendRequest(fromUserId: string, toUserId: string): Promise<FriendRequest> {
+  const { data: existing } = await supabase()
+    .from('friend_requests')
+    .select('id, status')
+    .or(`and(from_user_id.eq.${fromUserId},to_user_id.eq.${toUserId}),and(from_user_id.eq.${toUserId},to_user_id.eq.${fromUserId})`)
+    .limit(1)
+    .single()
+
+  if (existing) {
+    if (existing.status === 'accepted') throw new Error('Already friends')
+    if (existing.status === 'pending') throw new Error('Request already pending')
+    if (existing.status === 'declined') {
+      await supabase().from('friend_requests').delete().eq('id', existing.id)
+    }
+  }
+
+  const { data, error } = await supabase()
+    .from('friend_requests')
+    .insert({ from_user_id: fromUserId, to_user_id: toUserId })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as FriendRequest
+}
+
+export async function respondToFriendRequest(requestId: string, status: 'accepted' | 'declined'): Promise<void> {
+  const { error } = await supabase()
+    .from('friend_requests')
+    .update({ status })
+    .eq('id', requestId)
+
+  if (error) throw error
+}
+
+export async function removeFriend(requestId: string): Promise<void> {
+  const { error } = await supabase()
+    .from('friend_requests')
+    .delete()
+    .eq('id', requestId)
+
+  if (error) throw error
+}
+
+export async function getFriendRequests(userId: string): Promise<FriendRequest[]> {
+  const { data, error } = await supabase()
+    .from('friend_requests')
+    .select('*')
+    .eq('to_user_id', userId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  const fromIds = (data ?? []).map((r: Record<string, unknown>) => r.from_user_id as string)
+  if (fromIds.length === 0) return []
+
+  const { data: profiles } = await supabase()
+    .from('profiles')
+    .select('id, display_name, avatar_url')
+    .in('id', fromIds)
+
+  const profileMap = new Map(
+    (profiles ?? []).map((p: Record<string, unknown>) => [
+      p.id as string,
+      { display_name: p.display_name as string, avatar_url: p.avatar_url as string | null },
+    ])
+  )
+
+  return (data ?? []).map((r) => ({
+    ...(r as unknown as FriendRequest),
+    profile: profileMap.get(r.from_user_id as string) ?? { display_name: 'Unknown' },
+  }))
+}
+
+export async function getFriends(userId: string): Promise<Friend[]> {
+  const { data, error } = await supabase()
+    .from('friend_requests')
+    .select('*')
+    .eq('status', 'accepted')
+    .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
+
+  if (error) throw error
+  if (!data || data.length === 0) return []
+
+  const friendUserIds = data.map((r: Record<string, unknown>) =>
+    (r.from_user_id as string) === userId ? (r.to_user_id as string) : (r.from_user_id as string)
+  )
+
+  const { data: profiles } = await supabase()
+    .from('profiles')
+    .select('id, display_name, avatar_url, friend_code')
+    .in('id', friendUserIds)
+
+  const profileMap = new Map(
+    (profiles ?? []).map((p: Record<string, unknown>) => [
+      p.id as string,
+      {
+        display_name: p.display_name as string,
+        avatar_url: p.avatar_url as string | null,
+        friend_code: p.friend_code as string,
+      },
+    ])
+  )
+
+  return data.map((r) => {
+    const friendId = (r.from_user_id as string) === userId ? (r.to_user_id as string) : (r.from_user_id as string)
+    const profile = profileMap.get(friendId)
+    return {
+      user_id: friendId,
+      display_name: profile?.display_name ?? 'Unknown',
+      avatar_url: profile?.avatar_url ?? null,
+      friend_code: profile?.friend_code ?? '',
+      request_id: r.id as string,
+    }
+  })
+}
+
+export async function getUserFriendCode(userId: string): Promise<string> {
+  const { data } = await supabase()
+    .from('profiles')
+    .select('friend_code')
+    .eq('id', userId)
+    .single()
+
+  return (data?.friend_code as string) ?? ''
 }

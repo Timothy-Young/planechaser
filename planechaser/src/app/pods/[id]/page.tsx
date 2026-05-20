@@ -3,9 +3,10 @@
 import { use, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Play, LogOut, Crown, Settings, Users, UserMinus } from 'lucide-react'
+import { ArrowLeft, Play, LogOut, Crown, Settings, Users, UserMinus, UserPlus, Search, X, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { usePodMembers, usePodLeaderboard, useLeavePod, useUserPods, useRemovePodMember } from '@/hooks/usePods'
+import { Input } from '@/components/ui/input'
+import { usePodMembers, usePodLeaderboard, useLeavePod, useUserPods, useRemovePodMember, useAddPodMember, useFriends, useSearchProfiles } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
 import { PodSettingsModal } from '@/components/pod-settings-modal'
 
@@ -15,16 +16,42 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
   const user = useAppStore((s) => s.user)
   const setActivePodId = useAppStore((s) => s.setActivePodId)
   const [showSettings, setShowSettings] = useState(false)
+  const [showAddMember, setShowAddMember] = useState(false)
+  const [addSearch, setAddSearch] = useState('')
+  const [addSearchResults, setAddSearchResults] = useState<{ id: string; display_name: string; avatar_url: string | null }[]>([])
+  const [addMessage, setAddMessage] = useState<string | null>(null)
   const { data: pods, refetch: refetchPods } = useUserPods()
   const pod = pods?.find((p) => p.id === podId)
   const { data: members } = usePodMembers(podId)
   const { data: leaderboard } = usePodLeaderboard(podId, pod?.archenemy_threshold ?? 5)
+  const { data: friends } = useFriends()
   const leavePod = useLeavePod()
   const removeMember = useRemovePodMember()
+  const addMember = useAddPodMember()
+  const searchProfiles = useSearchProfiles()
 
   async function handleRemoveMember(userId: string) {
     if (!confirm('Remove this member from the pod?')) return
     await removeMember.mutateAsync({ podId, userId })
+  }
+
+  async function handleAddMember(userId: string) {
+    try {
+      await addMember.mutateAsync({ podId, userId })
+      setAddMessage('Member added!')
+      setAddSearchResults([])
+      setAddSearch('')
+    } catch (e) {
+      setAddMessage(e instanceof Error ? e.message : 'Failed to add member')
+    }
+  }
+
+  async function handleAddSearch() {
+    if (!addSearch.trim()) return
+    setAddMessage(null)
+    const results = await searchProfiles.mutateAsync(addSearch.trim())
+    setAddSearchResults(results)
+    if (results.length === 0) setAddMessage('No users found')
   }
 
   async function handleLeave() {
@@ -143,9 +170,129 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
 
         {/* Members */}
         <div className="space-y-3">
-          <h2 className="text-[14px] font-bold text-[var(--color-text)] tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
-            Members ({members?.length ?? 0})
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-[14px] font-bold text-[var(--color-text)] tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
+              Members ({members?.length ?? 0})
+            </h2>
+            {isOwner && (
+              <button
+                onClick={() => { setShowAddMember(!showAddMember); setAddMessage(null); setAddSearchResults([]) }}
+                className={`p-1.5 rounded-lg transition-colors ${showAddMember ? 'text-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'text-[var(--color-text-muted)] hover:text-[var(--color-accent)]'}`}
+                title="Add member"
+              >
+                {showAddMember ? <X size={16} /> : <UserPlus size={16} />}
+              </button>
+            )}
+          </div>
+
+          {/* Add member panel */}
+          {showAddMember && isOwner && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="rounded-xl border border-[var(--color-accent)]/20 bg-[var(--color-surface)]/80 backdrop-blur-sm p-4 space-y-3"
+            >
+              {/* Friends quick-add */}
+              {(() => {
+                const memberIds = new Set(members?.map((m) => m.user_id) ?? [])
+                const addableFriends = friends?.filter((f) => !memberIds.has(f.user_id)) ?? []
+                return addableFriends.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider" style={{ fontFamily: 'var(--font-heading)' }}>
+                      Friends
+                    </p>
+                    <div className="space-y-1">
+                      {addableFriends.map((f) => (
+                        <div key={f.user_id} className="flex items-center justify-between rounded-lg bg-[var(--color-bg)]/60 px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            {f.avatar_url ? (
+                              <img src={f.avatar_url} alt="" className="w-6 h-6 rounded-full" referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[var(--color-accent-deep)] to-[var(--color-accent)] flex items-center justify-center">
+                                <span className="text-[10px] text-white font-bold">{f.display_name[0]?.toUpperCase()}</span>
+                              </div>
+                            )}
+                            <span className="text-[12px] text-[var(--color-text)]" style={{ fontFamily: 'var(--font-body)' }}>
+                              {f.display_name}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleAddMember(f.user_id)}
+                            disabled={addMember.isPending}
+                            className="p-1 rounded-lg text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 transition-colors"
+                            title="Add to pod"
+                          >
+                            <UserPlus size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null
+              })()}
+
+              {/* Search any user */}
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider" style={{ fontFamily: 'var(--font-heading)' }}>
+                  Search Users
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Search by name..."
+                    value={addSearch}
+                    onChange={(e) => setAddSearch(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddSearch()}
+                    className="h-9 text-[12px] rounded-lg border-[var(--color-border)] bg-[var(--color-bg)]/80 text-[var(--color-text)]"
+                    style={{ fontFamily: 'var(--font-body)' }}
+                  />
+                  <Button
+                    onClick={handleAddSearch}
+                    disabled={searchProfiles.isPending || !addSearch.trim()}
+                    className="h-9 px-3 bg-[var(--color-accent-deep)] text-white"
+                  >
+                    <Search size={14} />
+                  </Button>
+                </div>
+                {addSearchResults.length > 0 && (
+                  <div className="space-y-1">
+                    {addSearchResults
+                      .filter((p) => !members?.some((m) => m.user_id === p.id))
+                      .map((profile) => (
+                        <div key={profile.id} className="flex items-center justify-between rounded-lg bg-[var(--color-bg)]/60 px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            {profile.avatar_url ? (
+                              <img src={profile.avatar_url} alt="" className="w-6 h-6 rounded-full" referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[var(--color-accent-deep)] to-[var(--color-accent)] flex items-center justify-center">
+                                <span className="text-[10px] text-white font-bold">{profile.display_name[0]?.toUpperCase()}</span>
+                              </div>
+                            )}
+                            <span className="text-[12px] text-[var(--color-text)]" style={{ fontFamily: 'var(--font-body)' }}>
+                              {profile.display_name}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleAddMember(profile.id)}
+                            disabled={addMember.isPending}
+                            className="p-1 rounded-lg text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 transition-colors"
+                            title="Add to pod"
+                          >
+                            <UserPlus size={14} />
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {addMessage && (
+                <p className={`text-center text-[12px] ${addMessage.includes('added') ? 'text-green-400' : 'text-[var(--color-cta)]'}`} style={{ fontFamily: 'var(--font-body)' }}>
+                  {addMessage}
+                </p>
+              )}
+            </motion.div>
+          )}
+
           <div className="space-y-1">
             {members?.map((m) => (
               <div key={m.user_id} className="flex items-center justify-between rounded-xl bg-[var(--color-surface)]/60 px-4 py-3 border border-[var(--color-border-subtle)]">

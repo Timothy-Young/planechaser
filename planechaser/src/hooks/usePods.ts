@@ -22,6 +22,7 @@ import {
   getUserProfile,
   updateUserProfile,
   removePodMember,
+  addMemberToPod,
   deletePod,
   regenerateInviteCode,
   searchProfiles,
@@ -30,6 +31,8 @@ import {
   respondToFriendRequest,
   removeFriend,
   getFriendRequests,
+  getOutgoingFriendRequests,
+  cancelFriendRequest,
   getFriends,
   getUserFriendCode,
 } from '@/lib/pods/queries'
@@ -253,6 +256,18 @@ export function useRemovePodMember() {
   })
 }
 
+export function useAddPodMember() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { podId: string; userId: string }) =>
+      addMemberToPod(params.podId, params.userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pod-members'] })
+      qc.invalidateQueries({ queryKey: ['pod-leaderboard'] })
+    },
+  })
+}
+
 export function useDeletePod() {
   const qc = useQueryClient()
   return useMutation({
@@ -290,6 +305,26 @@ export function useFriendRequests() {
   })
 }
 
+export function useOutgoingFriendRequests() {
+  const user = useAppStore((s) => s.user)
+  return useQuery({
+    queryKey: ['outgoing-friend-requests', user?.id],
+    queryFn: () => getOutgoingFriendRequests(user!.id),
+    enabled: !!user,
+  })
+}
+
+export function useCancelFriendRequest() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (requestId: string) => cancelFriendRequest(requestId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['friend-requests'] })
+      qc.invalidateQueries({ queryKey: ['outgoing-friend-requests'] })
+    },
+  })
+}
+
 export function useFriendCode() {
   const user = useAppStore((s) => s.user)
   return useQuery({
@@ -304,7 +339,10 @@ export function useSendFriendRequest() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (toUserId: string) => sendFriendRequest(user!.id, toUserId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['friend-requests'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['friend-requests'] })
+      qc.invalidateQueries({ queryKey: ['outgoing-friend-requests'] })
+    },
   })
 }
 

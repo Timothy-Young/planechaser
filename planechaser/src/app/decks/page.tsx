@@ -3,62 +3,139 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Plus, Trash2, Layers, Star } from 'lucide-react'
+import { Plus, Trash2, Layers, Star, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useUserDecks, useCreateDeck, useDeleteDeck, useCreateDefaultDeck } from '@/hooks/useDecks'
-import { usePlaneCorpus } from '@/hooks/useCardCorpus'
+import {
+  useUserSchemeDecks,
+  useCreateSchemeDeck,
+  useDeleteSchemeDeck,
+  useCreateDefaultSchemeDeck,
+} from '@/hooks/useSchemeDecks'
+import { usePlaneCorpus, useSchemeCorpus } from '@/hooks/useCardCorpus'
 import { useAppStore } from '@/store/app-store'
+import { SCHEME_PRESETS, buildPresetDeck } from '@/lib/scheme-decks/presets'
 
-const MIN_DECK_SIZE = 10
+type DeckTab = 'plane' | 'scheme'
+type TemplateName = 'Custom' | 'Aggressive' | 'Balanced' | 'Chaos'
+
+const MIN_PLANE_DECK_SIZE = 10
+const MIN_SCHEME_DECK_SIZE = 20
 
 export default function DecksPage() {
   const router = useRouter()
   const user = useAppStore((s) => s.user)
-  const { data: decks, isLoading } = useUserDecks()
-  const { data: corpus } = usePlaneCorpus()
-  const createDeck = useCreateDeck()
-  const deleteDeckMutation = useDeleteDeck()
-  const createDefaultDeck = useCreateDefaultDeck()
-  const [newDeckName, setNewDeckName] = useState('')
+  const [tab, setTab] = useState<DeckTab>('plane')
+
+  // Plane deck state
+  const { data: planeDecks, isLoading: planeLoading } = useUserDecks()
+  const { data: planeCorpus } = usePlaneCorpus()
+  const createPlaneDeck = useCreateDeck()
+  const deletePlaneDeck = useDeleteDeck()
+  const createDefaultPlaneDeck = useCreateDefaultDeck()
+  const [planeAutoCreating, setPlaneAutoCreating] = useState(false)
+
+  // Scheme deck state
+  const { data: schemeDecks, isLoading: schemeLoading } = useUserSchemeDecks()
+  const { data: schemeCorpus } = useSchemeCorpus()
+  const createSchemeDeck = useCreateSchemeDeck()
+  const deleteSchemeDeckMutation = useDeleteSchemeDeck()
+  const createDefaultSchemeDeck = useCreateDefaultSchemeDeck()
+  const [schemeAutoCreating, setSchemeAutoCreating] = useState(false)
+
+  // Shared create state
   const [showCreate, setShowCreate] = useState(false)
-  const [autoCreating, setAutoCreating] = useState(false)
+  const [newDeckName, setNewDeckName] = useState('')
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateName>('Balanced')
+
+  // Auto-create defaults
+  useEffect(() => {
+    if (!planeLoading && user && planeDecks && planeDecks.length === 0 && planeCorpus && !planeAutoCreating && !createDefaultPlaneDeck.isPending) {
+      setPlaneAutoCreating(true)
+      const planeOnlyIds = planeCorpus.filter((c) => c.card_type === 'plane').map((c) => c.id)
+      createDefaultPlaneDeck.mutate(planeOnlyIds)
+    }
+  }, [planeLoading, user, planeDecks, planeCorpus, planeAutoCreating, createDefaultPlaneDeck])
 
   useEffect(() => {
-    if (!isLoading && user && decks && decks.length === 0 && corpus && !autoCreating && !createDefaultDeck.isPending) {
-      setAutoCreating(true)
-      const planeOnlyIds = corpus.filter((c) => c.card_type === 'plane').map((c) => c.id)
-      createDefaultDeck.mutate(planeOnlyIds)
+    if (!schemeLoading && user && schemeDecks && schemeDecks.length === 0 && schemeCorpus && !schemeAutoCreating && !createDefaultSchemeDeck.isPending) {
+      setSchemeAutoCreating(true)
+      const allSchemeIds = schemeCorpus.map((c) => c.id)
+      createDefaultSchemeDeck.mutate(allSchemeIds)
     }
-  }, [isLoading, user, decks, corpus, autoCreating, createDefaultDeck])
+  }, [schemeLoading, user, schemeDecks, schemeCorpus, schemeAutoCreating, createDefaultSchemeDeck])
 
+  const isLoading = tab === 'plane' ? planeLoading : schemeLoading
+  const decks = tab === 'plane' ? planeDecks : schemeDecks
   const hasDecks = decks && decks.length > 0
 
   function handleCreateDeck() {
     const name = newDeckName.trim()
     if (!name) return
-    createDeck.mutate(
-      { name, planeIds: [] },
-      {
-        onSuccess: (deck) => {
-          setNewDeckName('')
-          setShowCreate(false)
-          router.push(`/decks/${deck.id}`)
+
+    if (tab === 'plane') {
+      createPlaneDeck.mutate(
+        { name, planeIds: [] },
+        {
+          onSuccess: (deck) => {
+            resetCreate()
+            router.push(`/decks/${deck.id}`)
+          },
         },
-      },
-    )
+      )
+    } else {
+      let schemeIds: string[] = []
+      if (selectedTemplate !== 'Custom' && schemeCorpus) {
+        const schemesForPreset = schemeCorpus.map((c) => ({
+          id: c.id,
+          oracle_text: c.oracle_text,
+          is_ongoing: c.isOngoing,
+        }))
+        schemeIds = buildPresetDeck(selectedTemplate, schemesForPreset)
+      }
+      createSchemeDeck.mutate(
+        { name, schemeIds },
+        {
+          onSuccess: (deck) => {
+            resetCreate()
+            router.push(`/scheme-decks/${deck.id}`)
+          },
+        },
+      )
+    }
   }
 
   function handleCreateDefault() {
-    if (!corpus) return
-    const planeOnlyIds = corpus.filter((c) => c.card_type === 'plane').map((c) => c.id)
-    createDefaultDeck.mutate(planeOnlyIds)
+    if (tab === 'plane') {
+      if (!planeCorpus) return
+      const planeOnlyIds = planeCorpus.filter((c) => c.card_type === 'plane').map((c) => c.id)
+      createDefaultPlaneDeck.mutate(planeOnlyIds)
+    } else {
+      if (!schemeCorpus) return
+      const allSchemeIds = schemeCorpus.map((c) => c.id)
+      createDefaultSchemeDeck.mutate(allSchemeIds)
+    }
   }
 
   function handleDelete(deckId: string, e: React.MouseEvent) {
     e.stopPropagation()
-    deleteDeckMutation.mutate(deckId)
+    if (tab === 'plane') {
+      deletePlaneDeck.mutate(deckId)
+    } else {
+      deleteSchemeDeckMutation.mutate(deckId)
+    }
   }
+
+  function resetCreate() {
+    setNewDeckName('')
+    setSelectedTemplate('Balanced')
+    setShowCreate(false)
+  }
+
+  const isCreating = tab === 'plane' ? createPlaneDeck.isPending : createSchemeDeck.isPending
+  const isDefaultCreating = tab === 'plane' ? createDefaultPlaneDeck.isPending : createDefaultSchemeDeck.isPending
+  const templateOptions: TemplateName[] = ['Custom', 'Aggressive', 'Balanced', 'Chaos']
 
   if (!user) {
     return (
@@ -96,6 +173,32 @@ export default function DecksPage() {
             </Button>
           </div>
 
+          {/* Tabs */}
+          <div className="flex rounded-xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)]/40">
+            <button
+              onClick={() => { setTab('plane'); setShowCreate(false) }}
+              className={`flex-1 py-2.5 text-[12px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                tab === 'plane'
+                  ? 'bg-[var(--color-accent-deep)] text-white'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
+              }`}
+              style={{ fontFamily: 'var(--font-heading)' }}
+            >
+              <Layers size={14} /> Plane Decks
+            </button>
+            <button
+              onClick={() => { setTab('scheme'); setShowCreate(false) }}
+              className={`flex-1 py-2.5 text-[12px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                tab === 'scheme'
+                  ? 'bg-[var(--color-accent-deep)] text-white'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
+              }`}
+              style={{ fontFamily: 'var(--font-heading)' }}
+            >
+              <Shield size={14} /> Scheme Decks
+            </button>
+          </div>
+
           {/* Create form */}
           {showCreate && (
             <motion.div
@@ -112,14 +215,45 @@ export default function DecksPage() {
                 style={{ fontFamily: 'var(--font-body)' }}
                 autoFocus
               />
+
+              {/* Template selector for scheme decks */}
+              {tab === 'scheme' && (
+                <div className="space-y-1.5">
+                  <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+                    Template
+                  </p>
+                  <div className="flex gap-2 flex-wrap">
+                    {templateOptions.map((tmpl) => {
+                      const isSelected = selectedTemplate === tmpl
+                      const preset = SCHEME_PRESETS.find((p) => p.name === tmpl)
+                      return (
+                        <button
+                          key={tmpl}
+                          onClick={() => setSelectedTemplate(tmpl)}
+                          className={`px-3 py-1.5 rounded-xl text-[12px] font-medium border transition-colors ${
+                            isSelected
+                              ? 'bg-[var(--color-accent-deep)] text-white border-[var(--color-accent-deep)]'
+                              : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] border-[var(--color-border)] hover:border-[var(--color-accent)]/40'
+                          }`}
+                          style={{ fontFamily: 'var(--font-heading)' }}
+                          title={preset?.description ?? 'Start with an empty deck'}
+                        >
+                          {tmpl}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <Button
                   onClick={handleCreateDeck}
-                  disabled={!newDeckName.trim() || createDeck.isPending}
+                  disabled={!newDeckName.trim() || isCreating}
                   className="flex-1 h-10 bg-[var(--color-accent-deep)] text-white text-[13px]"
                   style={{ fontFamily: 'var(--font-heading)' }}
                 >
-                  {createDeck.isPending ? 'Creating...' : 'Create & Edit'}
+                  {isCreating ? 'Creating...' : 'Create & Edit'}
                 </Button>
                 <Button
                   onClick={() => setShowCreate(false)}
@@ -138,7 +272,7 @@ export default function DecksPage() {
             <div className="flex items-center justify-center gap-2 py-8">
               <div className="w-4 h-4 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
               <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-                Loading decks...
+                Loading {tab === 'plane' ? '' : 'scheme '}decks...
               </p>
             </div>
           )}
@@ -150,17 +284,25 @@ export default function DecksPage() {
               animate={{ opacity: 1, y: 0 }}
               className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm p-8 text-center space-y-4"
             >
-              <Layers size={40} className="mx-auto text-[var(--color-text-muted)]" />
+              {tab === 'plane' ? (
+                <Layers size={40} className="mx-auto text-[var(--color-text-muted)]" />
+              ) : (
+                <Shield size={40} className="mx-auto text-[var(--color-text-muted)]" />
+              )}
               <p className="text-[15px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-                No decks yet. Create one or generate a starter deck.
+                No {tab === 'scheme' ? 'scheme ' : ''}decks yet. Create one or generate a starter deck.
               </p>
               <Button
                 onClick={handleCreateDefault}
-                disabled={!corpus || createDefaultDeck.isPending}
+                disabled={isDefaultCreating || (tab === 'plane' ? !planeCorpus : !schemeCorpus)}
                 className="h-11 px-6 bg-[var(--color-accent-deep)] text-white text-[14px]"
                 style={{ fontFamily: 'var(--font-heading)' }}
               >
-                {createDefaultDeck.isPending ? 'Generating...' : 'Generate Default Deck (10 planes)'}
+                {isDefaultCreating
+                  ? 'Generating...'
+                  : tab === 'plane'
+                    ? 'Generate Default Deck (10 planes)'
+                    : 'Generate Default Deck (20 schemes)'}
               </Button>
             </motion.div>
           )}
@@ -168,47 +310,57 @@ export default function DecksPage() {
           {/* Deck cards */}
           {hasDecks && (
             <div className="space-y-3">
-              {decks.map((deck, i) => (
-                <motion.button
-                  key={deck.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ delay: i * 0.05 }}
-                  onClick={() => router.push(`/decks/${deck.id}`)}
-                  className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm p-4 text-left transition-all hover:border-[var(--color-accent)]/40 hover:bg-[var(--color-surface)]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {deck.is_default && <Star size={16} className="shrink-0 text-[var(--color-gold)]" />}
-                      <div className="min-w-0">
-                        <p
-                          className="text-[15px] font-semibold text-[var(--color-text)] truncate"
-                          style={{ fontFamily: 'var(--font-heading)' }}
-                        >
-                          {deck.name}
-                        </p>
-                        <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-                          {deck.plane_ids.length} card{deck.plane_ids.length !== 1 ? 's' : ''}
-                          {deck.plane_ids.length < MIN_DECK_SIZE && (
-                            <span className="text-[var(--color-cta)] ml-1">
-                              (need {MIN_DECK_SIZE - deck.plane_ids.length} more)
-                            </span>
-                          )}
-                        </p>
+              {decks.map((deck, i) => {
+                const isPlane = tab === 'plane'
+                const cardCount = isPlane
+                  ? (deck as { plane_ids: string[] }).plane_ids.length
+                  : (deck as { scheme_ids: string[] }).scheme_ids.length
+                const minSize = isPlane ? MIN_PLANE_DECK_SIZE : MIN_SCHEME_DECK_SIZE
+                const isDefault = (deck as { is_default: boolean }).is_default
+                const detailPath = isPlane ? `/decks/${deck.id}` : `/scheme-decks/${deck.id}`
+
+                return (
+                  <motion.button
+                    key={deck.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ delay: i * 0.05 }}
+                    onClick={() => router.push(detailPath)}
+                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm p-4 text-left transition-all hover:border-[var(--color-accent)]/40 hover:bg-[var(--color-surface)]"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {isDefault && <Star size={16} className="shrink-0 text-[var(--color-gold)]" />}
+                        <div className="min-w-0">
+                          <p
+                            className="text-[15px] font-semibold text-[var(--color-text)] truncate"
+                            style={{ fontFamily: 'var(--font-heading)' }}
+                          >
+                            {deck.name}
+                          </p>
+                          <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+                            {cardCount} {isPlane ? 'card' : 'scheme'}{cardCount !== 1 ? 's' : ''}
+                            {cardCount < minSize && (
+                              <span className={`ml-1 ${isPlane ? 'text-[var(--color-cta)]' : 'text-[var(--color-destructive)]'}`}>
+                                (need {minSize - cardCount} more)
+                              </span>
+                            )}
+                          </p>
+                        </div>
                       </div>
+                      {!isDefault && (
+                        <button
+                          onClick={(e) => handleDelete(deck.id, e)}
+                          className="shrink-0 p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-cta)] hover:bg-[var(--color-cta)]/10 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
-                    {!deck.is_default && (
-                      <button
-                        onClick={(e) => handleDelete(deck.id, e)}
-                        className="shrink-0 p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-cta)] hover:bg-[var(--color-cta)]/10 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
-                </motion.button>
-              ))}
+                  </motion.button>
+                )
+              })}
             </div>
           )}
         </div>

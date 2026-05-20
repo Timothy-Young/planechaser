@@ -5,9 +5,9 @@ import { Swords, Users, User, Heart, UserPlus, Layers } from 'lucide-react'
 
 const NAV_ITEMS = [
   { path: '/setup', label: 'Play', icon: Swords },
-  { path: '/join', label: 'Join', icon: UserPlus },
   { path: '/decks', label: 'Decks', icon: Layers },
   { path: '/pods', label: 'Pods', icon: Users },
+  { path: '/friends', label: 'Friends', icon: UserPlus },
   { path: '/profile', label: 'Profile', icon: User },
   { path: '/support', label: 'Support', icon: Heart },
 ] as const

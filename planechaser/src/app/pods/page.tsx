@@ -20,6 +20,7 @@ export default function PodsPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [showJoin, setShowJoin] = useState(false)
   const [podName, setPodName] = useState('')
+  const [maxPlayers, setMaxPlayers] = useState(4)
   const [inviteCode, setInviteCode] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -27,9 +28,10 @@ export default function PodsPage() {
     if (!podName.trim()) return
     setError(null)
     try {
-      const pod = await createPod.mutateAsync(podName.trim())
+      const pod = await createPod.mutateAsync({ name: podName.trim(), maxPlayers })
       setActivePodId(pod.id)
       setPodName('')
+      setMaxPlayers(4)
       setShowCreate(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create pod')
@@ -91,7 +93,7 @@ export default function PodsPage() {
                     {pod.name}
                   </p>
                   <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
-                    Code: <span className="text-[var(--color-accent)]">{pod.invite_code}</span> · Archenemy at {pod.archenemy_threshold}
+                    Code: <span className="text-[var(--color-accent)]">{pod.invite_code}</span> · {pod.max_players} max · AE at {pod.archenemy_threshold}
                   </p>
                 </div>
                 <ArrowRight size={16} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-colors" />
@@ -118,6 +120,27 @@ export default function PodsPage() {
               style={{ fontFamily: 'var(--font-body)' }}
               autoFocus
             />
+            <div className="space-y-1.5">
+              <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+                Max Players
+              </p>
+              <div className="flex gap-2">
+                {[2, 3, 4, 5, 6, 7, 8].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setMaxPlayers(n)}
+                    className={`w-9 h-9 rounded-lg text-[13px] font-bold border transition-colors ${
+                      maxPlayers === n
+                        ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/20 text-[var(--color-accent)]'
+                        : 'border-[var(--color-border)] bg-[var(--color-bg)]/40 text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/50'
+                    }`}
+                    style={{ fontFamily: 'var(--font-heading)' }}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="flex gap-2">
               <Button onClick={handleCreate} disabled={createPod.isPending || !podName.trim()} className="flex-1 h-11 bg-[var(--color-accent-deep)] hover:opacity-90 text-white rounded-xl" style={{ fontFamily: 'var(--font-heading)', fontSize: '14px' }}>
                 Create

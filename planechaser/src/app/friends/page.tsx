@@ -8,10 +8,12 @@ import { Input } from '@/components/ui/input'
 import {
   useFriends,
   useFriendRequests,
+  useOutgoingFriendRequests,
   useFriendCode,
   useSendFriendRequest,
   useRespondToFriendRequest,
   useRemoveFriend,
+  useCancelFriendRequest,
   useSearchProfiles,
   useFindByFriendCode,
 } from '@/hooks/usePods'
@@ -23,10 +25,12 @@ export default function FriendsPage() {
   const user = useAppStore((s) => s.user)
   const { data: friends, isLoading: friendsLoading } = useFriends()
   const { data: requests } = useFriendRequests()
+  const { data: outgoing } = useOutgoingFriendRequests()
   const { data: friendCode } = useFriendCode()
   const sendRequest = useSendFriendRequest()
   const respondToRequest = useRespondToFriendRequest()
   const removeFriendMutation = useRemoveFriend()
+  const cancelRequest = useCancelFriendRequest()
   const searchProfiles = useSearchProfiles()
   const findByCode = useFindByFriendCode()
 
@@ -207,43 +211,86 @@ export default function FriendsPage() {
           </div>
         )}
 
-        {/* Pending requests */}
+        {/* Requests tab — incoming + outgoing */}
         {tab === 'requests' && (
-          <div className="space-y-2">
-            {requests && requests.length > 0 ? (
-              requests.map((r) => (
-                <motion.div
-                  key={r.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center justify-between rounded-xl bg-[var(--color-surface)]/60 px-4 py-3 border border-[var(--color-border-subtle)]"
-                >
-                  <span className="text-[13px] text-[var(--color-text)]" style={{ fontFamily: 'var(--font-body)' }}>
-                    {r.profile?.display_name ?? 'Unknown'}
-                  </span>
-                  <div className="flex gap-2">
+          <div className="space-y-5">
+            {/* Incoming */}
+            <div className="space-y-2">
+              <p className="text-[12px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider" style={{ fontFamily: 'var(--font-heading)' }}>
+                Incoming
+              </p>
+              {requests && requests.length > 0 ? (
+                requests.map((r) => (
+                  <motion.div
+                    key={r.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center justify-between rounded-xl bg-[var(--color-surface)]/60 px-4 py-3 border border-[var(--color-border-subtle)]"
+                  >
+                    <span className="text-[13px] text-[var(--color-text)]" style={{ fontFamily: 'var(--font-body)' }}>
+                      {r.profile?.display_name ?? 'Unknown'}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleRespond(r.id, 'accepted')}
+                        className="p-1.5 rounded-lg bg-[var(--color-accent)]/20 text-[var(--color-accent)] hover:bg-[var(--color-accent)]/30 transition-colors"
+                        title="Accept"
+                      >
+                        <Check size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleRespond(r.id, 'declined')}
+                        className="p-1.5 rounded-lg bg-[var(--color-cta)]/10 text-[var(--color-text-muted)] hover:text-[var(--color-cta)] transition-colors"
+                        title="Decline"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <p className="text-center text-[12px] text-[var(--color-text-muted)] py-3" style={{ fontFamily: 'var(--font-body)' }}>
+                  No incoming requests.
+                </p>
+              )}
+            </div>
+
+            {/* Outgoing */}
+            <div className="space-y-2">
+              <p className="text-[12px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider" style={{ fontFamily: 'var(--font-heading)' }}>
+                Sent
+              </p>
+              {outgoing && outgoing.length > 0 ? (
+                outgoing.map((r) => (
+                  <motion.div
+                    key={r.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center justify-between rounded-xl bg-[var(--color-surface)]/60 px-4 py-3 border border-[var(--color-border-subtle)]"
+                  >
+                    <div>
+                      <span className="text-[13px] text-[var(--color-text)]" style={{ fontFamily: 'var(--font-body)' }}>
+                        {r.profile?.display_name ?? 'Unknown'}
+                      </span>
+                      <span className="text-[11px] text-[var(--color-text-muted)] ml-2" style={{ fontFamily: 'var(--font-body)' }}>
+                        Pending
+                      </span>
+                    </div>
                     <button
-                      onClick={() => handleRespond(r.id, 'accepted')}
-                      className="p-1.5 rounded-lg bg-[var(--color-accent)]/20 text-[var(--color-accent)] hover:bg-[var(--color-accent)]/30 transition-colors"
-                      title="Accept"
-                    >
-                      <Check size={14} />
-                    </button>
-                    <button
-                      onClick={() => handleRespond(r.id, 'declined')}
+                      onClick={() => cancelRequest.mutate(r.id)}
                       className="p-1.5 rounded-lg bg-[var(--color-cta)]/10 text-[var(--color-text-muted)] hover:text-[var(--color-cta)] transition-colors"
-                      title="Decline"
+                      title="Cancel request"
                     >
                       <X size={14} />
                     </button>
-                  </div>
-                </motion.div>
-              ))
-            ) : (
-              <p className="text-center text-[13px] text-[var(--color-text-muted)] py-8" style={{ fontFamily: 'var(--font-body)' }}>
-                No pending friend requests.
-              </p>
-            )}
+                  </motion.div>
+                ))
+              ) : (
+                <p className="text-center text-[12px] text-[var(--color-text-muted)] py-3" style={{ fontFamily: 'var(--font-body)' }}>
+                  No sent requests.
+                </p>
+              )}
+            </div>
           </div>
         )}
 

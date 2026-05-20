@@ -546,6 +546,46 @@ export async function getFriendRequests(userId: string): Promise<FriendRequest[]
   }))
 }
 
+export async function getOutgoingFriendRequests(userId: string): Promise<FriendRequest[]> {
+  const { data, error } = await supabase()
+    .from('friend_requests')
+    .select('*')
+    .eq('from_user_id', userId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  const toIds = (data ?? []).map((r: Record<string, unknown>) => r.to_user_id as string)
+  if (toIds.length === 0) return []
+
+  const { data: profiles } = await supabase()
+    .from('profiles')
+    .select('id, display_name, avatar_url')
+    .in('id', toIds)
+
+  const profileMap = new Map(
+    (profiles ?? []).map((p: Record<string, unknown>) => [
+      p.id as string,
+      { display_name: p.display_name as string, avatar_url: p.avatar_url as string | null },
+    ])
+  )
+
+  return (data ?? []).map((r) => ({
+    ...(r as unknown as FriendRequest),
+    profile: profileMap.get(r.to_user_id as string) ?? { display_name: 'Unknown' },
+  }))
+}
+
+export async function cancelFriendRequest(requestId: string): Promise<void> {
+  const { error } = await supabase()
+    .from('friend_requests')
+    .delete()
+    .eq('id', requestId)
+
+  if (error) throw error
+}
+
 export async function getFriends(userId: string): Promise<Friend[]> {
   const { data, error } = await supabase()
     .from('friend_requests')

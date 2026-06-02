@@ -48,25 +48,31 @@ export default function ProfilePage() {
   }, [corpus])
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
+  const [conquestPodFilter, setConquestPodFilter] = useState<string | null>(null)
 
   const activePod = pods?.find((p) => p.id === activePodId)
   const displayName = profile?.display_name ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'Player'
   const avatarUrl = profile?.avatar_url ?? user?.user_metadata?.avatar_url
 
+  const filteredConquests = useMemo(() => {
+    if (!conquests) return []
+    if (!conquestPodFilter) return conquests
+    return conquests.filter((c) => c.pod_id === conquestPodFilter)
+  }, [conquests, conquestPodFilter])
+
   const conquestSlides: PlaneSlide[] = useMemo(() => {
-    if (!conquests || !corpus) return []
-    return conquests.map((c) => {
+    if (!filteredConquests || !corpus) return []
+    return filteredConquests.map((c) => {
       const card = corpus.find((cr) => cr.id === c.plane_scryfall_id)
         ?? cardByName.get(c.plane_name)
+      const podName = pods?.find((p) => p.id === c.pod_id)?.name
       return {
         name: c.plane_name,
         imageUrl: card?.image_uris?.border_crop ?? c.plane_image_uri,
-        subtitle: c.conquered_from_name
-          ? `Conquered from ${c.conquered_from_name} · ${new Date(c.conquered_at).toLocaleDateString()}`
-          : `Conquered · ${new Date(c.conquered_at).toLocaleDateString()}`,
+        subtitle: podName ? `🏆 ${podName}` : undefined,
       }
     })
-  }, [conquests, corpus, cardByName])
+  }, [filteredConquests, corpus, cardByName, pods])
 
   const historySlides: PlaneSlide[] = useMemo(() => {
     if (!visitHistory) return []
@@ -269,7 +275,32 @@ export default function ProfilePage() {
 
         {/* Conquests tab */}
         {tab === 'conquests' && (
-          <PlaneCarousel slides={conquestSlides} emptyMessage="No conquests yet. Win a game and claim a plane!" />
+          <div className="space-y-3">
+            {pods && pods.length > 1 && (
+              <div className="flex items-center gap-2 px-1">
+                <span
+                  className="text-[11px] text-[var(--color-text-muted)] shrink-0"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  Filter:
+                </span>
+                <select
+                  value={conquestPodFilter ?? ''}
+                  onChange={(e) => setConquestPodFilter(e.target.value || null)}
+                  className="flex-1 h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] text-[12px] px-2 transition-colors focus:border-[var(--color-cta)]/50 focus:outline-none"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  <option value="">All Pods</option>
+                  {pods.map((pod) => (
+                    <option key={pod.id} value={pod.id}>
+                      {pod.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <PlaneCarousel slides={conquestSlides} emptyMessage="No conquests yet. Win a game and claim a plane!" />
+          </div>
         )}
 
         {/* Visit history tab */}

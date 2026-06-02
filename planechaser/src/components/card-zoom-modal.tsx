@@ -28,8 +28,8 @@ export function CardZoomModal({ src, alt, onClose, rotate = true }: CardZoomModa
             exit={{ scale: 0.8 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className={rotate
-              ? 'relative w-full max-w-[90vw] aspect-[7/5]'
-              : 'relative w-full max-w-[360px] aspect-[5/7]'
+              ? 'relative w-full max-w-[90vw] max-h-[85vh] aspect-[7/5]'
+              : 'relative w-full max-w-[360px] max-h-[90vh] aspect-[5/7]'
             }
           >
             {rotate ? (

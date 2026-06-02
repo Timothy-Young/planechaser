@@ -336,10 +336,18 @@ export async function getUserStats(userId: string) {
     .select('id')
     .eq('user_id', userId)
 
-  const { data: sessions } = await supabase()
+  const { data: hostedSessions } = await supabase()
     .from('game_sessions')
     .select('die_roll_history, win_condition, planes_visited')
     .eq('host_user_id', userId)
+
+  const { data: participatedSessions } = await supabase()
+    .from('game_sessions')
+    .select('die_roll_history, win_condition, planes_visited')
+    .neq('host_user_id', userId)
+    .contains('players_snapshot', JSON.stringify([{ id: userId }]))
+
+  const sessions = [...(hostedSessions ?? []), ...(participatedSessions ?? [])]
 
   let totalRolls = 0
   let planeswalkRolls = 0
@@ -356,7 +364,7 @@ export async function getUserStats(userId: string) {
 
   return {
     planes_conquered: conquests?.length ?? 0,
-    games_played: sessions?.length ?? 0,
+    games_played: sessions.length,
     total_rolls: totalRolls,
     planeswalk_rolls: planeswalkRolls,
     total_planes_visited: totalPlanesVisited,

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Heart, Coffee, CreditCard, Coins, Crown, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Footer } from '@/components/footer'
 
 const SUPPORT_OPTIONS = [
   
@@ -206,6 +207,8 @@ export default function SupportPage() {
           </Button>
         </motion.div>
       </div>
+
+      <Footer />
     </main>
   )
 }

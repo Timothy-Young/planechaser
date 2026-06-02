@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ChevronDown } from 'lucide-react'
 import { FAQ_SECTIONS } from '@/lib/faq/content'
+import { Footer } from '@/components/footer'
 
 export default function FAQPage() {
   const router = useRouter()
@@ -114,6 +115,8 @@ export default function FAQPage() {
           </div>
         ))}
       </div>
+
+      <Footer />
     </main>
   )
 }

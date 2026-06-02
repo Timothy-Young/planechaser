@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Heart, Sparkles, Users, Swords, Crown, Layers, Map } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Footer } from '@/components/footer'
 
 const cardVariants = {
   hidden: { opacity: 0, y: 16 },
@@ -264,6 +265,8 @@ export default function AboutPage() {
         </motion.div>
 
       </div>
+
+      <Footer />
     </main>
   )
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ChevronDown } from 'lucide-react'
 import { RULES_SECTIONS } from '@/lib/rules/content'
+import { Footer } from '@/components/footer'
 
 export default function RulesPage() {
   const router = useRouter()
@@ -153,6 +154,8 @@ export default function RulesPage() {
           )
         })}
       </div>
+
+      <Footer />
     </main>
   )
 }

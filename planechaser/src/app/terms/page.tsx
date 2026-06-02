@@ -2,6 +2,7 @@
 
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Footer } from '@/components/footer'
 
 export default function TermsPage() {
   const router = useRouter()
@@ -107,6 +108,8 @@ export default function TermsPage() {
           </section>
         </div>
       </div>
+
+      <Footer />
     </main>
   )
 }

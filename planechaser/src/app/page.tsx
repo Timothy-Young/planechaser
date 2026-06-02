@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Swords, Users, Trophy, Dice5, ChevronRight, Sparkles, Heart, Layers, History } from 'lucide-react'
+import { Swords, Users, Trophy, Dice5, ChevronRight, Sparkles, Layers, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store/app-store'
+import { Footer } from '@/components/footer'
 
 const FEATURES = [
   {
@@ -331,45 +332,7 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-[var(--color-border)] px-4 pt-10 pb-8 text-center space-y-5">
-        {/* Support link */}
-        <button
-          onClick={() => router.push('/support')}
-          className="inline-flex items-center gap-1.5 text-[12px] text-[var(--color-accent)] hover:opacity-80 transition-opacity cursor-pointer"
-          style={{ fontFamily: 'var(--font-heading)' }}
-        >
-          <Heart size={12} /> Support PlaneChaser
-        </button>
-
-        {/* Primary nav links */}
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[12px]" style={{ fontFamily: 'var(--font-body)' }}>
-          <button onClick={() => router.push('/about')} className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors cursor-pointer">About</button>
-          <span className="text-[var(--color-border)]">·</span>
-          <button onClick={() => router.push('/rules')} className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors cursor-pointer">How to Play</button>
-          <span className="text-[var(--color-border)]">·</span>
-          <button onClick={() => router.push('/faq')} className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors cursor-pointer">FAQ</button>
-          <span className="text-[var(--color-border)]">·</span>
-          <button onClick={() => router.push('/support')} className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors cursor-pointer">Support</button>
-        </div>
-
-        {/* Legal links */}
-        <div className="flex items-center justify-center gap-3 text-[11px]" style={{ fontFamily: 'var(--font-body)' }}>
-          <button onClick={() => router.push('/privacy')} className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors cursor-pointer">Privacy</button>
-          <span className="text-[var(--color-border)]">·</span>
-          <button onClick={() => router.push('/terms')} className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors cursor-pointer">Terms</button>
-        </div>
-
-        {/* WotC disclaimer */}
-        <p className="text-[10px] text-[var(--color-text-muted)] max-w-[500px] mx-auto leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
-          PlaneChaser is unofficial Fan Content permitted under the Wizards of the Coast Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.
-        </p>
-
-        {/* Copyright */}
-        <p className="text-[9px] text-[var(--color-text-muted)] opacity-60" style={{ fontFamily: 'var(--font-body)' }}>
-          © {new Date().getFullYear()} WheresTim LLC. All rights reserved.
-        </p>
-      </footer>
+      <Footer />
     </main>
   )
 }

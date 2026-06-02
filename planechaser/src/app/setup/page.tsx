@@ -57,6 +57,7 @@ function SetupPageInner() {
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null)
 
   const [playerCount, setPlayerCount] = useState(4)
+  const [selectedPodPlayerIds, setSelectedPodPlayerIds] = useState<Set<string>>(new Set())
   const [resumeAvailable, setResumeAvailable] = useState(false)
   const [deckMode, setDeckMode] = useState<DeckMode>('random')
   const [randomSize, setRandomSize] = useState(40)
@@ -80,6 +81,12 @@ function SetupPageInner() {
     if (!conquests) return new Set<string>()
     return new Set(conquests.map((c) => c.plane_scryfall_id))
   }, [conquests])
+
+  useEffect(() => {
+    if (podStartMode && podMembers && podMembers.length > 0 && selectedPodPlayerIds.size === 0) {
+      setSelectedPodPlayerIds(new Set(podMembers.map((m) => m.user_id)))
+    }
+  }, [podMembers, podStartMode])
 
   useEffect(() => {
     setResumeAvailable(hasActiveGame())
@@ -123,10 +130,12 @@ function SetupPageInner() {
     const deck = shuffleDeck(playableCards)
 
     const players = podStartMode && podMembers && podMembers.length > 0
-      ? podMembers.map((m) => ({
-          id: m.user_id,
-          display_name: m.profile?.display_name ?? 'Player',
-        }))
+      ? podMembers
+          .filter((m) => selectedPodPlayerIds.has(m.user_id))
+          .map((m) => ({
+            id: m.user_id,
+            display_name: m.profile?.display_name ?? 'Player',
+          }))
       : sessionPlayers?.map((sp) => ({
           id: sp.user_id,
           display_name: sp.profile?.display_name ?? 'Player',
@@ -165,7 +174,7 @@ function SetupPageInner() {
 
     const state: GameState = {
       id: crypto.randomUUID(),
-      config: { playerCount, deckSize: deck.length, isArchenemy: archenemyMode },
+      config: { playerCount: podStartMode ? selectedPodPlayerIds.size : playerCount, deckSize: deck.length, isArchenemy: archenemyMode },
       deck,
       currentPlaneIndex: 0,
       dieState: 'idle',
@@ -429,27 +438,87 @@ function SetupPageInner() {
             className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm p-6 space-y-6"
           >
             {/* Players */}
-            <div className="space-y-3">
-              <label className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium" style={{ fontFamily: 'var(--font-heading)' }}>
-                Players
-              </label>
-              <div className="flex gap-2">
-                {PLAYER_OPTIONS.map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => setPlayerCount(n)}
-                    className={`flex-1 h-11 rounded-xl text-[15px] font-semibold transition-all ${
-                      playerCount === n
-                        ? 'bg-[var(--color-accent-deep)] text-white glow-purple'
-                        : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
-                    }`}
-                    style={{ fontFamily: 'var(--font-heading)' }}
-                  >
-                    {n}
-                  </button>
-                ))}
+            {podStartMode && podMembers && podMembers.length > 0 ? (
+              <div className="space-y-3">
+                <p
+                  className="text-[13px] font-semibold text-[var(--color-text)]"
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                >
+                  Players in this game
+                </p>
+                <div className="space-y-2">
+                  {podMembers.map((member) => {
+                    const memberId = member.user_id
+                    const displayName = member.profile?.display_name ?? 'Player'
+                    const isSelected = selectedPodPlayerIds.has(memberId)
+                    return (
+                      <button
+                        key={memberId}
+                        onClick={() => {
+                          setSelectedPodPlayerIds((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(memberId)) {
+                              next.delete(memberId)
+                            } else {
+                              next.add(memberId)
+                            }
+                            return next
+                          })
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+                          isSelected
+                            ? 'border-[var(--color-accent)]/60 bg-[var(--color-accent)]/10'
+                            : 'border-[var(--color-border)] bg-[var(--color-surface)]/50'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                          isSelected
+                            ? 'border-[var(--color-accent)] bg-[var(--color-accent)]'
+                            : 'border-[var(--color-text-muted)]'
+                        }`}>
+                          {isSelected && (
+                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span
+                          className="text-[14px] text-[var(--color-text)]"
+                          style={{ fontFamily: 'var(--font-body)' }}
+                        >
+                          {displayName}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-[11px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+                  {selectedPodPlayerIds.size} player{selectedPodPlayerIds.size !== 1 ? 's' : ''} selected
+                </p>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                <label className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium" style={{ fontFamily: 'var(--font-heading)' }}>
+                  Players
+                </label>
+                <div className="flex gap-2">
+                  {PLAYER_OPTIONS.map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => setPlayerCount(n)}
+                      className={`flex-1 h-11 rounded-xl text-[15px] font-semibold transition-all ${
+                        playerCount === n
+                          ? 'bg-[var(--color-accent-deep)] text-white glow-purple'
+                          : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
+                      }`}
+                      style={{ fontFamily: 'var(--font-heading)' }}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Deck mode toggle */}
             <div className="space-y-3">
@@ -593,7 +662,7 @@ function SetupPageInner() {
             {/* Start button */}
             <Button
               onClick={() => startGame(archenemyMode)}
-              disabled={isLoading || (deckMode === 'saved' ? (!deckCards || deckCards.length === 0) : (!corpus || corpus.length === 0))}
+              disabled={isLoading || (podStartMode && selectedPodPlayerIds.size < 2) || (deckMode === 'saved' ? (!deckCards || deckCards.length === 0) : (!corpus || corpus.length === 0))}
               className="w-full h-14 text-[17px] bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] hover:opacity-90 text-white transition-all"
               style={{ fontFamily: 'var(--font-heading)', boxShadow: '0 4px 30px rgba(124, 58, 237, 0.4)' }}
             >

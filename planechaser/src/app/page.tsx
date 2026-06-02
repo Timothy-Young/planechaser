@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Swords, Users, Trophy, Dice5, ChevronRight, Sparkles, Heart } from 'lucide-react'
+import { Swords, Users, Trophy, Dice5, ChevronRight, Sparkles, Heart, Layers, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store/app-store'
 
@@ -29,6 +29,40 @@ const FEATURES = [
     title: 'Archenemy Mode',
     description: 'When one player conquers too many planes, the pod rises up for an Archenemy showdown.',
   },
+  {
+    icon: Layers,
+    title: 'Custom Decks',
+    description: 'Curate your own plane deck. Use only your favorites or theme it to your Commander deck.',
+  },
+  {
+    icon: History,
+    title: 'Game History',
+    description: 'Every session logged. Review planes visited, chaos triggers, and conquest milestones.',
+  },
+]
+
+const HOW_IT_WORKS = [
+  {
+    step: 1,
+    title: 'Create or Join a Pod',
+    description: 'Set up your playgroup and invite your Commander crew. One pod, persistent across every game.',
+  },
+  {
+    step: 2,
+    title: 'Play Planechase',
+    description: 'Share one device at the table. Roll the planar die, trigger chaos, and planeswalk together.',
+  },
+  {
+    step: 3,
+    title: 'Conquer & Climb',
+    description: 'Win games to claim planes. Dominate enough and the whole pod unites against you — Archenemy mode begins.',
+  },
+]
+
+const STATS = [
+  { value: '86+', label: 'Planes to Conquer' },
+  { value: '∞', label: 'Games to Play' },
+  { value: '0', label: 'Ads. Ever.' },
 ]
 
 export default function Home() {
@@ -140,6 +174,56 @@ export default function Home() {
         </motion.div>
       </section>
 
+      {/* How It Works */}
+      <section className="relative z-10 px-4 py-20 max-w-[700px] mx-auto">
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-[28px] sm:text-[36px] font-bold text-[var(--color-text)] tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
+            How It Works
+          </h2>
+          <p className="text-[14px] text-[var(--color-text-muted)] mt-2 max-w-[400px] mx-auto" style={{ fontFamily: 'var(--font-body)' }}>
+            Up and running in minutes. No setup required between games.
+          </p>
+        </motion.div>
+
+        <div className="flex flex-col gap-6">
+          {HOW_IT_WORKS.map((item, i) => (
+            <motion.div
+              key={item.step}
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.15, duration: 0.5 }}
+              className="flex items-start gap-5"
+            >
+              <div
+                className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-bold text-white"
+                style={{
+                  fontFamily: 'var(--font-heading)',
+                  background: 'linear-gradient(135deg, var(--color-accent-deep), var(--color-accent))',
+                  boxShadow: '0 0 20px rgba(124, 58, 237, 0.35)',
+                }}
+              >
+                {item.step}
+              </div>
+              <div className="pt-1">
+                <h3 className="text-[16px] font-bold text-[var(--color-text)] mb-1 tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
+                  {item.title}
+                </h3>
+                <p className="text-[13px] text-[var(--color-text-muted)] leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
+                  {item.description}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
       {/* Features */}
       <section className="relative z-10 px-4 py-20 max-w-[900px] mx-auto">
         <motion.div
@@ -179,6 +263,40 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Social Proof / Stats Banner */}
+      <section className="relative z-10 px-4 py-14">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="max-w-[700px] mx-auto rounded-2xl border border-[var(--color-accent)]/20 bg-[var(--color-accent)]/5 backdrop-blur-sm px-6 py-10"
+          style={{ boxShadow: '0 0 60px rgba(124, 58, 237, 0.08)' }}
+        >
+          <div className="grid grid-cols-3 gap-4 text-center">
+            {STATS.map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.4 }}
+              >
+                <div
+                  className="text-[36px] sm:text-[48px] font-bold text-[var(--color-accent)] leading-none mb-2"
+                  style={{ fontFamily: 'var(--font-heading)', textShadow: '0 0 30px rgba(124, 58, 237, 0.4)' }}
+                >
+                  {stat.value}
+                </div>
+                <div className="text-[11px] sm:text-[13px] text-[var(--color-text-muted)] leading-snug" style={{ fontFamily: 'var(--font-body)' }}>
+                  {stat.label}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
       {/* CTA */}
       <section className="relative z-10 px-4 py-20 text-center">
         <motion.div
@@ -193,18 +311,29 @@ export default function Home() {
           <p className="text-[14px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
             Free to use. No ads. Share one device at the table.
           </p>
-          <Button
-            onClick={() => router.push(user ? '/setup' : '/auth')}
-            className="h-13 px-10 text-[16px] bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] hover:opacity-90 text-white rounded-xl"
-            style={{ fontFamily: 'var(--font-heading)', boxShadow: '0 4px 40px rgba(124, 58, 237, 0.4)', height: 52 }}
-          >
-            {user ? 'Go to Game' : 'Create Free Account'}
-          </Button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button
+              onClick={() => router.push(user ? '/setup' : '/auth')}
+              className="h-13 px-10 text-[16px] bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] hover:opacity-90 text-white rounded-xl"
+              style={{ fontFamily: 'var(--font-heading)', boxShadow: '0 4px 40px rgba(124, 58, 237, 0.4)', height: 52 }}
+            >
+              {user ? 'Go to Game' : 'Create Free Account'}
+            </Button>
+            <Button
+              onClick={() => router.push('/rules')}
+              variant="outline"
+              className="h-13 px-8 text-[15px] border-[var(--color-border)] bg-white/5 text-[var(--color-text)] hover:bg-white/10 rounded-xl"
+              style={{ fontFamily: 'var(--font-body)', height: 52 }}
+            >
+              Learn the Rules
+            </Button>
+          </div>
         </motion.div>
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-[var(--color-border)] px-4 py-6 text-center space-y-3">
+      <footer className="relative z-10 border-t border-[var(--color-border)] px-4 pt-10 pb-8 text-center space-y-5">
+        {/* Support link */}
         <button
           onClick={() => router.push('/support')}
           className="inline-flex items-center gap-1.5 text-[12px] text-[var(--color-accent)] hover:opacity-80 transition-opacity cursor-pointer"
@@ -212,16 +341,33 @@ export default function Home() {
         >
           <Heart size={12} /> Support PlaneChaser
         </button>
+
+        {/* Primary nav links */}
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[12px]" style={{ fontFamily: 'var(--font-body)' }}>
+          <button onClick={() => router.push('/about')} className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors cursor-pointer">About</button>
+          <span className="text-[var(--color-border)]">·</span>
+          <button onClick={() => router.push('/rules')} className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors cursor-pointer">How to Play</button>
+          <span className="text-[var(--color-border)]">·</span>
+          <button onClick={() => router.push('/faq')} className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors cursor-pointer">FAQ</button>
+          <span className="text-[var(--color-border)]">·</span>
+          <button onClick={() => router.push('/support')} className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors cursor-pointer">Support</button>
+        </div>
+
+        {/* Legal links */}
         <div className="flex items-center justify-center gap-3 text-[11px]" style={{ fontFamily: 'var(--font-body)' }}>
           <button onClick={() => router.push('/privacy')} className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors cursor-pointer">Privacy</button>
           <span className="text-[var(--color-border)]">·</span>
           <button onClick={() => router.push('/terms')} className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors cursor-pointer">Terms</button>
         </div>
+
+        {/* WotC disclaimer */}
         <p className="text-[10px] text-[var(--color-text-muted)] max-w-[500px] mx-auto leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
           PlaneChaser is unofficial Fan Content permitted under the Wizards of the Coast Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.
         </p>
+
+        {/* Copyright */}
         <p className="text-[9px] text-[var(--color-text-muted)] opacity-60" style={{ fontFamily: 'var(--font-body)' }}>
-          Built by WheresTim LLC
+          © {new Date().getFullYear()} WheresTim LLC. All rights reserved.
         </p>
       </footer>
     </main>

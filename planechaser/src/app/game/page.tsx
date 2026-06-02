@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { useSyncGameState, useEndSession } from '@/hooks/useGameSession'
 import { TurnIndicator } from '@/components/turn-indicator'
 import { ChaosOverlay } from '@/components/chaos-overlay'
+import { CardZoomModal } from '@/components/card-zoom-modal'
 import { useRecordGameSession, useUserStats } from '@/hooks/usePods'
 import { useUserAchievements, useGrantAchievements } from '@/hooks/useAchievements'
 import { evaluateAchievements } from '@/lib/achievements/evaluator'
@@ -34,6 +35,7 @@ export default function GamePage() {
   const [showEndGame, setShowEndGame] = useState(false)
   const [lastDrawnScheme, setLastDrawnScheme] = useState<string | null>(null)
   const [newBadges, setNewBadges] = useState<string[]>([])
+  const [breadcrumbPreview, setBreadcrumbPreview] = useState<{ src: string; name: string } | null>(null)
   const [musicOn, setMusicOn] = useState(false)
   const [sfxOn, setSfxOn] = useState(true)
   const [ambientOn, setAmbientOn] = useState(true)
@@ -466,9 +468,24 @@ export default function GamePage() {
         <div className="relative z-10 px-4 py-2 overflow-x-auto">
           <div className="flex items-center gap-1 text-[10px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
             {visitedBreadcrumb.map((name, i) => (
-              <span key={i} className={`whitespace-nowrap ${i === 0 ? 'text-[var(--color-accent)] font-semibold' : 'opacity-60'}`}>
-                {i > 0 && <span className="mx-1">←</span>}
-                {name}
+              <span key={i} className="flex items-center whitespace-nowrap">
+                {i > 0 && <span className="mx-1 opacity-60">←</span>}
+                <button
+                  onClick={() => {
+                    const card = state.deck.find((c) => c.name === name)
+                    if (card) {
+                      setBreadcrumbPreview({
+                        src: card.image_uris.border_crop,
+                        name: card.name,
+                      })
+                    }
+                  }}
+                  className={`hover:text-[var(--color-accent)] active:text-[var(--color-accent)] transition-colors underline decoration-dotted underline-offset-2 ${
+                    i === 0 ? 'text-[var(--color-accent)] font-semibold' : 'opacity-60'
+                  }`}
+                >
+                  {name}
+                </button>
               </span>
             ))}
           </div>
@@ -558,6 +575,12 @@ export default function GamePage() {
           </Button>
         </div>
       </div>
+
+      <CardZoomModal
+        src={breadcrumbPreview?.src ?? null}
+        alt={breadcrumbPreview?.name ?? ''}
+        onClose={() => setBreadcrumbPreview(null)}
+      />
     </main>
   )
 }

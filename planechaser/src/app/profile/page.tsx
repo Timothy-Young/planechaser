@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { LogOut, Trophy, History, Swords, Dice5, MapPin, Crown, Pencil, Check, X, Sun, Moon } from 'lucide-react'
+import { LogOut, Trophy, History, Swords, Dice5, MapPin, Crown, Pencil, Check, X, Sun, Moon, HelpCircle } from 'lucide-react'
 import { useAppStore } from '@/store/app-store'
 import { useUserStats, useUserConquests, useUserPods, usePlaneVisitHistory, useUserProfile, useUpdateProfile } from '@/hooks/usePods'
 import { useUserAchievements } from '@/hooks/useAchievements'
@@ -310,6 +310,18 @@ export default function ProfilePage() {
 
         {/* Theme + Sign out */}
         <div className="pt-2 space-y-3">
+          <button
+            onClick={() => router.push('/faq')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/50 hover:bg-white/5 transition-colors w-full"
+          >
+            <HelpCircle className="w-4 h-4 text-[var(--color-accent)]" />
+            <span
+              className="text-[13px] text-[var(--color-text)]"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              Tips & Tricks
+            </span>
+          </button>
           <Button
             onClick={toggleTheme}
             variant="outline"

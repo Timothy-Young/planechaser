@@ -58,6 +58,7 @@ export default function LobbyPage() {
       config: { playerCount: players.length, deckSize: deck.length },
       deck,
       currentPlaneIndex: 0,
+      secondPlaneIndex: null,
       dieState: 'idle',
       lastDieResult: null,
       rollCountThisTurn: 0,

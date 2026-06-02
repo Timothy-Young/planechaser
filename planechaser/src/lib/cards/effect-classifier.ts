@@ -1,5 +1,5 @@
 export interface EffectClassification {
-  chaos_effect_type: 'standard' | 'reveal_and_chaos' | 'reveal_and_choose' | 'scry_top' | 'phenomenon' | 'force_planeswalk'
+  chaos_effect_type: 'standard' | 'reveal_and_chaos' | 'reveal_and_choose' | 'scry_top' | 'phenomenon' | 'force_planeswalk' | 'spatial_merge'
   chaos_effect_config: Record<string, unknown> | null
 }
 
@@ -7,6 +7,10 @@ export type ChaosEffectType = EffectClassification['chaos_effect_type']
 
 export function classifyCardEffect(typeLine: string, oracleText: string): EffectClassification {
   if (typeLine.toLowerCase().includes('phenomenon')) {
+    if (/reveal cards.*until you reveal two plane cards/i.test(oracleText)
+      || /simultaneously planeswalk to both/i.test(oracleText)) {
+      return { chaos_effect_type: 'spatial_merge', chaos_effect_config: null }
+    }
     return { chaos_effect_type: 'phenomenon', chaos_effect_config: null }
   }
 

@@ -76,6 +76,7 @@ export interface GameState {
   config: GameConfig
   deck: PlaneCard[]
   currentPlaneIndex: number
+  secondPlaneIndex: number | null
   dieState: DieState
   lastDieResult: DieResult | null
   rollCountThisTurn: number
@@ -111,6 +112,10 @@ export type GameAction =
   | { type: 'BEGIN_REVEAL_CHAOS'; cards: PlaneCard[]; effectType: ChaosEffectType }
   | { type: 'DISMISS_REVEAL' }
   | { type: 'REORDER_BOTTOM'; cardIds: string[] }
+  | { type: 'REORDER_TOP'; cardIds: string[] }
+  | { type: 'SPATIAL_MERGE'; planeIndices: [number, number] }
+  | { type: 'LEAVE_DUAL_PLANE' }
+  | { type: 'RESOLVE_SPATIAL_MERGE' }
 
 export interface TurnRecord {
   playerId: string

@@ -177,6 +177,7 @@ function SetupPageInner() {
       config: { playerCount: podStartMode ? selectedPodPlayerIds.size : playerCount, deckSize: deck.length, isArchenemy: archenemyMode },
       deck,
       currentPlaneIndex: 0,
+      secondPlaneIndex: null,
       dieState: 'idle',
       lastDieResult: null,
       rollCountThisTurn: 0,

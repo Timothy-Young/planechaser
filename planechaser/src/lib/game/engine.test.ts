@@ -19,6 +19,7 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
       chaos_effect_config: null,
     })),
     currentPlaneIndex: 0,
+    secondPlaneIndex: null,
     dieState: 'idle',
     lastDieResult: null,
     rollCountThisTurn: 0,

@@ -506,6 +506,8 @@ export default function GamePage() {
             playerName={
               state.players.find((p) => p.id === state.turnOrder[state.currentTurnIndex])?.display_name ?? 'Player'
             }
+            onNextTurn={handleEndTurn}
+            showNextTurn={!state.showChaosOverlay && !state.revealState && !state.phenomenonActive}
           />
         )}
 
@@ -541,23 +543,15 @@ export default function GamePage() {
             onClick={handleUndo}
             variant="outline"
             disabled={state.stateHistory.length === 0}
-            className="h-12 px-4 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10 disabled:opacity-30"
+            className="flex-1 h-12 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10 disabled:opacity-30"
             style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}
           >
             Undo
           </Button>
           <Button
-            onClick={handleEndTurn}
-            variant="outline"
-            className="flex-1 h-12 border-[var(--color-border)] bg-white/5 text-[var(--color-text)] hover:bg-white/10"
-            style={{ fontFamily: 'var(--font-heading)', fontSize: '14px' }}
-          >
-            End Turn
-          </Button>
-          <Button
             onClick={() => setShowEndGame(true)}
             variant="outline"
-            className="h-12 px-5 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10"
+            className="flex-1 h-12 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10"
             style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}
           >
             End Game

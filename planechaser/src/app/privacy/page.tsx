@@ -2,6 +2,7 @@
 
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Footer } from '@/components/footer'
 
 export default function PrivacyPage() {
   const router = useRouter()
@@ -110,6 +111,8 @@ export default function PrivacyPage() {
           </section>
         </div>
       </div>
+
+      <Footer />
     </main>
   )
 }

@@ -104,6 +104,8 @@ export type GameAction =
   | { type: 'DRAW_SCHEME' }
   | { type: 'ABANDON_SCHEME'; schemeId: string }
   | { type: 'UNDO' }
+  | { type: 'SHUFFLE_REMAINING' }
+  | { type: 'RESET_ROLL_COUNT' }
   | { type: 'DISMISS_CHAOS' }
   | { type: 'RESOLVE_PHENOMENON' }
   | { type: 'BEGIN_REVEAL_CHAOS'; cards: PlaneCard[]; effectType: ChaosEffectType }

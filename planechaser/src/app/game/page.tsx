@@ -18,6 +18,7 @@ import { useSyncGameState, useEndSession } from '@/hooks/useGameSession'
 import { TurnIndicator } from '@/components/turn-indicator'
 import { ChaosOverlay } from '@/components/chaos-overlay'
 import { CardZoomModal } from '@/components/card-zoom-modal'
+import { GameControlsToolbar } from '@/components/game-controls-toolbar'
 import { useRecordGameSession, useUserStats } from '@/hooks/usePods'
 import { useUserAchievements, useGrantAchievements } from '@/hooks/useAchievements'
 import { evaluateAchievements } from '@/lib/achievements/evaluator'
@@ -207,6 +208,35 @@ export default function GamePage() {
     setState((prev) => {
       if (!prev) return prev
       return gameReducer(prev, { type: 'END_TURN' })
+    })
+  }, [])
+
+  const handleManualPlaneswalk = useCallback(() => {
+    setSlideDirection('right')
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'PLANESWALK' })
+    })
+  }, [])
+
+  const handleManualChaos = useCallback(() => {
+    setState((prev) => {
+      if (!prev) return prev
+      return { ...prev, showChaosOverlay: true }
+    })
+  }, [])
+
+  const handleShuffle = useCallback(() => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'SHUFFLE_REMAINING' })
+    })
+  }, [])
+
+  const handleResetRolls = useCallback(() => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'RESET_ROLL_COUNT' })
     })
   }, [])
 
@@ -555,16 +585,18 @@ export default function GamePage() {
           />
         </div>
 
+        {/* Game controls toolbar */}
+        <GameControlsToolbar
+          onUndo={handleUndo}
+          onShuffle={handleShuffle}
+          onResetRolls={handleResetRolls}
+          onPlaneswalk={handleManualPlaneswalk}
+          onChaos={handleManualChaos}
+          canUndo={(state?.stateHistory?.length ?? 0) > 0}
+          disabled={state?.showChaosOverlay || !!state?.revealState || state?.phenomenonActive}
+        />
+
         <div className="flex gap-3 w-full max-w-[440px] pb-4">
-          <Button
-            onClick={handleUndo}
-            variant="outline"
-            disabled={state.stateHistory.length === 0}
-            className="flex-1 h-12 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10 disabled:opacity-30"
-            style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}
-          >
-            Undo
-          </Button>
           <Button
             onClick={() => setShowEndGame(true)}
             variant="outline"

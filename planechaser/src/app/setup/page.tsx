@@ -58,7 +58,7 @@ function SetupPageInner() {
 
   const [playerCount, setPlayerCount] = useState(4)
   const [resumeAvailable, setResumeAvailable] = useState(false)
-  const [deckMode, setDeckMode] = useState<DeckMode>('saved')
+  const [deckMode, setDeckMode] = useState<DeckMode>('random')
   const [randomSize, setRandomSize] = useState(40)
   const [deckError, setDeckError] = useState<string | null>(null)
   const [archenemyMode, setArchenemyMode] = useState(false)

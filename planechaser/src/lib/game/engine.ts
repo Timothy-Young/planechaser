@@ -176,6 +176,27 @@ function applyAction(state: GameState, action: GameAction): GameState {
       }
     }
 
+    case 'SHUFFLE_REMAINING': {
+      const before = state.deck.slice(0, state.currentPlaneIndex + 1)
+      const after = state.deck.slice(state.currentPlaneIndex + 1)
+      for (let i = after.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[after[i], after[j]] = [after[j], after[i]]
+      }
+      return {
+        ...state,
+        deck: [...before, ...after],
+      }
+    }
+
+    case 'RESET_ROLL_COUNT': {
+      return {
+        ...state,
+        rollCountThisTurn: 0,
+        currentTurnRolls: [],
+      }
+    }
+
     // UNDO and DISMISS_CHAOS are handled by gameReducer directly
     default:
       return state

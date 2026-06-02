@@ -17,6 +17,8 @@ import { Button } from '@/components/ui/button'
 import { useSyncGameState, useEndSession } from '@/hooks/useGameSession'
 import { TurnIndicator } from '@/components/turn-indicator'
 import { ChaosOverlay } from '@/components/chaos-overlay'
+import { CardZoomModal } from '@/components/card-zoom-modal'
+import { GameControlsToolbar } from '@/components/game-controls-toolbar'
 import { useRecordGameSession, useUserStats } from '@/hooks/usePods'
 import { useUserAchievements, useGrantAchievements } from '@/hooks/useAchievements'
 import { evaluateAchievements } from '@/lib/achievements/evaluator'
@@ -34,6 +36,7 @@ export default function GamePage() {
   const [showEndGame, setShowEndGame] = useState(false)
   const [lastDrawnScheme, setLastDrawnScheme] = useState<string | null>(null)
   const [newBadges, setNewBadges] = useState<string[]>([])
+  const [breadcrumbPreview, setBreadcrumbPreview] = useState<{ src: string; name: string } | null>(null)
   const [musicOn, setMusicOn] = useState(false)
   const [sfxOn, setSfxOn] = useState(true)
   const [ambientOn, setAmbientOn] = useState(true)
@@ -205,6 +208,35 @@ export default function GamePage() {
     setState((prev) => {
       if (!prev) return prev
       return gameReducer(prev, { type: 'END_TURN' })
+    })
+  }, [])
+
+  const handleManualPlaneswalk = useCallback(() => {
+    setSlideDirection('right')
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'PLANESWALK' })
+    })
+  }, [])
+
+  const handleManualChaos = useCallback(() => {
+    setState((prev) => {
+      if (!prev) return prev
+      return { ...prev, showChaosOverlay: true }
+    })
+  }, [])
+
+  const handleShuffle = useCallback(() => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'SHUFFLE_REMAINING' })
+    })
+  }, [])
+
+  const handleResetRolls = useCallback(() => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'RESET_ROLL_COUNT' })
     })
   }, [])
 
@@ -466,9 +498,24 @@ export default function GamePage() {
         <div className="relative z-10 px-4 py-2 overflow-x-auto">
           <div className="flex items-center gap-1 text-[10px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
             {visitedBreadcrumb.map((name, i) => (
-              <span key={i} className={`whitespace-nowrap ${i === 0 ? 'text-[var(--color-accent)] font-semibold' : 'opacity-60'}`}>
-                {i > 0 && <span className="mx-1">←</span>}
-                {name}
+              <span key={i} className="flex items-center whitespace-nowrap">
+                {i > 0 && <span className="mx-1 opacity-60">←</span>}
+                <button
+                  onClick={() => {
+                    const card = state.deck.find((c) => c.name === name)
+                    if (card) {
+                      setBreadcrumbPreview({
+                        src: card.image_uris.border_crop,
+                        name: card.name,
+                      })
+                    }
+                  }}
+                  className={`hover:text-[var(--color-accent)] active:text-[var(--color-accent)] transition-colors underline decoration-dotted underline-offset-2 ${
+                    i === 0 ? 'text-[var(--color-accent)] font-semibold' : 'opacity-60'
+                  }`}
+                >
+                  {name}
+                </button>
               </span>
             ))}
           </div>
@@ -506,6 +553,8 @@ export default function GamePage() {
             playerName={
               state.players.find((p) => p.id === state.turnOrder[state.currentTurnIndex])?.display_name ?? 'Player'
             }
+            onNextTurn={handleEndTurn}
+            showNextTurn={!state.showChaosOverlay && !state.revealState && !state.phenomenonActive}
           />
         )}
 
@@ -536,34 +585,34 @@ export default function GamePage() {
           />
         </div>
 
+        {/* Game controls toolbar */}
+        <GameControlsToolbar
+          onUndo={handleUndo}
+          onShuffle={handleShuffle}
+          onResetRolls={handleResetRolls}
+          onPlaneswalk={handleManualPlaneswalk}
+          onChaos={handleManualChaos}
+          canUndo={(state?.stateHistory?.length ?? 0) > 0}
+          disabled={state?.showChaosOverlay || !!state?.revealState || state?.phenomenonActive}
+        />
+
         <div className="flex gap-3 w-full max-w-[440px] pb-4">
-          <Button
-            onClick={handleUndo}
-            variant="outline"
-            disabled={state.stateHistory.length === 0}
-            className="h-12 px-4 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10 disabled:opacity-30"
-            style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}
-          >
-            Undo
-          </Button>
-          <Button
-            onClick={handleEndTurn}
-            variant="outline"
-            className="flex-1 h-12 border-[var(--color-border)] bg-white/5 text-[var(--color-text)] hover:bg-white/10"
-            style={{ fontFamily: 'var(--font-heading)', fontSize: '14px' }}
-          >
-            End Turn
-          </Button>
           <Button
             onClick={() => setShowEndGame(true)}
             variant="outline"
-            className="h-12 px-5 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10"
+            className="flex-1 h-12 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10"
             style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}
           >
             End Game
           </Button>
         </div>
       </div>
+
+      <CardZoomModal
+        src={breadcrumbPreview?.src ?? null}
+        alt={breadcrumbPreview?.name ?? ''}
+        onClose={() => setBreadcrumbPreview(null)}
+      />
     </main>
   )
 }

@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { createClient } from '@/lib/supabase/client'
 import {
   getUserPods,
   createPod,
@@ -41,6 +43,34 @@ import { useAppStore } from '@/store/app-store'
 
 export function useUserPods() {
   const user = useAppStore((s) => s.user)
+  const qc = useQueryClient()
+
+  // Subscribe to pod_members changes for this user
+  useEffect(() => {
+    if (!user?.id) return
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`pod-members-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'pod_members',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: ['pods', user.id] })
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user?.id, qc])
+
   return useQuery({
     queryKey: ['pods', user?.id],
     queryFn: () => getUserPods(user!.id),

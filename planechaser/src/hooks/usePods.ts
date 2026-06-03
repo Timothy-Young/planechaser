@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { getPodAllConquests } from '@/lib/map/queries'
 import {
   getUserPods,
   createPod,
@@ -269,6 +270,17 @@ export function useUpdateProfile() {
     mutationFn: (updates: { display_name?: string; avatar_url?: string }) =>
       updateUserProfile(user!.id, updates),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['profile'] }),
+  })
+}
+
+// --- Map ---
+
+export function usePodConquests(podId: string | undefined) {
+  return useQuery({
+    queryKey: ['pod-conquests', podId],
+    queryFn: () => getPodAllConquests(podId!),
+    enabled: !!podId,
+    staleTime: 60_000,
   })
 }
 

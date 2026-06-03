@@ -8,6 +8,7 @@ import { Volume2, VolumeX, Music, Home, Sun, Moon, Trees } from 'lucide-react'
 import { gameReducer } from '@/lib/game/engine'
 import { loadGameState, saveGameState, clearGameState } from '@/lib/game/session-storage'
 import { PlaneCard } from '@/components/plane-card'
+import { DualPlaneDisplay } from '@/components/dual-plane-display'
 import { RevealCardsModal } from '@/components/reveal-cards-modal'
 import { DieRoller } from '@/components/die-roller'
 import { EndGameDialog } from '@/components/end-game-dialog'
@@ -37,6 +38,8 @@ export default function GamePage() {
   const [lastDrawnScheme, setLastDrawnScheme] = useState<string | null>(null)
   const [newBadges, setNewBadges] = useState<string[]>([])
   const [breadcrumbPreview, setBreadcrumbPreview] = useState<{ src: string; name: string } | null>(null)
+  const [pendingSecondChaos, setPendingSecondChaos] = useState(false)
+  const [chaosPlaneOverride, setChaosPlaneOverride] = useState<PlaneCardType | null>(null)
   const [musicOn, setMusicOn] = useState(false)
   const [sfxOn, setSfxOn] = useState(true)
   const [ambientOn, setAmbientOn] = useState(true)
@@ -67,7 +70,7 @@ export default function GamePage() {
       router.replace('/setup')
       return
     }
-    setState(saved)
+    setState({ ...saved, secondPlaneIndex: saved.secondPlaneIndex ?? null })
     setLoaded(true)
   }, [router])
 
@@ -102,11 +105,15 @@ export default function GamePage() {
   useEffect(() => {
     if (!state?.phenomenonActive) return
 
+    const currentCard = state.deck[state.currentPlaneIndex]
+    const isSpatialMerge = currentCard?.chaos_effect_type === 'spatial_merge'
+
     const timer = setTimeout(() => {
       setSlideDirection('right')
       setState((prev) => {
         if (!prev) return prev
-        const next = gameReducer(prev, { type: 'RESOLVE_PHENOMENON' })
+        const actionType = isSpatialMerge ? 'RESOLVE_SPATIAL_MERGE' : 'RESOLVE_PHENOMENON'
+        const next = gameReducer(prev, { type: actionType })
         const landedCard = next.deck[next.currentPlaneIndex]
         if (landedCard?.card_type === 'phenomenon') {
           return { ...next, phenomenonActive: true }
@@ -178,6 +185,13 @@ export default function GamePage() {
     })
   }, [])
 
+  const handleReorderTop = useCallback((cardIds: string[]) => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'REORDER_TOP', cardIds })
+    })
+  }, [])
+
   const handleDismissReveal = useCallback(() => {
     setState((prev) => {
       if (!prev) return prev
@@ -193,9 +207,13 @@ export default function GamePage() {
       if (plane?.chaos_effect_type && plane.chaos_effect_type !== 'standard') {
         setTimeout(() => handleSpecialChaos(plane), 300)
       }
+      if (prev.secondPlaneIndex !== null && !pendingSecondChaos) {
+        setPendingSecondChaos(true)
+      }
       return dismissed
     })
-  }, [handleSpecialChaos])
+    setChaosPlaneOverride(null)
+  }, [handleSpecialChaos, pendingSecondChaos])
 
   const handleUndo = useCallback(() => {
     setState((prev) => {
@@ -351,6 +369,17 @@ export default function GamePage() {
     setAmbientOn(audioManager.ambientEnabled)
   }, [])
 
+  useEffect(() => {
+    if (!pendingSecondChaos || !state || state.secondPlaneIndex === null) return
+    if (state.showChaosOverlay) return
+    const secondPlaneCard = state.deck[state.secondPlaneIndex]
+    if (secondPlaneCard) {
+      setChaosPlaneOverride(secondPlaneCard)
+      setState((prev) => prev ? { ...prev, showChaosOverlay: true } : prev)
+    }
+    setPendingSecondChaos(false)
+  }, [pendingSecondChaos, state?.showChaosOverlay, state?.secondPlaneIndex])
+
   const visitedBreadcrumb = useMemo(() => {
     if (!state) return []
     return state.deck.slice(0, state.planesVisited).map((p) => p.name).reverse().slice(0, 6)
@@ -370,6 +399,8 @@ export default function GamePage() {
   }
 
   const currentPlane = state.deck[state.currentPlaneIndex]
+  const secondPlane = state.secondPlaneIndex !== null ? state.deck[state.secondPlaneIndex] : null
+  const isDualPlane = secondPlane !== null
   const isArchenemy = !!state.archenemy
   const lastScheme = lastDrawnScheme && state.archenemy
     ? state.archenemy.schemeDeck.find((s) => s.id === lastDrawnScheme)
@@ -400,7 +431,10 @@ export default function GamePage() {
       {/* Chaos overlay - tap to dismiss */}
       <AnimatePresence>
         {state.showChaosOverlay && currentPlane && (
-          <ChaosOverlay plane={currentPlane} onDismiss={handleDismissChaos} />
+          <ChaosOverlay
+            plane={chaosPlaneOverride ?? currentPlane}
+            onDismiss={handleDismissChaos}
+          />
         )}
       </AnimatePresence>
 
@@ -433,6 +467,7 @@ export default function GamePage() {
             effectType={state.revealState.effectType}
             onDismiss={handleDismissReveal}
             onReorder={handleReorderBottom}
+            onReorderTop={handleReorderTop}
           />
         )}
       </AnimatePresence>
@@ -560,9 +595,11 @@ export default function GamePage() {
 
         {/* Plane card */}
         <div className={`flex-1 flex items-center justify-center w-full max-w-[440px] ${isArchenemy && state.archenemy?.activeSchemes.length ? 'max-h-[300px]' : ''}`}>
-          {currentPlane && (
+          {currentPlane && isDualPlane && secondPlane ? (
+            <DualPlaneDisplay primaryPlane={currentPlane} secondaryPlane={secondPlane} direction={slideDirection} />
+          ) : currentPlane ? (
             <PlaneCard card={currentPlane} direction={slideDirection} />
-          )}
+          ) : null}
         </div>
 
         {/* Controls */}

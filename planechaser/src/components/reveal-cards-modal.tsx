@@ -10,10 +10,12 @@ interface RevealCardsModalProps {
   effectType: string
   onDismiss: () => void
   onReorder?: (cardIds: string[]) => void
+  onReorderTop?: (cardIds: string[]) => void
 }
 
-export function RevealCardsModal({ cards, effectType, onDismiss, onReorder }: RevealCardsModalProps) {
+export function RevealCardsModal({ cards, effectType, onDismiss, onReorder, onReorderTop }: RevealCardsModalProps) {
   const [orderedCards, setOrderedCards] = useState(cards)
+  const [placement, setPlacement] = useState<'bottom' | 'top'>('bottom')
   const showReorder = effectType === 'reveal_and_chaos' || effectType === 'reveal_and_choose'
 
   function moveCard(index: number, direction: 'up' | 'down') {
@@ -25,8 +27,11 @@ export function RevealCardsModal({ cards, effectType, onDismiss, onReorder }: Re
   }
 
   function handleConfirm() {
-    if (onReorder) {
-      onReorder(orderedCards.map((c) => c.id))
+    const ids = orderedCards.map((c) => c.id)
+    if (placement === 'top' && onReorderTop) {
+      onReorderTop(ids)
+    } else if (onReorder) {
+      onReorder(ids)
     }
     onDismiss()
   }
@@ -49,9 +54,35 @@ export function RevealCardsModal({ cards, effectType, onDismiss, onReorder }: Re
             {effectType === 'reveal_and_choose' && 'Choose a Plane'}
           </h2>
           {showReorder && (
-            <p className="text-xs text-white/50 mt-1" style={{ fontFamily: 'var(--font-body)' }}>
-              Reorder before placing on bottom of planar deck
-            </p>
+            <>
+              <p className="text-xs text-white/50 mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+                Reorder, then choose where to place them
+              </p>
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <button
+                  onClick={() => setPlacement('bottom')}
+                  className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                    placement === 'bottom'
+                      ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/20 text-[var(--color-accent)]'
+                      : 'border-white/10 text-white/40 hover:text-white/60'
+                  }`}
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  Bottom of Deck
+                </button>
+                <button
+                  onClick={() => setPlacement('top')}
+                  className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                    placement === 'top'
+                      ? 'border-amber-500 bg-amber-500/20 text-amber-400'
+                      : 'border-white/10 text-white/40 hover:text-white/60'
+                  }`}
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  Top of Deck
+                </button>
+              </div>
+            </>
           )}
         </div>
 
@@ -110,7 +141,9 @@ export function RevealCardsModal({ cards, effectType, onDismiss, onReorder }: Re
           className="w-full py-3 rounded-xl bg-[var(--color-accent)] text-white font-bold text-sm transition-opacity hover:opacity-90 cursor-pointer"
           style={{ fontFamily: 'var(--font-heading)' }}
         >
-          {showReorder ? 'Place on Bottom & Continue' : 'Continue'}
+          {showReorder
+            ? `Place on ${placement === 'top' ? 'Top' : 'Bottom'} & Continue`
+            : 'Continue'}
         </button>
       </div>
     </motion.div>

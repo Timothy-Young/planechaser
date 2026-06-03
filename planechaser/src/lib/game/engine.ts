@@ -44,9 +44,57 @@ function applyAction(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         currentPlaneIndex: nextIndex,
+        secondPlaneIndex: null,
         planesVisited: state.planesVisited + 1,
         lastDieResult: null,
         dieState: 'idle',
+      }
+    }
+
+    case 'SPATIAL_MERGE': {
+      return {
+        ...state,
+        currentPlaneIndex: action.planeIndices[0],
+        secondPlaneIndex: action.planeIndices[1],
+        phenomenonActive: false,
+      }
+    }
+
+    case 'LEAVE_DUAL_PLANE': {
+      return {
+        ...state,
+        secondPlaneIndex: null,
+      }
+    }
+
+    case 'RESOLVE_SPATIAL_MERGE': {
+      // Find the next 2 plane cards (not phenomena) in the deck after current position
+      const planeIndices: number[] = []
+      for (let i = 1; i < state.deck.length && planeIndices.length < 2; i++) {
+        const idx = (state.currentPlaneIndex + i) % state.deck.length
+        if (state.deck[idx].card_type === 'plane') {
+          planeIndices.push(idx)
+        }
+      }
+
+      if (planeIndices.length < 2) {
+        // Not enough planes — just planeswalk to whatever is next
+        const nextIndex = (state.currentPlaneIndex + 1) % state.deck.length
+        return {
+          ...state,
+          currentPlaneIndex: nextIndex,
+          secondPlaneIndex: null,
+          planesVisited: state.planesVisited + 1,
+          phenomenonActive: false,
+        }
+      }
+
+      return {
+        ...state,
+        currentPlaneIndex: planeIndices[0],
+        secondPlaneIndex: planeIndices[1],
+        planesVisited: state.planesVisited + 2,
+        phenomenonActive: false,
       }
     }
 
@@ -176,6 +224,22 @@ function applyAction(state: GameState, action: GameAction): GameState {
       }
     }
 
+    case 'REORDER_TOP': {
+      const topReorderedIds = new Set(action.cardIds)
+      const currentIdx = state.currentPlaneIndex
+      const deckBefore = state.deck.slice(0, currentIdx + 1)
+      const deckAfter = state.deck.slice(currentIdx + 1).filter((c) => !topReorderedIds.has(c.id))
+      const topReorderedCards = action.cardIds
+        .map((id) => state.deck.find((c) => c.id === id))
+        .filter((c): c is PlaneCard => c !== undefined)
+
+      return {
+        ...state,
+        deck: [...deckBefore, ...topReorderedCards, ...deckAfter],
+        revealState: state.revealState ? { ...state.revealState, resolved: true } : null,
+      }
+    }
+
     case 'SHUFFLE_REMAINING': {
       const before = state.deck.slice(0, state.currentPlaneIndex + 1)
       const after = state.deck.slice(state.currentPlaneIndex + 1)
@@ -221,7 +285,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   // PLANESWALK and SETTLE_DIE are automatic consequences, not user actions — skip history
   if (action.type === 'PLANESWALK' || action.type === 'SETTLE_DIE'
     || action.type === 'RESOLVE_PHENOMENON' || action.type === 'BEGIN_REVEAL_CHAOS'
-    || action.type === 'DISMISS_REVEAL' || action.type === 'REORDER_BOTTOM') {
+    || action.type === 'DISMISS_REVEAL' || action.type === 'REORDER_BOTTOM'
+    || action.type === 'SPATIAL_MERGE' || action.type === 'LEAVE_DUAL_PLANE'
+    || action.type === 'RESOLVE_SPATIAL_MERGE' || action.type === 'REORDER_TOP') {
     return applyAction(state, action)
   }
 

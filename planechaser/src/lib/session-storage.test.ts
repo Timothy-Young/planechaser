@@ -7,6 +7,7 @@ const mockState: GameState = {
   config: { playerCount: 4, deckSize: 10 },
   deck: [],
   currentPlaneIndex: 0,
+  secondPlaneIndex: null,
   dieState: 'idle',
   lastDieResult: null,
   rollCountThisTurn: 0,

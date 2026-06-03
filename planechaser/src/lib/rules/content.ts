@@ -47,6 +47,18 @@ export const RULES_SECTIONS: RulesSection[] = [
     ],
   },
   {
+    title: 'Spatial Merging (Two Planes)',
+    icon: '🔀',
+    intro: 'A rare phenomenon that puts two planes in play simultaneously.',
+    steps: [
+      { text: 'Spatial Merging is a special phenomenon card. When encountered, PlaneChaser reveals cards until it finds two plane cards.' },
+      { text: 'Both planes become active at the same time. Their static abilities both apply to the game.' },
+      { text: 'When you roll Chaos, both planes\' chaos abilities trigger one after the other.' },
+      { text: 'When anyone planeswalks, you leave both planes and move to a single new one.' },
+      { text: 'Both planes are displayed stacked on the game screen. Tap either one to zoom in.' },
+    ],
+  },
+  {
     title: 'Archenemy Mode',
     icon: '⚔️',
     intro: 'One dominant player faces the rest of the pod as a team.',
@@ -92,6 +104,7 @@ export const RULES_SECTIONS: RulesSection[] = [
       { text: 'Decks are saved to your account and can be selected at game setup.' },
       { text: 'The "Random" option at setup shuffles all available planes without needing a saved deck.' },
       { text: 'Preset decks are available as starting points — one-click to start with a curated set.' },
+      { text: 'Some chaos effects reveal or rearrange the top cards of the planar deck. When this happens, you can choose to put them on top or on the bottom.' },
     ],
   },
 ]

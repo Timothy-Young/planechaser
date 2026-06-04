@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Undo2, Shuffle, RotateCcw, Compass, Sparkles, ChevronUp, ChevronDown } from 'lucide-react'
+import { Undo2, Shuffle, RotateCcw, Compass, Sparkles, ChevronUp, ChevronDown, BookOpen } from 'lucide-react'
 
 interface GameControlsToolbarProps {
   onUndo: () => void
@@ -74,6 +74,18 @@ export function GameControlsToolbar({
                   </span>
                 </button>
               ))}
+            </div>
+            <div className="flex justify-center pb-1">
+              <a
+                href="/rules"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                <BookOpen className="w-3 h-3" />
+                How to Play
+              </a>
             </div>
           </motion.div>
         )}

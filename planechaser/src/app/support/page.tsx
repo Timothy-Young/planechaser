@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Heart, Coffee, CreditCard, Coins, Crown, ArrowLeft } from 'lucide-react'
+import { Heart, Coffee, CreditCard, Coins, Crown, ArrowLeft, MessageSquare } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Footer } from '@/components/footer'
@@ -183,6 +183,22 @@ export default function SupportPage() {
             </motion.div>
           ))}
         </div>
+
+        {/* Feedback link */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+        >
+          <a
+            href="/feedback"
+            className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[var(--color-accent)] text-[var(--color-accent)] text-[13px] font-semibold hover:bg-[var(--color-accent)]/10 transition-colors w-full"
+            style={{ fontFamily: 'var(--font-heading)' }}
+          >
+            <MessageSquare className="w-4 h-4" />
+            Send Feedback
+          </a>
+        </motion.div>
 
         {/* LLC attribution */}
         <motion.div

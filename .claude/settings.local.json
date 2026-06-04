@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(gsd-plan-phase)",
+      "Skill(gsd-plan-phase:*)",
+      "Bash(gsd-sdk query *)",
+      "Bash(mkdir -p \"c:\\\\Users\\\\Tim\\\\Desktop\\\\CodeFun\\\\PlaneChaser\\\\.planning\\\\research\" && cd \"c:\\\\Users\\\\Tim\\\\Desktop\\\\CodeFun\\\\PlaneChaser\" && gsd-sdk query agent-skills gsd-project-researcher 2>&1 | head -5)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('researcher:', d.get\\('researcher_model'\\)\\); print\\('synthesizer:', d.get\\('synthesizer_model'\\)\\); print\\('roadmapper:', d.get\\('roadmapper_model'\\)\\)\")",
+      "WebSearch",
+      "Skill(gsd-discuss-phase)",
+      "Skill(gsd-discuss-phase:*)",
+      "Bash(npx create-next-app@latest planechaser --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --yes)"
+    ]
+  }
+}

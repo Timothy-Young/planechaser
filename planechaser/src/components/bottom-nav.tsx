@@ -1,11 +1,12 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
-import { Swords, Users, User, Heart, UserPlus, Layers } from 'lucide-react'
+import { Swords, Users, User, Heart, UserPlus, Layers, Globe } from 'lucide-react'
 
 const NAV_ITEMS = [
   { path: '/setup', label: 'Play', icon: Swords },
   { path: '/decks', label: 'Decks', icon: Layers },
+  { path: '/map', label: 'Map', icon: Globe },
   { path: '/pods', label: 'Pods', icon: Users },
   { path: '/friends', label: 'Friends', icon: UserPlus },
   { path: '/profile', label: 'Profile', icon: User },

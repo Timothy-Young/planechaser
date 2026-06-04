@@ -1,8 +1,12 @@
 'use client'
 
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { PlaneCard, SchemeCard } from '@/lib/game/types'
 import type { ChaosEffectType } from '@/lib/cards/effect-classifier'
+import { useCustomPlanes } from '@/hooks/useCustomPlanes'
+import type { CustomPlane } from '@/lib/custom-planes/types'
+import { getImageUrl } from '@/lib/custom-planes/storage'
 
 export interface CardApiRow {
   id: string
@@ -86,4 +90,51 @@ export function useSchemeCorpus() {
     gcTime: ONE_HOUR,
     retry: 2,
   })
+}
+
+function customToPlaneCard(custom: CustomPlane): PlaneCard {
+  const oracleText = custom.chaos_text
+    ? `${custom.oracle_text}\n\nWhenever you roll {CHAOS}, ${custom.chaos_text}`
+    : custom.oracle_text
+
+  const imageUrl = custom.image_path
+    ? getImageUrl(custom.image_path)
+    : ''
+
+  return {
+    id: `custom-${custom.id}`,
+    name: custom.name,
+    type_line: custom.type_line,
+    card_type: 'plane',
+    oracle_text: oracleText,
+    flavor_text: custom.flavor_text ?? undefined,
+    image_uris: {
+      normal: imageUrl,
+      large: imageUrl,
+      art_crop: imageUrl,
+      border_crop: imageUrl,
+      small: imageUrl,
+      png: imageUrl,
+    },
+    set_name: 'Custom',
+    set: 'custom',
+    chaos_effect_type: 'standard',
+    chaos_effect_config: null,
+  }
+}
+
+export function useFullPlaneCorpus() {
+  const { data: scryfall, isLoading: scryfallLoading } = usePlaneCorpus()
+  const { data: custom, isLoading: customLoading } = useCustomPlanes()
+
+  const merged = useMemo(() => {
+    if (!scryfall) return undefined
+    const customCards = (custom ?? []).map(customToPlaneCard)
+    return [...scryfall, ...customCards]
+  }, [scryfall, custom])
+
+  return {
+    data: merged,
+    isLoading: scryfallLoading || customLoading,
+  }
 }

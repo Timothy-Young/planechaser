@@ -7,7 +7,7 @@ import { ArrowLeft, Search, Save, X, Shield, Eye, Sparkles, ZoomIn } from 'lucid
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDeck, useUpdateDeck } from '@/hooks/useDecks'
-import { usePlaneCorpus } from '@/hooks/useCardCorpus'
+import { useFullPlaneCorpus } from '@/hooks/useCardCorpus'
 import { useUserConquests, usePlaneVisitHistory } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
 import { CardZoomModal } from '@/components/card-zoom-modal'
@@ -23,7 +23,7 @@ export default function DeckBuilderPage() {
   const activePodId = useAppStore((s) => s.activePodId)
 
   const { data: deck, isLoading: deckLoading } = useDeck(deckId)
-  const { data: corpus, isLoading: corpusLoading } = usePlaneCorpus()
+  const { data: corpus, isLoading: corpusLoading } = useFullPlaneCorpus()
   const { data: conquests } = useUserConquests(activePodId ?? undefined)
   const { data: visitHistory } = usePlaneVisitHistory()
   const updateDeck = useUpdateDeck()

@@ -124,7 +124,7 @@ function customToPlaneCard(custom: CustomPlane): PlaneCard {
 }
 
 export function useFullPlaneCorpus() {
-  const { data: scryfall, isLoading: scryfallLoading } = usePlaneCorpus()
+  const { data: scryfall, isLoading: scryfallLoading, error: scryfallError } = usePlaneCorpus()
   const { data: custom, isLoading: customLoading } = useCustomPlanes()
 
   const merged = useMemo(() => {
@@ -136,5 +136,6 @@ export function useFullPlaneCorpus() {
   return {
     data: merged,
     isLoading: scryfallLoading || customLoading,
+    error: scryfallError,
   }
 }

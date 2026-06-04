@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Plus, Trash2, Layers, Star, Shield } from 'lucide-react'
+import { Plus, Trash2, Layers, Star, Shield, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useUserDecks, useCreateDeck, useDeleteDeck, useCreateDefaultDeck } from '@/hooks/useDecks'
@@ -198,6 +198,18 @@ export default function DecksPage() {
               <Shield size={14} /> Scheme Decks
             </button>
           </div>
+
+          {/* Custom Planes button */}
+          {tab === 'plane' && (
+            <button
+              onClick={() => router.push('/custom-planes')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 transition-colors border border-[var(--color-accent)]/30"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              <Wand2 className="w-3 h-3" />
+              Custom Planes
+            </button>
+          )}
 
           {/* Create form */}
           {showCreate && (

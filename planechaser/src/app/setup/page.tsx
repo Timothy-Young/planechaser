@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { ArchenemyPicker } from '@/components/archenemy-picker'
-import { usePlaneCorpus, useSchemeCorpus } from '@/hooks/useCardCorpus'
+import { useFullPlaneCorpus, useSchemeCorpus } from '@/hooks/useCardCorpus'
 import { useUserPods, usePodLeaderboard, useUserConquests, usePodMembers } from '@/hooks/usePods'
 import { useUserSchemeDecks } from '@/hooks/useSchemeDecks'
 import { useAppStore } from '@/store/app-store'
@@ -32,7 +32,7 @@ function SetupPageInner() {
   const searchParams = useSearchParams()
   const podStartMode = searchParams.get('podStart') === 'true'
   const podIdFromParam = searchParams.get('podId')
-  const { data: corpus, isLoading, error } = usePlaneCorpus()
+  const { data: corpus, isLoading, error } = useFullPlaneCorpus()
   const { data: schemes } = useSchemeCorpus()
   const user = useAppStore((s) => s.user)
   const activePodId = useAppStore((s) => s.activePodId)

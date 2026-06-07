@@ -124,9 +124,21 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
             {isArchenemy ? 'Archenemy Game' : 'Planechase Game'}
           </h1>
         </div>
-        <p className="ml-12 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-          {dateStr} at {timeStr}
-        </p>
+        <div className="ml-12 text-sm flex items-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
+          <span>{dateStr} at {timeStr}</span>
+          {(() => {
+            const pod = (session as Record<string, unknown>).pods as { name: string } | null
+            return pod?.name ? (
+              <>
+                <span>·</span>
+                <span className="flex items-center gap-1" style={{ color: 'var(--color-accent)' }}>
+                  <Shield size={12} />
+                  {pod.name}
+                </span>
+              </>
+            ) : null
+          })()}
+        </div>
       </div>
 
       {/* Summary Stats */}

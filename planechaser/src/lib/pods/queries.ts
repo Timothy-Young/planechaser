@@ -309,7 +309,7 @@ export async function recordGameSession(params: {
 export async function getGameSessions(userId: string) {
   const { data, error } = await supabase()
     .from('game_sessions')
-    .select('id, started_at, ended_at, win_condition, planes_visited, die_roll_history, players_snapshot, pod_id')
+    .select('id, started_at, ended_at, win_condition, planes_visited, die_roll_history, players_snapshot, pod_id, pods(name)')
     .eq('host_user_id', userId)
     .order('started_at', { ascending: false })
 
@@ -320,7 +320,7 @@ export async function getGameSessions(userId: string) {
 export async function getGameSession(sessionId: string) {
   const { data, error } = await supabase()
     .from('game_sessions')
-    .select('*')
+    .select('*, pods(name)')
     .eq('id', sessionId)
     .single()
 

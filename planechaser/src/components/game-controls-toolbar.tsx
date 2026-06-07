@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Undo2, Shuffle, RotateCcw, Compass, Sparkles, ChevronUp, ChevronDown, BookOpen, Users } from 'lucide-react'
+import { Undo2, Shuffle, RotateCcw, Compass, Sparkles, ChevronUp, ChevronDown, BookOpen, Users, Plus, Minus, TrendingUp, TrendingDown } from 'lucide-react'
 
 interface GameControlsToolbarProps {
   onUndo: () => void
@@ -11,7 +11,10 @@ interface GameControlsToolbarProps {
   onPlaneswalk: () => void
   onChaos: () => void
   onShowPlayers?: () => void
+  onAddRoll: () => void
+  onRemoveRoll: () => void
   canUndo: boolean
+  rollCount: number
   eliminatedCount?: number
   disabled?: boolean
 }
@@ -23,7 +26,10 @@ export function GameControlsToolbar({
   onPlaneswalk,
   onChaos,
   onShowPlayers,
+  onAddRoll,
+  onRemoveRoll,
   canUndo,
+  rollCount,
   eliminatedCount = 0,
   disabled = false,
 }: GameControlsToolbarProps) {
@@ -33,6 +39,8 @@ export function GameControlsToolbar({
     { icon: Undo2, label: 'Undo', action: onUndo, enabled: canUndo, color: 'var(--color-text-muted)', badge: null },
     { icon: Shuffle, label: 'Shuffle', action: onShuffle, enabled: true, color: 'var(--color-text-muted)', badge: null },
     { icon: RotateCcw, label: 'Reset Rolls', action: onResetRolls, enabled: true, color: 'var(--color-text-muted)', badge: null },
+    { icon: Plus, label: '+1 Roll', action: onAddRoll, enabled: true, color: 'var(--color-text-muted)', badge: null },
+    { icon: Minus, label: '-1 Roll', action: onRemoveRoll, enabled: rollCount > 0, color: 'var(--color-text-muted)', badge: null },
     { icon: Compass, label: 'Planeswalk', action: onPlaneswalk, enabled: true, color: 'var(--color-accent)', badge: null },
     { icon: Sparkles, label: 'Chaos', action: onChaos, enabled: true, color: '#ef4444', badge: null },
     ...(onShowPlayers ? [{ icon: Users, label: 'Players', action: onShowPlayers, enabled: true, color: 'var(--color-text-muted)', badge: eliminatedCount > 0 ? eliminatedCount : null }] : []),

@@ -28,6 +28,7 @@ export interface CardApiRow {
   chaos_effect_type: ChaosEffectType
   chaos_effect_config: Record<string, unknown> | null
   is_ongoing: boolean
+  border_color: string
 }
 
 function toPlaneCard(row: CardApiRow): PlaneCard {
@@ -41,6 +42,7 @@ function toPlaneCard(row: CardApiRow): PlaneCard {
     image_uris: row.image_uris,
     set_name: row.set_name,
     set: row.set_code,
+    border_color: row.border_color,
     chaos_effect_type: row.chaos_effect_type,
     chaos_effect_config: row.chaos_effect_config,
   }

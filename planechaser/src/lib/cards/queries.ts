@@ -20,6 +20,7 @@ export interface CardRow {
   chaos_effect_type: string
   chaos_effect_config: Record<string, unknown> | null
   is_ongoing: boolean
+  border_color: string
 }
 
 export async function fetchPlaneCards(): Promise<CardRow[]> {

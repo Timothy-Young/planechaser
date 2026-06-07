@@ -33,6 +33,7 @@ export interface PlaneCard {
   image_uris: CardImageUris
   set_name: string
   set: string
+  border_color?: string
   chaos_effect_type: ChaosEffectType
   chaos_effect_config: Record<string, unknown> | null
 }
@@ -119,6 +120,8 @@ export type GameAction =
   | { type: 'RESOLVE_SPATIAL_MERGE' }
   | { type: 'ELIMINATE_PLAYER'; playerId: string }
   | { type: 'RESTORE_PLAYER'; playerId: string }
+  | { type: 'ADD_ROLL' }
+  | { type: 'REMOVE_ROLL' }
 
 export interface TurnRecord {
   playerId: string

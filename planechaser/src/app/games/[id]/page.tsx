@@ -95,9 +95,9 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
 
   function getRollIcon(result: string) {
     switch (result) {
-      case 'chaos': return <Zap size={14} style={{ color: 'var(--color-cta)' }} />
-      case 'planeswalk': return <Navigation size={14} style={{ color: 'var(--color-accent)' }} />
-      default: return <Dice5 size={14} style={{ color: 'var(--color-text-muted)' }} />
+      case 'chaos': return <span title="Chaos"><Zap size={14} style={{ color: 'var(--color-cta)' }} /></span>
+      case 'planeswalk': return <span title="Planeswalk"><Navigation size={14} style={{ color: 'var(--color-accent)' }} /></span>
+      default: return <span title="Blank"><Dice5 size={14} style={{ color: 'var(--color-text-muted)' }} /></span>
     }
   }
 

@@ -36,6 +36,8 @@ export default function DeckBuilderPage() {
   const [includeVisited, setIncludeVisited] = useState(true)
   const [includeConquered, setIncludeConquered] = useState(true)
   const [zoomCard, setZoomCard] = useState<{ src: string; name: string; isPhenomenon: boolean } | null>(null)
+  const includeGoldBorder = useAppStore((s) => s.includeGoldBorder)
+  const setIncludeGoldBorder = useAppStore((s) => s.setIncludeGoldBorder)
 
   const currentIds = selectedIds ?? new Set(deck?.plane_ids ?? [])
   const currentName = deckName ?? deck?.name ?? ''
@@ -74,8 +76,10 @@ export default function DeckBuilderPage() {
     if (!includeVisited) cards = cards.filter((c) => !visitedIds.has(c.id))
     // Conquered filter
     if (!includeConquered) cards = cards.filter((c) => !conqueredIds.has(c.id))
+    // Gold border filter
+    if (!includeGoldBorder) cards = cards.filter((c) => c.border_color !== 'gold')
     return cards
-  }, [corpus, filterMode, searchQuery, includeVisited, includeConquered, visitedIds, conqueredIds])
+  }, [corpus, filterMode, searchQuery, includeVisited, includeConquered, includeGoldBorder, visitedIds, conqueredIds])
 
   const toggleCard = useCallback((cardId: string) => {
     setSelectedIds((prev) => {
@@ -232,6 +236,15 @@ export default function DeckBuilderPage() {
                 className="accent-[var(--color-accent-deep)]"
               />
               Include conquered
+            </label>
+            <label className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)] cursor-pointer" style={{ fontFamily: 'var(--font-body)' }}>
+              <input
+                type="checkbox"
+                checked={includeGoldBorder}
+                onChange={(e) => setIncludeGoldBorder(e.target.checked)}
+                className="accent-[var(--color-gold)]"
+              />
+              Gold border
             </label>
             <span className="ml-auto text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
               {filteredCards.length} card{filteredCards.length !== 1 ? 's' : ''}

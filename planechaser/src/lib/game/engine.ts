@@ -305,6 +305,20 @@ function applyAction(state: GameState, action: GameAction): GameState {
       }
     }
 
+    case 'ADD_ROLL': {
+      return {
+        ...state,
+        rollCountThisTurn: state.rollCountThisTurn + 1,
+      }
+    }
+
+    case 'REMOVE_ROLL': {
+      return {
+        ...state,
+        rollCountThisTurn: Math.max(0, state.rollCountThisTurn - 1),
+      }
+    }
+
     // UNDO and DISMISS_CHAOS are handled by gameReducer directly
     default:
       return state
@@ -331,7 +345,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     || action.type === 'RESOLVE_PHENOMENON' || action.type === 'BEGIN_REVEAL_CHAOS'
     || action.type === 'DISMISS_REVEAL' || action.type === 'REORDER_BOTTOM'
     || action.type === 'SPATIAL_MERGE' || action.type === 'LEAVE_DUAL_PLANE'
-    || action.type === 'RESOLVE_SPATIAL_MERGE' || action.type === 'REORDER_TOP') {
+    || action.type === 'RESOLVE_SPATIAL_MERGE' || action.type === 'REORDER_TOP'
+    || action.type === 'ADD_ROLL' || action.type === 'REMOVE_ROLL') {
     return applyAction(state, action)
   }
 

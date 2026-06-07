@@ -274,6 +274,20 @@ export default function GamePage() {
     })
   }, [])
 
+  const handleAddRoll = useCallback(() => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'ADD_ROLL' })
+    })
+  }, [])
+
+  const handleRemoveRoll = useCallback(() => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'REMOVE_ROLL' })
+    })
+  }, [])
+
   const handleEndGame = useCallback(() => {
     if (state && user) {
       const visitedPlanes = state.deck
@@ -644,10 +658,13 @@ export default function GamePage() {
           onUndo={handleUndo}
           onShuffle={handleShuffle}
           onResetRolls={handleResetRolls}
+          onAddRoll={handleAddRoll}
+          onRemoveRoll={handleRemoveRoll}
           onPlaneswalk={handleManualPlaneswalk}
           onChaos={handleManualChaos}
           onShowPlayers={state.players.length > 1 ? () => setShowPlayerList(true) : undefined}
           canUndo={(state?.stateHistory?.length ?? 0) > 0}
+          rollCount={state?.rollCountThisTurn ?? 0}
           eliminatedCount={(state?.eliminatedPlayerIds ?? []).length}
           disabled={state?.showChaosOverlay || !!state?.revealState || state?.phenomenonActive}
         />

@@ -66,7 +66,8 @@ function SetupPageInner() {
   const [designatedArchenemyId, setDesignatedArchenemyId] = useState<string | null>(null)
   const [showArchenemyPicker, setShowArchenemyPicker] = useState(false)
   const [selectedSchemeDeckId, setSelectedSchemeDeckId] = useState<string | null>(null)
-  const [playerOrder, setPlayerOrder] = useState<string[] | null>(null)
+  const [playerOrder, setPlayerOrder] = useState<string[]>([])
+  const [hasCustomOrder, setHasCustomOrder] = useState(false)
   const { data: schemeDecks } = useUserSchemeDecks()
   const SNAP_POINTS = [10, 20, 30, 40]
 
@@ -88,6 +89,25 @@ function SetupPageInner() {
       setSelectedPodPlayerIds(new Set(podMembers.map((m) => m.user_id)))
     }
   }, [podMembers, podStartMode])
+
+  // Keep playerOrder in sync with selected players
+  useEffect(() => {
+    if (!podStartMode || !podMembers) return
+    const selectedIds = Array.from(selectedPodPlayerIds)
+    if (selectedIds.length < 2) {
+      setPlayerOrder([])
+      setHasCustomOrder(false)
+      return
+    }
+    // Preserve existing order for players still selected, append new ones at end
+    const kept = playerOrder.filter((id) => selectedPodPlayerIds.has(id))
+    const newIds = selectedIds.filter((id) => !kept.includes(id))
+    const merged = [...kept, ...newIds]
+    // Only update if different (avoid infinite loop)
+    if (merged.length !== playerOrder.length || merged.some((id, i) => playerOrder[i] !== id)) {
+      setPlayerOrder(merged)
+    }
+  }, [selectedPodPlayerIds, podMembers, podStartMode])
 
   useEffect(() => {
     setResumeAvailable(hasActiveGame())
@@ -143,7 +163,7 @@ function SetupPageInner() {
         })) ?? [{ id: user?.id ?? 'host', display_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player' }]
 
     // Apply custom player order if set
-    const players = playerOrder
+    const players = playerOrder.length > 0
       ? playerOrder
           .filter((id) => basePlayers.some((p) => p.id === id))
           .map((id) => basePlayers.find((p) => p.id === id)!)
@@ -522,6 +542,7 @@ function SetupPageInner() {
                             ?.filter((m) => selectedPodPlayerIds.has(m.user_id))
                             .map((m) => m.user_id) ?? []
                           setPlayerOrder(shuffleDeck(ids))
+                          setHasCustomOrder(true)
                         }}
                         className="text-[12px] text-[var(--color-accent)] hover:underline font-medium flex items-center gap-1"
                         style={{ fontFamily: 'var(--font-body)' }}
@@ -529,41 +550,72 @@ function SetupPageInner() {
                         🎲 Randomize
                       </button>
                     </div>
-                    {playerOrder ? (
-                      <div className="space-y-1">
-                        {playerOrder
-                          .filter((id) => selectedPodPlayerIds.has(id))
-                          .map((id, i) => {
-                            const member = podMembers?.find((m) => m.user_id === id)
-                            return (
-                              <div
-                                key={id}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[var(--color-accent)]/5 border border-[var(--color-accent)]/20"
+                    <div className="space-y-1">
+                      {playerOrder
+                        .filter((id) => selectedPodPlayerIds.has(id))
+                        .map((id, i, arr) => {
+                          const member = podMembers?.find((m) => m.user_id === id)
+                          return (
+                            <div
+                              key={id}
+                              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border ${
+                                hasCustomOrder
+                                  ? 'bg-[var(--color-accent)]/5 border-[var(--color-accent)]/20'
+                                  : 'bg-[var(--color-surface)]/50 border-[var(--color-border)]'
+                              }`}
+                            >
+                              <span
+                                className="w-6 h-6 rounded-full bg-[var(--color-accent-deep)] text-white text-[12px] font-bold flex items-center justify-center shrink-0"
+                                style={{ fontFamily: 'var(--font-heading)' }}
                               >
-                                <span
-                                  className="w-6 h-6 rounded-full bg-[var(--color-accent-deep)] text-white text-[12px] font-bold flex items-center justify-center"
-                                  style={{ fontFamily: 'var(--font-heading)' }}
-                                >
-                                  {i + 1}
+                                {i + 1}
+                              </span>
+                              <span
+                                className="text-[13px] text-[var(--color-text)] flex-1"
+                                style={{ fontFamily: 'var(--font-body)' }}
+                              >
+                                {member?.profile?.display_name ?? 'Player'}
+                              </span>
+                              {i === 0 && hasCustomOrder && (
+                                <span className="text-[10px] text-[var(--color-accent)] font-semibold" style={{ fontFamily: 'var(--font-heading)' }}>
+                                  Goes first
                                 </span>
-                                <span
-                                  className="text-[13px] text-[var(--color-text)]"
-                                  style={{ fontFamily: 'var(--font-body)' }}
+                              )}
+                              <div className="flex flex-col gap-0.5 shrink-0">
+                                <button
+                                  disabled={i === 0}
+                                  onClick={() => {
+                                    const newOrder = [...playerOrder]
+                                    ;[newOrder[i - 1], newOrder[i]] = [newOrder[i], newOrder[i - 1]]
+                                    setPlayerOrder(newOrder)
+                                    setHasCustomOrder(true)
+                                  }}
+                                  className="w-6 h-5 flex items-center justify-center rounded text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-white/5 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                                  aria-label="Move up"
                                 >
-                                  {member?.profile?.display_name ?? 'Player'}
-                                </span>
-                                {i === 0 && (
-                                  <span className="text-[10px] text-[var(--color-accent)] font-semibold ml-auto" style={{ fontFamily: 'var(--font-heading)' }}>
-                                    Goes first
-                                  </span>
-                                )}
+                                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 5L5 1L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                </button>
+                                <button
+                                  disabled={i === arr.length - 1}
+                                  onClick={() => {
+                                    const newOrder = [...playerOrder]
+                                    ;[newOrder[i], newOrder[i + 1]] = [newOrder[i + 1], newOrder[i]]
+                                    setPlayerOrder(newOrder)
+                                    setHasCustomOrder(true)
+                                  }}
+                                  className="w-6 h-5 flex items-center justify-center rounded text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-white/5 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                                  aria-label="Move down"
+                                >
+                                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                </button>
                               </div>
-                            )
-                          })}
-                      </div>
-                    ) : (
+                            </div>
+                          )
+                        })}
+                    </div>
+                    {!hasCustomOrder && (
                       <p className="text-[11px] text-[var(--color-text-muted)] italic" style={{ fontFamily: 'var(--font-body)' }}>
-                        Tap &quot;Randomize&quot; to determine play order
+                        Use arrows to set turn order, or tap Randomize
                       </p>
                     )}
                   </div>

@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Search, Save, X, Shield, Eye, Sparkles, ZoomIn } from 'lucide-react'
+import { ArrowLeft, Search, Save, X, Shield, Eye, Sparkles, ZoomIn, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDeck, useUpdateDeck } from '@/hooks/useDecks'
@@ -323,6 +323,12 @@ export default function DeckBuilderPage() {
                       <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[var(--color-cta)]/80 text-white text-[9px] font-bold"
                         style={{ fontFamily: 'var(--font-heading)' }}>
                         <Sparkles size={9} /> Phenomenon
+                      </span>
+                    )}
+                    {card.set_name === 'Custom' && (
+                      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-500/80 text-white text-[9px] font-bold"
+                        style={{ fontFamily: 'var(--font-heading)' }}>
+                        <Wand2 size={9} /> Custom
                       </span>
                     )}
                   </div>

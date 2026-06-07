@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Pencil, Trash2, Wand2 } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Trash2, Wand2, Globe, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCustomPlanes, useDeleteCustomPlane } from '@/hooks/useCustomPlanes'
 import { getImageUrl } from '@/lib/custom-planes/storage'
@@ -164,12 +164,19 @@ export default function CustomPlanesPage() {
                       >
                         {custom.name}
                       </p>
-                      <p
-                        className="text-[11px] text-[var(--color-text-muted)] truncate"
-                        style={{ fontFamily: 'var(--font-body)' }}
-                      >
-                        {custom.type_line}
-                      </p>
+                      <div className="flex items-center gap-1">
+                        <p
+                          className="text-[11px] text-[var(--color-text-muted)] truncate flex-1"
+                          style={{ fontFamily: 'var(--font-body)' }}
+                        >
+                          {custom.type_line}
+                        </p>
+                        {custom.is_public ? (
+                          <span title="Public"><Globe size={10} className="text-[var(--color-accent)] shrink-0" /></span>
+                        ) : (
+                          <span title="Private"><Lock size={10} className="text-[var(--color-text-muted)] shrink-0" /></span>
+                        )}
+                      </div>
                     </div>
                   </motion.div>
                 )

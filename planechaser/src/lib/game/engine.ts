@@ -124,7 +124,14 @@ function applyAction(state: GameState, action: GameAction): GameState {
         endedAt: Date.now(),
       }
 
-      const nextTurnIndex = (state.currentTurnIndex + 1) % state.turnOrder.length
+      // Find next non-eliminated player
+      const eliminated = state.eliminatedPlayerIds ?? []
+      let nextTurnIndex = (state.currentTurnIndex + 1) % state.turnOrder.length
+      let attempts = 0
+      while (eliminated.includes(state.turnOrder[nextTurnIndex]) && attempts < state.turnOrder.length) {
+        nextTurnIndex = (nextTurnIndex + 1) % state.turnOrder.length
+        attempts++
+      }
 
       return {
         ...state,
@@ -135,6 +142,43 @@ function applyAction(state: GameState, action: GameAction): GameState {
         currentTurnRolls: [],
         turnStartPlaneIndex: state.currentPlaneIndex,
         turnHistory: [...state.turnHistory, turnRecord],
+      }
+    }
+
+    case 'ELIMINATE_PLAYER': {
+      const eliminated = state.eliminatedPlayerIds ?? []
+      if (eliminated.includes(action.playerId)) return state
+
+      const newEliminated = [...eliminated, action.playerId]
+
+      // If the eliminated player is the current turn player, advance to next
+      const currentPlayerId = state.turnOrder[state.currentTurnIndex]
+      let nextTurnIndex = state.currentTurnIndex
+      if (currentPlayerId === action.playerId) {
+        let attempts = 0
+        nextTurnIndex = (state.currentTurnIndex + 1) % state.turnOrder.length
+        while (newEliminated.includes(state.turnOrder[nextTurnIndex]) && attempts < state.turnOrder.length) {
+          nextTurnIndex = (nextTurnIndex + 1) % state.turnOrder.length
+          attempts++
+        }
+      }
+
+      return {
+        ...state,
+        eliminatedPlayerIds: newEliminated,
+        currentTurnIndex: nextTurnIndex,
+        rollCountThisTurn: currentPlayerId === action.playerId ? 0 : state.rollCountThisTurn,
+        currentTurnRolls: currentPlayerId === action.playerId ? [] : state.currentTurnRolls,
+        lastDieResult: currentPlayerId === action.playerId ? null : state.lastDieResult,
+        dieState: currentPlayerId === action.playerId ? 'idle' : state.dieState,
+      }
+    }
+
+    case 'RESTORE_PLAYER': {
+      const eliminated = state.eliminatedPlayerIds ?? []
+      return {
+        ...state,
+        eliminatedPlayerIds: eliminated.filter((id) => id !== action.playerId),
       }
     }
 
@@ -261,6 +305,20 @@ function applyAction(state: GameState, action: GameAction): GameState {
       }
     }
 
+    case 'ADD_ROLL': {
+      return {
+        ...state,
+        rollCountThisTurn: state.rollCountThisTurn + 1,
+      }
+    }
+
+    case 'REMOVE_ROLL': {
+      return {
+        ...state,
+        rollCountThisTurn: Math.max(0, state.rollCountThisTurn - 1),
+      }
+    }
+
     // UNDO and DISMISS_CHAOS are handled by gameReducer directly
     default:
       return state
@@ -287,7 +345,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     || action.type === 'RESOLVE_PHENOMENON' || action.type === 'BEGIN_REVEAL_CHAOS'
     || action.type === 'DISMISS_REVEAL' || action.type === 'REORDER_BOTTOM'
     || action.type === 'SPATIAL_MERGE' || action.type === 'LEAVE_DUAL_PLANE'
-    || action.type === 'RESOLVE_SPATIAL_MERGE' || action.type === 'REORDER_TOP') {
+    || action.type === 'RESOLVE_SPATIAL_MERGE' || action.type === 'REORDER_TOP'
+    || action.type === 'ADD_ROLL' || action.type === 'REMOVE_ROLL') {
     return applyAction(state, action)
   }
 

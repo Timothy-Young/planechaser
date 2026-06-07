@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Swords, MapPin, Dice5, Users } from 'lucide-react'
+import { ArrowLeft, Swords, MapPin, Dice5, Users, Shield } from 'lucide-react'
 import { useGameSessions } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
 
@@ -109,9 +109,21 @@ export default function GamesPage() {
                       >
                         {getGameTitle(game.win_condition)}
                       </p>
-                      <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-                        {formatDate(game.started_at)}
-                      </p>
+                      <div className="flex items-center gap-2 text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+                        <span>{formatDate(game.started_at)}</span>
+                        {(() => {
+                          const pod = game.pods as unknown as { name: string } | null
+                          return pod?.name ? (
+                            <>
+                              <span>·</span>
+                              <span className="flex items-center gap-1 text-[var(--color-accent)]">
+                                <Shield size={11} />
+                                {pod.name}
+                              </span>
+                            </>
+                          ) : null
+                        })()}
+                      </div>
                     </div>
 
                     {/* Stats row */}

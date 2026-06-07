@@ -33,6 +33,7 @@ export interface PlaneCard {
   image_uris: CardImageUris
   set_name: string
   set: string
+  border_color?: string
   chaos_effect_type: ChaosEffectType
   chaos_effect_config: Record<string, unknown> | null
 }
@@ -94,6 +95,7 @@ export interface GameState {
   showChaosOverlay: boolean
   revealState: RevealState | null
   phenomenonActive: boolean
+  eliminatedPlayerIds: string[]
 }
 
 export type GameAction =
@@ -116,6 +118,10 @@ export type GameAction =
   | { type: 'SPATIAL_MERGE'; planeIndices: [number, number] }
   | { type: 'LEAVE_DUAL_PLANE' }
   | { type: 'RESOLVE_SPATIAL_MERGE' }
+  | { type: 'ELIMINATE_PLAYER'; playerId: string }
+  | { type: 'RESTORE_PLAYER'; playerId: string }
+  | { type: 'ADD_ROLL' }
+  | { type: 'REMOVE_ROLL' }
 
 export interface TurnRecord {
   playerId: string

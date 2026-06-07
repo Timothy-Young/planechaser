@@ -16,6 +16,18 @@ export async function getUserCustomPlanes(userId: string): Promise<CustomPlane[]
   return (data ?? []) as CustomPlane[]
 }
 
+/** Fetch all public custom planes (from any user) */
+export async function getPublicCustomPlanes(): Promise<CustomPlane[]> {
+  const { data, error } = await supabase()
+    .from('custom_planes')
+    .select('*')
+    .eq('is_public', true)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as CustomPlane[]
+}
+
 export async function getCustomPlane(id: string): Promise<CustomPlane> {
   const { data, error } = await supabase()
     .from('custom_planes')
@@ -41,6 +53,7 @@ export async function createCustomPlane(
       chaos_text: input.chaos_text,
       flavor_text: input.flavor_text ?? null,
       image_path: input.image_path ?? null,
+      is_public: input.is_public ?? false,
     })
     .select()
     .single()

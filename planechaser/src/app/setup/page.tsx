@@ -36,9 +36,12 @@ function SetupPageInner() {
   const { data: schemes } = useSchemeCorpus()
   const user = useAppStore((s) => s.user)
   const activePodId = useAppStore((s) => s.activePodId)
+  const setActivePodId = useAppStore((s) => s.setActivePodId)
   const setActiveSessionId = useAppStore((s) => s.setActiveSessionId)
   const setIsHost = useAppStore((s) => s.setIsHost)
   const activeSessionId = useAppStore((s) => s.activeSessionId)
+  const includeGoldBorder = useAppStore((s) => s.includeGoldBorder)
+  const setIncludeGoldBorder = useAppStore((s) => s.setIncludeGoldBorder)
   const createSession = useCreateSession()
   const startSessionMutation = useStartSession()
   const { data: sessionPlayers } = useSessionPlayers(activeSessionId ?? undefined)
@@ -66,6 +69,8 @@ function SetupPageInner() {
   const [designatedArchenemyId, setDesignatedArchenemyId] = useState<string | null>(null)
   const [showArchenemyPicker, setShowArchenemyPicker] = useState(false)
   const [selectedSchemeDeckId, setSelectedSchemeDeckId] = useState<string | null>(null)
+  const [playerOrder, setPlayerOrder] = useState<string[]>([])
+  const [hasCustomOrder, setHasCustomOrder] = useState(false)
   const { data: schemeDecks } = useUserSchemeDecks()
   const SNAP_POINTS = [10, 20, 30, 40]
 
@@ -87,6 +92,25 @@ function SetupPageInner() {
       setSelectedPodPlayerIds(new Set(podMembers.map((m) => m.user_id)))
     }
   }, [podMembers, podStartMode])
+
+  // Keep playerOrder in sync with selected players
+  useEffect(() => {
+    if (!podStartMode || !podMembers) return
+    const selectedIds = Array.from(selectedPodPlayerIds)
+    if (selectedIds.length < 2) {
+      setPlayerOrder([])
+      setHasCustomOrder(false)
+      return
+    }
+    // Preserve existing order for players still selected, append new ones at end
+    const kept = playerOrder.filter((id) => selectedPodPlayerIds.has(id))
+    const newIds = selectedIds.filter((id) => !kept.includes(id))
+    const merged = [...kept, ...newIds]
+    // Only update if different (avoid infinite loop)
+    if (merged.length !== playerOrder.length || merged.some((id, i) => playerOrder[i] !== id)) {
+      setPlayerOrder(merged)
+    }
+  }, [selectedPodPlayerIds, podMembers, podStartMode])
 
   useEffect(() => {
     setResumeAvailable(hasActiveGame())
@@ -112,11 +136,14 @@ function SetupPageInner() {
   function startGame(archenemyMode = false) {
     let cardsToUse: PlaneCard[]
     if (deckMode === 'random') {
-      const allPlanes = (corpus ?? []).filter((c) => c.card_type === 'plane')
+      let allPlanes = (corpus ?? []).filter((c) => c.card_type === 'plane')
+      if (!includeGoldBorder) allPlanes = allPlanes.filter((c) => c.border_color !== 'gold')
       const size = randomSize >= allPlanes.length ? allPlanes.length : randomSize
       cardsToUse = shuffleDeck(allPlanes).slice(0, size)
     } else {
-      cardsToUse = deckCards ?? corpus ?? []
+      let cards = deckCards ?? corpus ?? []
+      if (!includeGoldBorder) cards = cards.filter((c) => c.border_color !== 'gold')
+      cardsToUse = cards
     }
     if (cardsToUse.length === 0) return
 
@@ -129,7 +156,7 @@ function SetupPageInner() {
 
     const deck = shuffleDeck(playableCards)
 
-    const players = podStartMode && podMembers && podMembers.length > 0
+    const basePlayers = podStartMode && podMembers && podMembers.length > 0
       ? podMembers
           .filter((m) => selectedPodPlayerIds.has(m.user_id))
           .map((m) => ({
@@ -140,6 +167,13 @@ function SetupPageInner() {
           id: sp.user_id,
           display_name: sp.profile?.display_name ?? 'Player',
         })) ?? [{ id: user?.id ?? 'host', display_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player' }]
+
+    // Apply custom player order if set
+    const players = playerOrder.length > 0
+      ? playerOrder
+          .filter((id) => basePlayers.some((p) => p.id === id))
+          .map((id) => basePlayers.find((p) => p.id === id)!)
+      : basePlayers
 
     let archenemyState: ArchenemyState | undefined
     if (archenemyMode && designatedArchenemyId && schemes && schemes.length > 0) {
@@ -195,6 +229,7 @@ function SetupPageInner() {
       showChaosOverlay: false,
       revealState: null,
       phenomenonActive: false,
+      eliminatedPlayerIds: [],
     }
 
     saveGameState(state)
@@ -250,15 +285,60 @@ function SetupPageInner() {
             >
               PlaneChaser
             </h1>
-            <p className="text-[13px] text-[var(--color-text-muted)] tracking-wide" style={{ fontFamily: 'var(--font-body)' }}>
+            <p className="text-[17px] text-[var(--color-text-secondary)] tracking-wide font-medium" style={{ fontFamily: 'var(--font-heading)' }}>
               New Planechase Session
             </p>
-            {podStartMode && podStartPod && (
-              <p className="text-[12px] text-[var(--color-accent)] font-medium" style={{ fontFamily: 'var(--font-body)' }}>
+          </div>
+
+          {/* Active pod selector */}
+          {!podStartMode && pods && pods.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm p-4 space-y-2"
+            >
+              <label
+                className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium"
+                style={{ fontFamily: 'var(--font-heading)' }}
+              >
+                Active Pod
+              </label>
+              <div className="relative">
+                <select
+                  value={activePodId ?? ''}
+                  onChange={(e) => setActivePodId(e.target.value || null)}
+                  className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl px-3 py-2.5 pr-8 text-[14px] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] appearance-none"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  <option value="">No Pod (Solo)</option>
+                  {pods.map((pod) => (
+                    <option key={pod.id} value={pod.id}>
+                      {pod.name}
+                    </option>
+                  ))}
+                </select>
+                <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)] pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+              </div>
+              {activePodId && activePod && (
+                <button
+                  onClick={() => router.push(`/setup?podStart=true&podId=${activePodId}`)}
+                  className="w-full text-[13px] text-[var(--color-accent)] hover:underline font-medium pt-1"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  Start game with {activePod.name} →
+                </button>
+              )}
+            </motion.div>
+          )}
+
+          {podStartMode && podStartPod && (
+            <div className="text-center">
+              <p className="text-[13px] text-[var(--color-accent)] font-medium" style={{ fontFamily: 'var(--font-body)' }}>
                 Starting with pod: {podStartPod.name} ({podMembers?.length ?? '…'} players)
               </p>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Resume game */}
           {resumeAvailable && (
@@ -496,6 +576,101 @@ function SetupPageInner() {
                 <p className="text-[11px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
                   {selectedPodPlayerIds.size} player{selectedPodPlayerIds.size !== 1 ? 's' : ''} selected
                 </p>
+
+                {/* Play order */}
+                {selectedPodPlayerIds.size >= 2 && (
+                  <div className="space-y-2 pt-2 border-t border-[var(--color-border)]">
+                    <div className="flex items-center justify-between">
+                      <label
+                        className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium"
+                        style={{ fontFamily: 'var(--font-heading)' }}
+                      >
+                        Play Order
+                      </label>
+                      <button
+                        onClick={() => {
+                          const ids = podMembers
+                            ?.filter((m) => selectedPodPlayerIds.has(m.user_id))
+                            .map((m) => m.user_id) ?? []
+                          setPlayerOrder(shuffleDeck(ids))
+                          setHasCustomOrder(true)
+                        }}
+                        className="text-[12px] text-[var(--color-accent)] hover:underline font-medium flex items-center gap-1"
+                        style={{ fontFamily: 'var(--font-body)' }}
+                      >
+                        🎲 Randomize
+                      </button>
+                    </div>
+                    <div className="space-y-1">
+                      {playerOrder
+                        .filter((id) => selectedPodPlayerIds.has(id))
+                        .map((id, i, arr) => {
+                          const member = podMembers?.find((m) => m.user_id === id)
+                          return (
+                            <div
+                              key={id}
+                              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border ${
+                                hasCustomOrder
+                                  ? 'bg-[var(--color-accent)]/5 border-[var(--color-accent)]/20'
+                                  : 'bg-[var(--color-surface)]/50 border-[var(--color-border)]'
+                              }`}
+                            >
+                              <span
+                                className="w-6 h-6 rounded-full bg-[var(--color-accent-deep)] text-white text-[12px] font-bold flex items-center justify-center shrink-0"
+                                style={{ fontFamily: 'var(--font-heading)' }}
+                              >
+                                {i + 1}
+                              </span>
+                              <span
+                                className="text-[13px] text-[var(--color-text)] flex-1"
+                                style={{ fontFamily: 'var(--font-body)' }}
+                              >
+                                {member?.profile?.display_name ?? 'Player'}
+                              </span>
+                              {i === 0 && hasCustomOrder && (
+                                <span className="text-[10px] text-[var(--color-accent)] font-semibold" style={{ fontFamily: 'var(--font-heading)' }}>
+                                  Goes first
+                                </span>
+                              )}
+                              <div className="flex flex-col gap-0.5 shrink-0">
+                                <button
+                                  disabled={i === 0}
+                                  onClick={() => {
+                                    const newOrder = [...playerOrder]
+                                    ;[newOrder[i - 1], newOrder[i]] = [newOrder[i], newOrder[i - 1]]
+                                    setPlayerOrder(newOrder)
+                                    setHasCustomOrder(true)
+                                  }}
+                                  className="w-6 h-5 flex items-center justify-center rounded text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-white/5 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                                  aria-label="Move up"
+                                >
+                                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 5L5 1L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                </button>
+                                <button
+                                  disabled={i === arr.length - 1}
+                                  onClick={() => {
+                                    const newOrder = [...playerOrder]
+                                    ;[newOrder[i], newOrder[i + 1]] = [newOrder[i + 1], newOrder[i]]
+                                    setPlayerOrder(newOrder)
+                                    setHasCustomOrder(true)
+                                  }}
+                                  className="w-6 h-5 flex items-center justify-center rounded text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-white/5 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                                  aria-label="Move down"
+                                >
+                                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                    </div>
+                    {!hasCustomOrder && (
+                      <p className="text-[11px] text-[var(--color-text-muted)] italic" style={{ fontFamily: 'var(--font-body)' }}>
+                        Use arrows to set turn order, or tap Randomize
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-3">
@@ -632,6 +807,30 @@ function SetupPageInner() {
                 </div>
               </div>
             )}
+
+            {/* Gold border toggle */}
+            <div className="flex items-center justify-between">
+              <label
+                className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium"
+                style={{ fontFamily: 'var(--font-heading)' }}
+              >
+                Include Gold Border Cards
+              </label>
+              <button
+                onClick={() => setIncludeGoldBorder(!includeGoldBorder)}
+                className={`relative w-12 h-7 rounded-full transition-colors ${
+                  includeGoldBorder
+                    ? 'bg-[var(--color-gold)]'
+                    : 'bg-[var(--color-border)]'
+                }`}
+              >
+                <motion.div
+                  animate={{ x: includeGoldBorder ? 20 : 2 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  className="absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow-sm"
+                />
+              </button>
+            </div>
 
             {/* Status */}
             {isLoading && (

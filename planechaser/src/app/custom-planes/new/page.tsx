@@ -20,6 +20,7 @@ export default function CreateCustomPlanePage() {
   const [oracleText, setOracleText] = useState('')
   const [chaosText, setChaosText] = useState('')
   const [flavorText, setFlavorText] = useState('')
+  const [isPublic, setIsPublic] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageError, setImageError] = useState<string | null>(null)
@@ -68,6 +69,7 @@ export default function CreateCustomPlanePage() {
         chaos_text: chaosText.trim(),
         flavor_text: flavorText.trim() || undefined,
         image_path: imagePath,
+        is_public: isPublic,
       })
 
       router.push('/custom-planes')
@@ -200,6 +202,37 @@ export default function CreateCustomPlanePage() {
                 className="w-full border border-[var(--color-border)] bg-[var(--color-surface)]/60 rounded-xl px-4 py-3 text-[13px] text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] transition-colors resize-none italic"
                 style={{ fontFamily: 'var(--font-body)' }}
               />
+            </div>
+
+            {/* Visibility */}
+            <div className="flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 px-4 py-3">
+              <div>
+                <p
+                  className="text-[13px] font-semibold text-[var(--color-text)]"
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                >
+                  {isPublic ? 'Public' : 'Private'}
+                </p>
+                <p
+                  className="text-[11px] text-[var(--color-text-muted)]"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  {isPublic ? 'Visible to all players' : 'Only you can see this plane'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPublic(!isPublic)}
+                className="relative w-11 h-6 rounded-full transition-colors duration-200"
+                style={{ background: isPublic ? 'var(--color-accent)' : 'var(--color-border)' }}
+                role="switch"
+                aria-checked={isPublic}
+              >
+                <span
+                  className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                  style={{ transform: isPublic ? 'translateX(20px)' : 'translateX(0)' }}
+                />
+              </button>
             </div>
 
             {/* Image Upload */}

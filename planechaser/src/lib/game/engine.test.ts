@@ -36,6 +36,7 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     showChaosOverlay: false,
     revealState: null,
     phenomenonActive: false,
+    eliminatedPlayerIds: [],
     ...overrides,
   }
 }

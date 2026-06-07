@@ -2,12 +2,13 @@
 
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Map as MapIcon, ChevronDown } from 'lucide-react'
+import { Map as MapIcon, ChevronDown, Search, X } from 'lucide-react'
 import { usePlaneCorpus } from '@/hooks/useCardCorpus'
 import { usePodConquests, useUserPods } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
 import { CardZoomModal } from '@/components/card-zoom-modal'
 import type { MapConquest } from '@/lib/map/queries'
+import { extractSubtype, getUniqueSubtypes } from '@/lib/cards/subtypes'
 
 // 8 colors: gold for current user, then 7 for podmates
 const MEMBER_COLORS = [
@@ -103,6 +104,8 @@ export default function MapPage() {
   const { data: pods } = useUserPods()
 
   const [filter, setFilter] = useState<FilterValue>('all')
+  const [subtypeFilter, setSubtypeFilter] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [zoomSrc, setZoomSrc] = useState<string | null>(null)
   const [zoomAlt, setZoomAlt] = useState('')
 
@@ -175,24 +178,41 @@ export default function MapPage() {
     return opts
   }, [orderedConquerors, user])
 
+  // Subtypes for dropdown
+  const subtypes = useMemo(() => getUniqueSubtypes(planeCards), [planeCards])
+
   // Apply filter
   const filteredPlanes = useMemo(() => {
-    if (filter === 'all') return planeCards
+    let cards = planeCards
+    // Conquest/ownership filter
     if (filter === 'mine') {
-      return planeCards.filter((p) => {
+      cards = cards.filter((p) => {
         const c = conquestMap.get(p.id)
         return c && c.user_id === user?.id
       })
+    } else if (filter === 'unclaimed') {
+      cards = cards.filter((p) => !conquestMap.has(p.id))
+    } else if (filter !== 'all') {
+      // Podmate filter (user_id string)
+      cards = cards.filter((p) => {
+        const c = conquestMap.get(p.id)
+        return c && c.user_id === filter
+      })
     }
-    if (filter === 'unclaimed') {
-      return planeCards.filter((p) => !conquestMap.has(p.id))
+    // Subtype filter
+    if (subtypeFilter !== 'all') {
+      cards = cards.filter((p) => extractSubtype(p.type_line) === subtypeFilter)
     }
-    // Podmate filter (user_id string)
-    return planeCards.filter((p) => {
-      const c = conquestMap.get(p.id)
-      return c && c.user_id === filter
-    })
-  }, [planeCards, filter, conquestMap, user])
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      cards = cards.filter((p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.oracle_text.toLowerCase().includes(q)
+      )
+    }
+    return cards
+  }, [planeCards, filter, subtypeFilter, searchQuery, conquestMap, user])
 
   // Stats
   const myCount = useMemo(
@@ -293,25 +313,120 @@ export default function MapPage() {
           </motion.p>
         )}
 
-        {/* Filter */}
+        {/* Filters */}
         {activePodId && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.15 }}
+            className="space-y-2"
           >
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value as FilterValue)}
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-[14px] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] appearance-none"
-              style={{ fontFamily: 'var(--font-body)' }}
-            >
-              {filterOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            {/* Conquest filter */}
+            <div className="relative">
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value as FilterValue)}
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 pr-8 text-[14px] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] appearance-none"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                {filterOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none"
+              />
+            </div>
+
+            {/* Subtype + search row */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <select
+                  value={subtypeFilter}
+                  onChange={(e) => setSubtypeFilter(e.target.value)}
+                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 pr-8 text-[13px] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] appearance-none"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  <option value="all">All Subtypes</option>
+                  {subtypes.map((st) => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={14}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none"
+                />
+              </div>
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search..."
+                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg pl-8 pr-8 py-2 text-[13px] text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Subtype + search for no-pod view */}
+        {!activePodId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.15 }}
+            className="flex gap-2"
+          >
+            <div className="relative flex-1">
+              <select
+                value={subtypeFilter}
+                onChange={(e) => setSubtypeFilter(e.target.value)}
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 pr-8 text-[13px] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] appearance-none"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                <option value="all">All Subtypes</option>
+                {subtypes.map((st) => (
+                  <option key={st} value={st}>{st}</option>
+                ))}
+              </select>
+              <ChevronDown
+                size={14}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none"
+              />
+            </div>
+            <div className="relative flex-1">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search..."
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg pl-8 pr-8 py-2 text-[13px] text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+                style={{ fontFamily: 'var(--font-body)' }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
 

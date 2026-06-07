@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { PlaneCard, SchemeCard } from '@/lib/game/types'
 import type { ChaosEffectType } from '@/lib/cards/effect-classifier'
-import { useCustomPlanes } from '@/hooks/useCustomPlanes'
+import { useCustomPlanes, usePublicCustomPlanes } from '@/hooks/useCustomPlanes'
 import type { CustomPlane } from '@/lib/custom-planes/types'
 import { getImageUrl } from '@/lib/custom-planes/storage'
 
@@ -28,6 +28,7 @@ export interface CardApiRow {
   chaos_effect_type: ChaosEffectType
   chaos_effect_config: Record<string, unknown> | null
   is_ongoing: boolean
+  border_color: string
 }
 
 function toPlaneCard(row: CardApiRow): PlaneCard {
@@ -41,6 +42,7 @@ function toPlaneCard(row: CardApiRow): PlaneCard {
     image_uris: row.image_uris,
     set_name: row.set_name,
     set: row.set_code,
+    border_color: row.border_color,
     chaos_effect_type: row.chaos_effect_type,
     chaos_effect_config: row.chaos_effect_config,
   }
@@ -125,17 +127,30 @@ function customToPlaneCard(custom: CustomPlane): PlaneCard {
 
 export function useFullPlaneCorpus() {
   const { data: scryfall, isLoading: scryfallLoading, error: scryfallError } = usePlaneCorpus()
-  const { data: custom, isLoading: customLoading } = useCustomPlanes()
+  const { data: myCustom, isLoading: myCustomLoading } = useCustomPlanes()
+  const { data: publicCustom, isLoading: publicLoading } = usePublicCustomPlanes()
 
   const merged = useMemo(() => {
     if (!scryfall) return undefined
-    const customCards = (custom ?? []).map(customToPlaneCard)
-    return [...scryfall, ...customCards]
-  }, [scryfall, custom])
+    // Merge own custom planes + public planes from others (dedup by id)
+    const seen = new Set<string>()
+    const allCustom: PlaneCard[] = []
+    for (const c of myCustom ?? []) {
+      const card = customToPlaneCard(c)
+      seen.add(c.id)
+      allCustom.push(card)
+    }
+    for (const c of publicCustom ?? []) {
+      if (!seen.has(c.id)) {
+        allCustom.push(customToPlaneCard(c))
+      }
+    }
+    return [...scryfall, ...allCustom]
+  }, [scryfall, myCustom, publicCustom])
 
   return {
     data: merged,
-    isLoading: scryfallLoading || customLoading,
+    isLoading: scryfallLoading || myCustomLoading || publicLoading,
     error: scryfallError,
   }
 }

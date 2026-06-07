@@ -16,6 +16,8 @@ interface AppState {
   setIsHost: (isHost: boolean) => void
   theme: Theme
   toggleTheme: () => void
+  includeGoldBorder: boolean
+  setIncludeGoldBorder: (include: boolean) => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -31,6 +33,8 @@ export const useAppStore = create<AppState>()(
       setIsHost: (isHost) => set({ isHost }),
       theme: 'dark' as Theme,
       toggleTheme: () => set({ theme: get().theme === 'dark' ? 'light' : 'dark' }),
+      includeGoldBorder: false,
+      setIncludeGoldBorder: (includeGoldBorder) => set({ includeGoldBorder }),
     }),
     { name: 'planechaser-app' }
   )

@@ -20,6 +20,7 @@ import { TurnIndicator } from '@/components/turn-indicator'
 import { ChaosOverlay } from '@/components/chaos-overlay'
 import { CardZoomModal } from '@/components/card-zoom-modal'
 import { GameControlsToolbar } from '@/components/game-controls-toolbar'
+import { PlayerListModal } from '@/components/player-list-modal'
 import { useRecordGameSession, useUserStats } from '@/hooks/usePods'
 import { useUserAchievements, useGrantAchievements } from '@/hooks/useAchievements'
 import { evaluateAchievements } from '@/lib/achievements/evaluator'
@@ -39,6 +40,7 @@ export default function GamePage() {
   const [newBadges, setNewBadges] = useState<string[]>([])
   const [breadcrumbPreview, setBreadcrumbPreview] = useState<{ src: string; name: string } | null>(null)
   const [pendingSecondChaos, setPendingSecondChaos] = useState(false)
+  const [showPlayerList, setShowPlayerList] = useState(false)
   const [chaosPlaneOverride, setChaosPlaneOverride] = useState<PlaneCardType | null>(null)
   const [musicOn, setMusicOn] = useState(false)
   const [sfxOn, setSfxOn] = useState(true)
@@ -251,10 +253,38 @@ export default function GamePage() {
     })
   }, [])
 
+  const handleEliminatePlayer = useCallback((playerId: string) => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'ELIMINATE_PLAYER', playerId })
+    })
+  }, [])
+
+  const handleRestorePlayer = useCallback((playerId: string) => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'RESTORE_PLAYER', playerId })
+    })
+  }, [])
+
   const handleResetRolls = useCallback(() => {
     setState((prev) => {
       if (!prev) return prev
       return gameReducer(prev, { type: 'RESET_ROLL_COUNT' })
+    })
+  }, [])
+
+  const handleAddRoll = useCallback(() => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'ADD_ROLL' })
+    })
+  }, [])
+
+  const handleRemoveRoll = useCallback(() => {
+    setState((prev) => {
+      if (!prev) return prev
+      return gameReducer(prev, { type: 'REMOVE_ROLL' })
     })
   }, [])
 
@@ -590,6 +620,7 @@ export default function GamePage() {
             }
             onNextTurn={handleEndTurn}
             showNextTurn={!state.showChaosOverlay && !state.revealState && !state.phenomenonActive}
+            eliminatedCount={(state.eliminatedPlayerIds ?? []).length}
           />
         )}
 
@@ -627,9 +658,14 @@ export default function GamePage() {
           onUndo={handleUndo}
           onShuffle={handleShuffle}
           onResetRolls={handleResetRolls}
+          onAddRoll={handleAddRoll}
+          onRemoveRoll={handleRemoveRoll}
           onPlaneswalk={handleManualPlaneswalk}
           onChaos={handleManualChaos}
+          onShowPlayers={state.players.length > 1 ? () => setShowPlayerList(true) : undefined}
           canUndo={(state?.stateHistory?.length ?? 0) > 0}
+          rollCount={state?.rollCountThisTurn ?? 0}
+          eliminatedCount={(state?.eliminatedPlayerIds ?? []).length}
           disabled={state?.showChaosOverlay || !!state?.revealState || state?.phenomenonActive}
         />
 
@@ -644,6 +680,19 @@ export default function GamePage() {
           </Button>
         </div>
       </div>
+
+      {/* Player list modal */}
+      {showPlayerList && (
+        <PlayerListModal
+          players={state.players}
+          turnOrder={state.turnOrder}
+          currentTurnIndex={state.currentTurnIndex}
+          eliminatedPlayerIds={state.eliminatedPlayerIds ?? []}
+          onEliminate={handleEliminatePlayer}
+          onRestore={handleRestorePlayer}
+          onClose={() => setShowPlayerList(false)}
+        />
+      )}
 
       <CardZoomModal
         src={breadcrumbPreview?.src ?? null}

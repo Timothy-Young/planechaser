@@ -95,9 +95,9 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
 
   function getRollIcon(result: string) {
     switch (result) {
-      case 'chaos': return <Zap size={14} style={{ color: 'var(--color-cta)' }} />
-      case 'planeswalk': return <Navigation size={14} style={{ color: 'var(--color-accent)' }} />
-      default: return <Dice5 size={14} style={{ color: 'var(--color-text-muted)' }} />
+      case 'chaos': return <span title="Chaos"><Zap size={14} style={{ color: 'var(--color-cta)' }} /></span>
+      case 'planeswalk': return <span title="Planeswalk"><Navigation size={14} style={{ color: 'var(--color-accent)' }} /></span>
+      default: return <span title="Blank"><Dice5 size={14} style={{ color: 'var(--color-text-muted)' }} /></span>
     }
   }
 
@@ -124,9 +124,21 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
             {isArchenemy ? 'Archenemy Game' : 'Planechase Game'}
           </h1>
         </div>
-        <p className="ml-12 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-          {dateStr} at {timeStr}
-        </p>
+        <div className="ml-12 text-sm flex items-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
+          <span>{dateStr} at {timeStr}</span>
+          {(() => {
+            const pod = (session as Record<string, unknown>).pods as { name: string } | null
+            return pod?.name ? (
+              <>
+                <span>·</span>
+                <span className="flex items-center gap-1" style={{ color: 'var(--color-accent)' }}>
+                  <Shield size={12} />
+                  {pod.name}
+                </span>
+              </>
+            ) : null
+          })()}
+        </div>
       </div>
 
       {/* Summary Stats */}

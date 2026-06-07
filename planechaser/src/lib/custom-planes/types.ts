@@ -7,6 +7,7 @@ export interface CustomPlane {
   chaos_text: string
   flavor_text: string | null
   image_path: string | null
+  is_public: boolean
   created_at: string
   updated_at: string
 }
@@ -18,4 +19,5 @@ export interface CustomPlaneInput {
   chaos_text: string
   flavor_text?: string
   image_path?: string | null
+  is_public?: boolean
 }

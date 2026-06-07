@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Search, Save, X, Shield, Eye, Sparkles, ZoomIn, Wand2 } from 'lucide-react'
+import { ArrowLeft, Search, Save, X, Shield, Eye, Sparkles, ZoomIn, Wand2, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDeck, useUpdateDeck } from '@/hooks/useDecks'
@@ -11,6 +11,7 @@ import { useFullPlaneCorpus } from '@/hooks/useCardCorpus'
 import { useUserConquests, usePlaneVisitHistory } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
 import { CardZoomModal } from '@/components/card-zoom-modal'
+import { extractSubtype, getUniqueSubtypes } from '@/lib/cards/subtypes'
 
 const MIN_DECK_SIZE = 10
 
@@ -30,6 +31,7 @@ export default function DeckBuilderPage() {
 
   const [searchQuery, setSearchQuery] = useState('')
   const [filterMode, setFilterMode] = useState<FilterMode>('all')
+  const [subtypeFilter, setSubtypeFilter] = useState<string>('all')
   const [selectedIds, setSelectedIds] = useState<Set<string> | null>(null)
   const [deckName, setDeckName] = useState<string | null>(null)
   const [showDeckPanel, setShowDeckPanel] = useState(false)
@@ -58,11 +60,22 @@ export default function DeckBuilderPage() {
     return ids
   }, [visitHistory, corpus])
 
+  const subtypes = useMemo(() => {
+    if (!corpus) return []
+    return getUniqueSubtypes(corpus)
+  }, [corpus])
+
   const filteredCards = useMemo(() => {
     if (!corpus) return []
     let cards = corpus
     if (filterMode === 'plane') cards = cards.filter((c) => c.card_type === 'plane')
     if (filterMode === 'phenomenon') cards = cards.filter((c) => c.card_type === 'phenomenon')
+    // Subtype filter
+    if (subtypeFilter === 'custom') {
+      cards = cards.filter((c) => c.set_name === 'Custom')
+    } else if (subtypeFilter !== 'all') {
+      cards = cards.filter((c) => extractSubtype(c.type_line) === subtypeFilter)
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       cards = cards.filter(
@@ -79,7 +92,7 @@ export default function DeckBuilderPage() {
     // Gold border filter
     if (!includeGoldBorder) cards = cards.filter((c) => c.border_color !== 'gold')
     return cards
-  }, [corpus, filterMode, searchQuery, includeVisited, includeConquered, includeGoldBorder, visitedIds, conqueredIds])
+  }, [corpus, filterMode, subtypeFilter, searchQuery, includeVisited, includeConquered, includeGoldBorder, visitedIds, conqueredIds])
 
   const toggleCard = useCallback((cardId: string) => {
     setSelectedIds((prev) => {
@@ -215,6 +228,26 @@ export default function DeckBuilderPage() {
               {currentIds.size} card{currentIds.size !== 1 ? 's' : ''}
               {currentIds.size < MIN_DECK_SIZE && ` (min ${MIN_DECK_SIZE})`}
             </button>
+          </div>
+
+          {/* Subtype filter */}
+          <div className="relative">
+            <select
+              value={subtypeFilter}
+              onChange={(e) => setSubtypeFilter(e.target.value)}
+              className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 pr-8 text-[12px] text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] appearance-none"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              <option value="all">All Subtypes</option>
+              <option value="custom">Custom</option>
+              {subtypes.map((st) => (
+                <option key={st} value={st}>{st}</option>
+              ))}
+            </select>
+            <ChevronDown
+              size={12}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none"
+            />
           </div>
 
           {/* Advanced filters */}

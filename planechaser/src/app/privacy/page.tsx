@@ -24,7 +24,7 @@ export default function PrivacyPage() {
 
       <div className="relative z-10 px-4 pb-24 max-w-[680px] mx-auto">
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 backdrop-blur-sm p-6 sm:p-8 space-y-6 text-[14px] leading-relaxed text-[var(--color-text-secondary)]" style={{ fontFamily: 'var(--font-body)' }}>
-          <p className="text-[11px] text-[var(--color-text-muted)]">Last updated: May 15, 2025</p>
+          <p className="text-[11px] text-[var(--color-text-muted)]">Last updated: June 7, 2026</p>
 
           <section className="space-y-2">
             <h2 className="text-[16px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-heading)' }}>Overview</h2>
@@ -75,7 +75,7 @@ export default function PrivacyPage() {
           <section className="space-y-2">
             <h2 className="text-[16px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-heading)' }}>Your Rights</h2>
             <p>
-              You can request deletion of your account and all associated data at any time by contacting us at <a href="mailto:codetimcode@gmail.com" className="text-[var(--color-accent)] hover:underline">codetimcode@gmail.com</a>. We will process deletion requests within 30 days.
+              You can request deletion of your account and all associated data at any time by contacting us at <a href="mailto:tim@wherestim.com" className="text-[var(--color-accent)] hover:underline">tim@wherestim.com</a>. We will process deletion requests within 30 days.
             </p>
           </section>
 
@@ -106,7 +106,7 @@ export default function PrivacyPage() {
           <section className="space-y-2">
             <h2 className="text-[16px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-heading)' }}>Contact</h2>
             <p>
-              Questions about this policy? Email us at <a href="mailto:codetimcode@gmail.com" className="text-[var(--color-accent)] hover:underline">codetimcode@gmail.com</a>.
+              Questions about this policy? Email us at <a href="mailto:tim@wherestim.com" className="text-[var(--color-accent)] hover:underline">tim@wherestim.com</a>.
             </p>
           </section>
         </div>

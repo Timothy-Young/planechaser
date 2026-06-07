@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Map as MapIcon } from 'lucide-react'
+import { Map as MapIcon, ChevronDown } from 'lucide-react'
 import { usePlaneCorpus } from '@/hooks/useCardCorpus'
-import { usePodConquests } from '@/hooks/usePods'
+import { usePodConquests, useUserPods } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
 import { CardZoomModal } from '@/components/card-zoom-modal'
 import type { MapConquest } from '@/lib/map/queries'
@@ -29,7 +28,7 @@ type FilterValue = 'all' | 'mine' | 'unclaimed' | string // string = podmate use
 interface PlaneThumbProps {
   id: string
   name: string
-  smallUrl: string
+  normalUrl: string
   borderCropUrl: string
   conquest: MapConquest | undefined
   colorIndex: number | null // null = unclaimed
@@ -39,7 +38,7 @@ interface PlaneThumbProps {
 
 function PlaneThumbnail({
   name,
-  smallUrl,
+  normalUrl,
   borderCropUrl,
   conquest,
   colorIndex,
@@ -50,20 +49,24 @@ function PlaneThumbnail({
   return (
     <button
       type="button"
-      className={`relative aspect-[5/7] rounded-lg overflow-hidden border-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-transform active:scale-95 ${
+      className={`relative aspect-[7/5] rounded-lg overflow-hidden border-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-transform active:scale-95 ${
         color ? color.border : 'border-[var(--color-border)] opacity-50'
       }`}
       onClick={() => onTap(borderCropUrl, name)}
       aria-label={name}
     >
-      <Image
-        src={smallUrl}
-        alt={name}
-        fill
-        className="object-cover"
-        sizes="(min-width: 640px) 20vw, 25vw"
-        loading="lazy"
-      />
+      <div className="absolute inset-0 overflow-hidden">
+        <img
+          src={normalUrl}
+          alt={name}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{
+            transform: 'rotate(90deg) scale(1.42)',
+            transformOrigin: 'center center',
+          }}
+          loading="lazy"
+        />
+      </div>
       {conquest && (
         <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5 flex items-center justify-center">
           <span
@@ -80,11 +83,11 @@ function PlaneThumbnail({
 
 function SkeletonGrid() {
   return (
-    <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
-      {Array.from({ length: 40 }).map((_, i) => (
+    <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+      {Array.from({ length: 24 }).map((_, i) => (
         <div
           key={i}
-          className="aspect-[5/7] rounded-lg bg-[var(--color-surface)] animate-pulse border-2 border-[var(--color-border)]"
+          className="aspect-[7/5] rounded-lg bg-[var(--color-surface)] animate-pulse border-2 border-[var(--color-border)]"
         />
       ))}
     </div>
@@ -94,8 +97,10 @@ function SkeletonGrid() {
 export default function MapPage() {
   const user = useAppStore((s) => s.user)
   const activePodId = useAppStore((s) => s.activePodId)
+  const setActivePodId = useAppStore((s) => s.setActivePodId)
   const { data: planes, isLoading: planesLoading } = usePlaneCorpus()
   const { data: conquests, isLoading: conquestsLoading } = usePodConquests(activePodId ?? undefined)
+  const { data: pods } = useUserPods()
 
   const [filter, setFilter] = useState<FilterValue>('all')
   const [zoomSrc, setZoomSrc] = useState<string | null>(null)
@@ -107,7 +112,7 @@ export default function MapPage() {
     [planes],
   )
 
-  // Build a map: plane_scryfall_id → conquest
+  // Build a map: plane_scryfall_id -> conquest
   const conquestMap = useMemo(() => {
     return new Map<string, MapConquest>((conquests ?? []).map((c) => [c.plane_scryfall_id, c]))
   }, [conquests])
@@ -138,7 +143,7 @@ export default function MapPage() {
     return result
   }, [conquests, user])
 
-  // Map user_id → color index (current user always 0)
+  // Map user_id -> color index (current user always 0)
   const colorIndexMap = useMemo(() => {
     const map = new Map<string, number>()
     let idx = 0
@@ -232,6 +237,33 @@ export default function MapPage() {
           </h1>
         </motion.div>
 
+        {/* Pod selector */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.05 }}
+        >
+          <div className="relative">
+            <select
+              value={activePodId ?? ''}
+              onChange={(e) => setActivePodId(e.target.value || null)}
+              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 pr-8 text-[14px] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] appearance-none"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              <option value="">Select a Pod...</option>
+              {(pods ?? []).map((pod) => (
+                <option key={pod.id} value={pod.id}>
+                  {pod.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={16}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none"
+            />
+          </div>
+        </motion.div>
+
         {/* Stats bar */}
         {!isLoading && activePodId && (
           <motion.div
@@ -257,7 +289,7 @@ export default function MapPage() {
             className="text-sm text-[var(--color-text-muted)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-4 py-3"
             style={{ fontFamily: 'var(--font-body)' }}
           >
-            Select a pod in the Pods tab to see conquest data.
+            Select a pod above to see conquest data on the planar map.
           </motion.p>
         )}
 
@@ -302,7 +334,7 @@ export default function MapPage() {
               <p className="text-sm">Try a different filter.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
               {filteredPlanes.map((plane) => {
                 const conquest = conquestMap.get(plane.id)
                 const colorIndex = conquest ? (colorIndexMap.get(conquest.user_id) ?? null) : null
@@ -312,7 +344,7 @@ export default function MapPage() {
                     key={plane.id}
                     id={plane.id}
                     name={plane.name}
-                    smallUrl={plane.image_uris.small}
+                    normalUrl={plane.image_uris.normal}
                     borderCropUrl={plane.image_uris.border_crop}
                     conquest={conquest}
                     colorIndex={colorIndex}
@@ -326,8 +358,8 @@ export default function MapPage() {
         </motion.div>
       </div>
 
-      {/* Zoom modal */}
-      <CardZoomModal src={zoomSrc} alt={zoomAlt} onClose={() => setZoomSrc(null)} rotate={false} />
+      {/* Zoom modal — rotate=true for landscape plane display */}
+      <CardZoomModal src={zoomSrc} alt={zoomAlt} onClose={() => setZoomSrc(null)} rotate={true} />
     </main>
   )
 }

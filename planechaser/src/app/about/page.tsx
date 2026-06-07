@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Heart, Sparkles, Users, Swords, Crown, Layers, Map } from 'lucide-react'
+import { ArrowLeft, Heart, Sparkles, Users, Swords, Crown, Layers, Map, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Footer } from '@/components/footer'
 
@@ -20,11 +20,12 @@ const LIVE_FEATURES = [
   { icon: Swords, label: 'Archenemy Mode' },
   { icon: Users, label: 'Pods & Friends' },
   { icon: Layers, label: 'Custom Decks' },
+  { icon: Wand2, label: 'Custom Plane Builder' },
+  { icon: Map, label: 'Planar Map' },
 ]
 
 const PLANNED_FEATURES = [
-  { icon: Sparkles, label: 'Custom Plane Builder' },
-  { icon: Map, label: 'Eternities Map' },
+  { icon: Sparkles, label: 'Eternities Map' },
 ]
 
 const TECH_BADGES = [

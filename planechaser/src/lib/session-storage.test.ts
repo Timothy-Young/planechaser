@@ -24,6 +24,7 @@ const mockState: GameState = {
   showChaosOverlay: false,
   revealState: null,
   phenomenonActive: false,
+  eliminatedPlayerIds: [],
 }
 
 describe('session storage', () => {

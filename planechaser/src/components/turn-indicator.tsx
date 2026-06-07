@@ -6,9 +6,10 @@ interface TurnIndicatorProps {
   playerName: string
   onNextTurn?: () => void
   showNextTurn?: boolean
+  eliminatedCount?: number
 }
 
-export function TurnIndicator({ playerName, onNextTurn, showNextTurn = true }: TurnIndicatorProps) {
+export function TurnIndicator({ playerName, onNextTurn, showNextTurn = true, eliminatedCount = 0 }: TurnIndicatorProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -23,6 +24,11 @@ export function TurnIndicator({ playerName, onNextTurn, showNextTurn = true }: T
         >
           {playerName}&apos;s Turn
         </p>
+        {eliminatedCount > 0 && (
+          <span className="text-[10px] text-red-400 font-semibold px-1.5 py-0.5 rounded-full bg-red-500/10 border border-red-500/20" style={{ fontFamily: 'var(--font-heading)' }}>
+            {eliminatedCount} out
+          </span>
+        )}
       </div>
 
       {showNextTurn && onNextTurn && (

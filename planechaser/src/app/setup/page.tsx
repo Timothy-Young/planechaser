@@ -66,6 +66,7 @@ function SetupPageInner() {
   const [designatedArchenemyId, setDesignatedArchenemyId] = useState<string | null>(null)
   const [showArchenemyPicker, setShowArchenemyPicker] = useState(false)
   const [selectedSchemeDeckId, setSelectedSchemeDeckId] = useState<string | null>(null)
+  const [playerOrder, setPlayerOrder] = useState<string[] | null>(null)
   const { data: schemeDecks } = useUserSchemeDecks()
   const SNAP_POINTS = [10, 20, 30, 40]
 
@@ -129,7 +130,7 @@ function SetupPageInner() {
 
     const deck = shuffleDeck(playableCards)
 
-    const players = podStartMode && podMembers && podMembers.length > 0
+    const basePlayers = podStartMode && podMembers && podMembers.length > 0
       ? podMembers
           .filter((m) => selectedPodPlayerIds.has(m.user_id))
           .map((m) => ({
@@ -140,6 +141,13 @@ function SetupPageInner() {
           id: sp.user_id,
           display_name: sp.profile?.display_name ?? 'Player',
         })) ?? [{ id: user?.id ?? 'host', display_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player' }]
+
+    // Apply custom player order if set
+    const players = playerOrder
+      ? playerOrder
+          .filter((id) => basePlayers.some((p) => p.id === id))
+          .map((id) => basePlayers.find((p) => p.id === id)!)
+      : basePlayers
 
     let archenemyState: ArchenemyState | undefined
     if (archenemyMode && designatedArchenemyId && schemes && schemes.length > 0) {
@@ -195,6 +203,7 @@ function SetupPageInner() {
       showChaosOverlay: false,
       revealState: null,
       phenomenonActive: false,
+      eliminatedPlayerIds: [],
     }
 
     saveGameState(state)
@@ -496,6 +505,69 @@ function SetupPageInner() {
                 <p className="text-[11px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
                   {selectedPodPlayerIds.size} player{selectedPodPlayerIds.size !== 1 ? 's' : ''} selected
                 </p>
+
+                {/* Play order */}
+                {selectedPodPlayerIds.size >= 2 && (
+                  <div className="space-y-2 pt-2 border-t border-[var(--color-border)]">
+                    <div className="flex items-center justify-between">
+                      <label
+                        className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium"
+                        style={{ fontFamily: 'var(--font-heading)' }}
+                      >
+                        Play Order
+                      </label>
+                      <button
+                        onClick={() => {
+                          const ids = podMembers
+                            ?.filter((m) => selectedPodPlayerIds.has(m.user_id))
+                            .map((m) => m.user_id) ?? []
+                          setPlayerOrder(shuffleDeck(ids))
+                        }}
+                        className="text-[12px] text-[var(--color-accent)] hover:underline font-medium flex items-center gap-1"
+                        style={{ fontFamily: 'var(--font-body)' }}
+                      >
+                        🎲 Randomize
+                      </button>
+                    </div>
+                    {playerOrder ? (
+                      <div className="space-y-1">
+                        {playerOrder
+                          .filter((id) => selectedPodPlayerIds.has(id))
+                          .map((id, i) => {
+                            const member = podMembers?.find((m) => m.user_id === id)
+                            return (
+                              <div
+                                key={id}
+                                className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[var(--color-accent)]/5 border border-[var(--color-accent)]/20"
+                              >
+                                <span
+                                  className="w-6 h-6 rounded-full bg-[var(--color-accent-deep)] text-white text-[12px] font-bold flex items-center justify-center"
+                                  style={{ fontFamily: 'var(--font-heading)' }}
+                                >
+                                  {i + 1}
+                                </span>
+                                <span
+                                  className="text-[13px] text-[var(--color-text)]"
+                                  style={{ fontFamily: 'var(--font-body)' }}
+                                >
+                                  {member?.profile?.display_name ?? 'Player'}
+                                </span>
+                                {i === 0 && (
+                                  <span className="text-[10px] text-[var(--color-accent)] font-semibold ml-auto" style={{ fontFamily: 'var(--font-heading)' }}>
+                                    Goes first
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-[var(--color-text-muted)] italic" style={{ fontFamily: 'var(--font-body)' }}>
+                        Tap &quot;Randomize&quot; to determine play order
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-3">

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Undo2, Shuffle, RotateCcw, Compass, Sparkles, ChevronUp, ChevronDown, BookOpen } from 'lucide-react'
+import { Undo2, Shuffle, RotateCcw, Compass, Sparkles, ChevronUp, ChevronDown, BookOpen, Users } from 'lucide-react'
 
 interface GameControlsToolbarProps {
   onUndo: () => void
@@ -10,7 +10,9 @@ interface GameControlsToolbarProps {
   onResetRolls: () => void
   onPlaneswalk: () => void
   onChaos: () => void
+  onShowPlayers?: () => void
   canUndo: boolean
+  eliminatedCount?: number
   disabled?: boolean
 }
 
@@ -20,17 +22,20 @@ export function GameControlsToolbar({
   onResetRolls,
   onPlaneswalk,
   onChaos,
+  onShowPlayers,
   canUndo,
+  eliminatedCount = 0,
   disabled = false,
 }: GameControlsToolbarProps) {
   const [expanded, setExpanded] = useState(false)
 
   const controls = [
-    { icon: Undo2, label: 'Undo', action: onUndo, enabled: canUndo, color: 'var(--color-text-muted)' },
-    { icon: Shuffle, label: 'Shuffle', action: onShuffle, enabled: true, color: 'var(--color-text-muted)' },
-    { icon: RotateCcw, label: 'Reset Rolls', action: onResetRolls, enabled: true, color: 'var(--color-text-muted)' },
-    { icon: Compass, label: 'Planeswalk', action: onPlaneswalk, enabled: true, color: 'var(--color-accent)' },
-    { icon: Sparkles, label: 'Chaos', action: onChaos, enabled: true, color: '#ef4444' },
+    { icon: Undo2, label: 'Undo', action: onUndo, enabled: canUndo, color: 'var(--color-text-muted)', badge: null },
+    { icon: Shuffle, label: 'Shuffle', action: onShuffle, enabled: true, color: 'var(--color-text-muted)', badge: null },
+    { icon: RotateCcw, label: 'Reset Rolls', action: onResetRolls, enabled: true, color: 'var(--color-text-muted)', badge: null },
+    { icon: Compass, label: 'Planeswalk', action: onPlaneswalk, enabled: true, color: 'var(--color-accent)', badge: null },
+    { icon: Sparkles, label: 'Chaos', action: onChaos, enabled: true, color: '#ef4444', badge: null },
+    ...(onShowPlayers ? [{ icon: Users, label: 'Players', action: onShowPlayers, enabled: true, color: 'var(--color-text-muted)', badge: eliminatedCount > 0 ? eliminatedCount : null }] : []),
   ]
 
   return (
@@ -54,12 +59,12 @@ export function GameControlsToolbar({
             className="overflow-hidden w-full"
           >
             <div className="flex items-center justify-center gap-2 py-2 flex-wrap">
-              {controls.map(({ icon: Icon, label, action, enabled, color }) => (
+              {controls.map(({ icon: Icon, label, action, enabled, color, badge }) => (
                 <button
                   key={label}
                   onClick={action}
                   disabled={disabled || !enabled}
-                  className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl
+                  className="relative flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl
                              bg-white/5 border border-white/10
                              hover:bg-white/10 active:bg-white/15
                              disabled:opacity-30 disabled:pointer-events-none
@@ -72,6 +77,11 @@ export function GameControlsToolbar({
                   >
                     {label}
                   </span>
+                  {badge !== null && badge !== undefined && badge > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                      {badge}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

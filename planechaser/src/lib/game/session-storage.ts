@@ -19,6 +19,7 @@ export function loadGameState(): GameState | null {
     if (saved.showChaosOverlay === undefined) saved.showChaosOverlay = false
     if (saved.revealState === undefined) saved.revealState = null
     if (saved.phenomenonActive === undefined) saved.phenomenonActive = false
+    if (!saved.eliminatedPlayerIds) saved.eliminatedPlayerIds = []
     return saved
   } catch {
     return null

@@ -94,6 +94,7 @@ export interface GameState {
   showChaosOverlay: boolean
   revealState: RevealState | null
   phenomenonActive: boolean
+  eliminatedPlayerIds: string[]
 }
 
 export type GameAction =
@@ -116,6 +117,8 @@ export type GameAction =
   | { type: 'SPATIAL_MERGE'; planeIndices: [number, number] }
   | { type: 'LEAVE_DUAL_PLANE' }
   | { type: 'RESOLVE_SPATIAL_MERGE' }
+  | { type: 'ELIMINATE_PLAYER'; playerId: string }
+  | { type: 'RESTORE_PLAYER'; playerId: string }
 
 export interface TurnRecord {
   playerId: string

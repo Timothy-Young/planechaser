@@ -75,6 +75,7 @@ export default function LobbyPage() {
       showChaosOverlay: false,
       revealState: null,
       phenomenonActive: false,
+      eliminatedPlayerIds: [],
     }
 
     saveGameState(state)

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/client'
 import type {
   AdminUser, AdminFeedback, AdminCustomPlane, AppStats,
-  UserRole, AuditLogEntry, AuditAction,
+  UserRole, AuditLogEntry, AuditAction, UserStrike,
   SystemAnnouncement, AnnouncementType,
 } from './types'
 
@@ -27,7 +27,7 @@ function validateRequired(input: string, fieldName: string): string {
 async function logAuditAction(
   adminId: string,
   action: AuditAction,
-  targetType: 'user' | 'custom_plane' | 'feedback' | 'announcement',
+  targetType: 'user' | 'custom_plane' | 'feedback' | 'announcement' | 'strike',
   targetId: string,
   details: Record<string, unknown> = {},
 ): Promise<void> {
@@ -127,26 +127,90 @@ export async function updateUserRole(adminId: string, userId: string, role: User
   await logAuditAction(adminId, 'role_change', 'user', userId, { from: previousRole, to: role })
 }
 
-export async function addStrike(adminId: string, userId: string, currentStrikes: number): Promise<{ banned: boolean }> {
-  const sb = supabase()
-  const newCount = currentStrikes + 1
-  const shouldBan = newCount >= 3
+// ─── Strikes ────────────────────────────────────────────────────────────────
 
-  const updates: Record<string, unknown> = { strike_count: newCount }
+export async function getUserStrikes(userId: string): Promise<UserStrike[]> {
+  const sb = supabase()
+  const { data, error } = await sb
+    .from('user_strikes')
+    .select('*, admin_profile:profiles!user_strikes_admin_id_fkey(display_name), revoker_profile:profiles!user_strikes_revoked_by_fkey(display_name)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as unknown as UserStrike[]
+}
+
+export async function addStrike(adminId: string, userId: string, reason: string): Promise<{ banned: boolean }> {
+  const cleanReason = sanitizeText(reason, 500)
+  if (!cleanReason) throw new Error('Strike reason is required')
+
+  const sb = supabase()
+
+  // Insert the strike record
+  const { error: strikeError } = await sb
+    .from('user_strikes')
+    .insert({ user_id: userId, admin_id: adminId, reason: cleanReason })
+
+  if (strikeError) throw strikeError
+
+  // Count active (non-revoked) strikes
+  const { count, error: countError } = await sb
+    .from('user_strikes')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .is('revoked_at', null)
+
+  if (countError) throw countError
+  const activeCount = count ?? 0
+
+  // Update the strike_count on profiles for quick reference
+  const shouldBan = activeCount >= 3
+  const updates: Record<string, unknown> = { strike_count: activeCount }
   if (shouldBan) {
     updates.is_banned = true
     updates.banned_at = new Date().toISOString()
-    updates.ban_reason = 'Automatic ban: 3 strikes reached'
+    updates.ban_reason = 'Automatic ban: 3 active strikes'
   }
 
-  const { error } = await sb
+  const { error: profileError } = await sb
     .from('profiles')
     .update(updates)
     .eq('id', userId)
 
-  if (error) throw error
-  await logAuditAction(adminId, 'strike_added', 'user', userId, { strike_number: newCount, auto_banned: shouldBan })
+  if (profileError) throw profileError
+  await logAuditAction(adminId, 'strike_added', 'strike', userId, { reason: cleanReason, active_count: activeCount, auto_banned: shouldBan })
   return { banned: shouldBan }
+}
+
+export async function revokeStrike(adminId: string, strikeId: string, userId: string): Promise<void> {
+  const sb = supabase()
+
+  // Mark the strike as revoked
+  const { error: revokeError } = await sb
+    .from('user_strikes')
+    .update({ revoked_at: new Date().toISOString(), revoked_by: adminId })
+    .eq('id', strikeId)
+
+  if (revokeError) throw revokeError
+
+  // Recount active strikes and update profile
+  const { count, error: countError } = await sb
+    .from('user_strikes')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .is('revoked_at', null)
+
+  if (countError) throw countError
+  const activeCount = count ?? 0
+
+  const { error: profileError } = await sb
+    .from('profiles')
+    .update({ strike_count: activeCount })
+    .eq('id', userId)
+
+  if (profileError) throw profileError
+  await logAuditAction(adminId, 'strike_revoked', 'strike', strikeId, { user_id: userId, new_active_count: activeCount })
 }
 
 export async function banUser(adminId: string, userId: string, reason: string): Promise<void> {

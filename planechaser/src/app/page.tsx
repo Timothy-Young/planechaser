@@ -56,7 +56,7 @@ const HOW_IT_WORKS = [
   {
     step: 3,
     title: 'Conquer & Climb',
-    description: 'Win games to claim planes. Dominate enough and the whole pod unites against you — Archenemy mode begins.',
+    description: 'Win games to claim planes. Dominate enough and the whole pod unites against you. Archenemy mode begins.',
   },
 ]
 
@@ -105,7 +105,7 @@ export default function Home() {
 
           <p className="text-[16px] sm:text-[18px] text-[var(--color-text-secondary)] leading-relaxed max-w-[480px] mx-auto" style={{ fontFamily: 'var(--font-body)' }}>
             The multiplanar conquest companion for Magic: The Gathering.
-            Track planes, roll dice, conquer worlds — turn every Commander game into a campaign.
+            Track planes, roll dice, conquer worlds. Turn every Commander game into a campaign.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -238,7 +238,7 @@ export default function Home() {
             Every Game Matters
           </h2>
           <p className="text-[14px] text-[var(--color-text-muted)] mt-2 max-w-[400px] mx-auto" style={{ fontFamily: 'var(--font-body)' }}>
-            More than a die roller — a persistent conquest across your playgroup.
+            More than a die roller. A persistent conquest across your playgroup.
           </p>
         </motion.div>
 

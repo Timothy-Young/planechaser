@@ -396,6 +396,10 @@ export interface UserProfile {
   display_name: string
   avatar_url: string | null
   created_at: string
+  role?: string
+  strike_count?: number
+  is_banned?: boolean
+  friend_code?: string
 }
 
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {

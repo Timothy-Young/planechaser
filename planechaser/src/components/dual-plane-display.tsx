@@ -33,7 +33,7 @@ export function DualPlaneDisplay({ primaryPlane, secondaryPlane, direction }: Du
               className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-amber-500/40 bg-amber-900/60 text-amber-400 uppercase tracking-widest"
               style={{ fontFamily: 'var(--font-heading)' }}
             >
-              Spatial Merging — Two Planes Active
+              Spatial Merging: Two Planes Active
             </span>
           </div>
 

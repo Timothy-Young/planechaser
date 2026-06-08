@@ -5,10 +5,10 @@ import { BottomNav } from '@/components/bottom-nav'
 
 export const metadata: Metadata = {
   title: {
-    default: 'PlaneChaser — MTG Planechase Companion',
+    default: 'PlaneChaser | MTG Planechase Companion',
     template: '%s | PlaneChaser',
   },
-  description: 'The multiplanar conquest companion for Magic: The Gathering. Track planes, roll dice, conquer worlds — turn every Commander game into a campaign.',
+  description: 'The multiplanar conquest companion for Magic: The Gathering. Track planes, roll dice, conquer worlds. Turn every Commander game into a campaign.',
   keywords: ['MTG', 'Magic: The Gathering', 'Planechase', 'Archenemy', 'Commander', 'companion app', 'planar die', 'conquest'],
   authors: [{ name: 'WheresTim LLC' }],
   creator: 'WheresTim LLC',
@@ -16,12 +16,12 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     siteName: 'PlaneChaser',
-    title: 'PlaneChaser — MTG Planechase Companion',
+    title: 'PlaneChaser | MTG Planechase Companion',
     description: 'Track planes, roll dice, conquer worlds. The conquest companion for Magic: The Gathering Planechase and Archenemy formats.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'PlaneChaser — MTG Planechase Companion',
+    title: 'PlaneChaser | MTG Planechase Companion',
     description: 'Track planes, roll dice, conquer worlds. The conquest companion for Magic: The Gathering.',
   },
   robots: {

@@ -2,10 +2,10 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'FAQ',
-  description: 'Frequently asked questions about PlaneChaser — getting started, gameplay, conquest, pods, decks, and game controls.',
+  description: 'Frequently asked questions about PlaneChaser: getting started, gameplay, conquest, pods, decks, and game controls.',
   openGraph: {
     title: 'FAQ | PlaneChaser',
-    description: 'Everything you need to know about PlaneChaser — tips, tricks, and answers.',
+    description: 'Everything you need to know about PlaneChaser. Tips, tricks, and answers.',
   },
 }
 

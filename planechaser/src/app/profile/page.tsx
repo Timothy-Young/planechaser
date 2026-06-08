@@ -7,6 +7,8 @@ import { LogOut, Trophy, History, Swords, Dice5, MapPin, Crown, Pencil, Check, X
 import { useAppStore } from '@/store/app-store'
 import { useUserStats, useUserConquests, useUserPods, usePlaneVisitHistory, useUserProfile, useUpdateProfile } from '@/hooks/usePods'
 import { useUserAchievements } from '@/hooks/useAchievements'
+import { getRoleLabel, getRoleColor } from '@/lib/admin/guards'
+import type { UserRole } from '@/lib/admin/types'
 import { AchievementBadge } from '@/components/achievement-badge'
 import { ACHIEVEMENTS } from '@/lib/achievements/definitions'
 import { Button } from '@/components/ui/button'
@@ -163,6 +165,18 @@ export default function ProfilePage() {
                 <h1 className="text-[22px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-heading)' }}>
                   {displayName}
                 </h1>
+                {profile?.role && profile.role !== 'user' && (
+                  <span
+                    className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md"
+                    style={{
+                      color: getRoleColor(profile.role as UserRole),
+                      background: `color-mix(in srgb, ${getRoleColor(profile.role as UserRole)} 15%, transparent)`,
+                      fontFamily: 'var(--font-heading)',
+                    }}
+                  >
+                    {getRoleLabel(profile.role as UserRole)}
+                  </span>
+                )}
                 <button
                   onClick={() => {
                     setNameInput(displayName)

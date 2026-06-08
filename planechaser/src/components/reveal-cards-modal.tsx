@@ -49,7 +49,7 @@ export function RevealCardsModal({ cards, effectType, onDismiss, onReorder, onRe
             className="text-lg font-bold text-[var(--color-accent)]"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
-            {effectType === 'reveal_and_chaos' && 'Revealed Cards — Chaos Triggers!'}
+            {effectType === 'reveal_and_chaos' && 'Revealed Cards: Chaos Triggers!'}
             {effectType === 'scry_top' && 'Top of Planar Deck'}
             {effectType === 'reveal_and_choose' && 'Choose a Plane'}
           </h2>

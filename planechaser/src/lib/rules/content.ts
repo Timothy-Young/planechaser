@@ -20,7 +20,7 @@ export const RULES_SECTIONS: RulesSection[] = [
       { text: 'Each additional roll costs {1} more generic mana than the last (2nd roll = {1}, 3rd = {2}, etc.).' },
       { text: 'If you roll the Planeswalker symbol (⚔), the group planeswalks to the next plane in the deck.' },
       { text: 'If you roll Chaos (🌀), the current plane\'s chaos ability triggers.' },
-      { text: 'Blank faces mean nothing happens — but you still paid the mana!' },
+      { text: 'Blank faces mean nothing happens, but you still paid the mana!' },
     ],
   },
   {
@@ -28,9 +28,9 @@ export const RULES_SECTIONS: RulesSection[] = [
     icon: '🎲',
     intro: 'Six faces, two outcomes, and an escalating mana cost.',
     steps: [
-      { text: '1 face: Planeswalker symbol — triggers a planeswalk to the next plane.' },
-      { text: '1 face: Chaos symbol — triggers the current plane\'s chaos ability.' },
-      { text: '4 faces: Blank — nothing happens.' },
+      { text: '1 face: Planeswalker symbol. Triggers a planeswalk to the next plane.' },
+      { text: '1 face: Chaos symbol. Triggers the current plane\'s chaos ability.' },
+      { text: '4 faces: Blank. Nothing happens.' },
       { text: 'You can roll as many times per turn as you can afford. The first roll is free, then costs escalate.' },
       { text: 'PlaneChaser tracks roll costs automatically and shows you what each roll will cost.' },
     ],
@@ -43,7 +43,7 @@ export const RULES_SECTIONS: RulesSection[] = [
       { text: 'When you planeswalk into a Phenomenon, its ability triggers immediately.' },
       { text: 'After the ability resolves, you planeswalk again to the next card.' },
       { text: 'If you hit multiple Phenomena in a row, each one resolves before moving on.' },
-      { text: 'PlaneChaser handles Phenomenon chaining automatically — just follow the prompts.' },
+      { text: 'PlaneChaser handles Phenomenon chaining automatically. Just follow the prompts.' },
     ],
   },
   {
@@ -65,7 +65,7 @@ export const RULES_SECTIONS: RulesSection[] = [
     steps: [
       { text: 'Each pod has a conquest threshold (configurable in pod settings). When a player crosses it, they become the Archenemy.' },
       { text: 'In Archenemy mode, the Archenemy plays against all other players working as a team.' },
-      { text: 'The Archenemy gets a Scheme deck — powerful one-shot abilities drawn each turn.' },
+      { text: 'The Archenemy gets a Scheme deck: powerful one-shot abilities drawn each turn.' },
       { text: 'If the team defeats the Archenemy, each team member can steal one of the Archenemy\'s conquered planes.' },
       { text: 'If the Archenemy wins, they remain dominant. The meta-game continues.' },
     ],
@@ -88,10 +88,10 @@ export const RULES_SECTIONS: RulesSection[] = [
     intro: 'Group up with friends to share conquests and track leaderboards.',
     steps: [
       { text: 'Create a pod and invite friends using a shareable invite code.' },
-      { text: 'Pod members share a conquest pool — conquests and leaderboards are tracked per-pod.' },
+      { text: 'Pod members share a conquest pool. Conquests and leaderboards are tracked per-pod.' },
       { text: 'Start games directly from a pod with pre-selected members.' },
       { text: 'Pod owners can configure the Archenemy threshold, manage members, and regenerate invite codes.' },
-      { text: 'You can belong to multiple pods — each one tracks its own conquest separately.' },
+      { text: 'You can belong to multiple pods. Each one tracks its own conquest separately.' },
     ],
   },
   {
@@ -103,7 +103,7 @@ export const RULES_SECTIONS: RulesSection[] = [
       { text: 'Scheme Decks: Build decks for Archenemy mode with powerful scheme cards.' },
       { text: 'Decks are saved to your account and can be selected at game setup.' },
       { text: 'The "Random" option at setup shuffles all available planes without needing a saved deck.' },
-      { text: 'Preset decks are available as starting points — one-click to start with a curated set.' },
+      { text: 'Preset decks are available as starting points. One click to start with a curated set.' },
       { text: 'Some chaos effects reveal or rearrange the top cards of the planar deck. When this happens, you can choose to put them on top or on the bottom.' },
     ],
   },

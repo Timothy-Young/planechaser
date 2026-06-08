@@ -1403,13 +1403,13 @@ export default function AdminPage() {
           </h1>
         </div>
 
-        {/* Tab bar */}
-        <div className="flex border-t border-[var(--color-border)]">
+        {/* Tab bar — scrollable on mobile */}
+        <div className="flex overflow-x-auto border-t border-[var(--color-border)] scrollbar-hide">
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`relative flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold transition-all ${
+              className={`relative flex items-center justify-center gap-1.5 py-2.5 px-3 min-w-[64px] text-[11px] font-semibold whitespace-nowrap transition-all shrink-0 ${
                 tab === t.key
                   ? 'text-[var(--color-accent)] border-b-2 border-[var(--color-accent)] bg-[var(--color-accent)]/5'
                   : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
@@ -1420,7 +1420,7 @@ export default function AdminPage() {
               {t.label}
               {t.badge !== undefined && (
                 <span
-                  className="absolute top-1.5 right-[calc(50%-24px)] w-4 h-4 flex items-center justify-center rounded-full text-[8px] font-bold text-white bg-[var(--color-cta)]"
+                  className="ml-1 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[8px] font-bold text-white bg-[var(--color-cta)]"
                   style={{ fontFamily: 'var(--font-heading)' }}
                 >
                   {t.badge > 9 ? '9+' : t.badge}

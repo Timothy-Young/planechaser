@@ -859,9 +859,10 @@ function FeedbackCard({ fb }: { fb: AdminFeedback }) {
         <div className="space-y-2">
           <textarea
             value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
+            onChange={(e) => setReplyText(e.target.value.slice(0, 2000))}
             placeholder="Write an admin reply..."
             rows={3}
+            maxLength={2000}
             className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] text-[12px] text-[var(--color-text)] placeholder-[var(--color-text-muted)] px-3 py-2 resize-none focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
             style={{ fontFamily: 'var(--font-body)' }}
           />
@@ -1275,12 +1276,16 @@ function AnnouncementsTab() {
         >
           <textarea
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={(e) => setNewMessage(e.target.value.slice(0, 500))}
             placeholder="Write your announcement message..."
             rows={3}
+            maxLength={500}
             className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] text-[12px] text-[var(--color-text)] placeholder-[var(--color-text-muted)] px-3 py-2 resize-none focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
             style={{ fontFamily: 'var(--font-body)' }}
           />
+          <p className="text-[10px] text-[var(--color-text-muted)] text-right" style={{ fontFamily: 'var(--font-body)' }}>
+            {newMessage.length}/500
+          </p>
           <div className="flex items-center gap-3 flex-wrap">
             {/* Type select */}
             <div className="relative">

@@ -16,6 +16,7 @@ import {
   ChevronDown,
   AlertTriangle,
   Ban,
+  ClipboardList,
 } from 'lucide-react'
 import { useAppStore } from '@/store/app-store'
 import {
@@ -30,12 +31,13 @@ import {
   useUpdateFeedbackStatus,
   useAdminCustomPlanes,
   useAdminDeleteCustomPlane,
+  useAuditLog,
 } from '@/hooks/useAdmin'
 import { getRoleLabel, getRoleColor, isOwner, isAdmin } from '@/lib/admin/guards'
-import type { UserRole, AdminUser, AdminFeedback, AdminCustomPlane } from '@/lib/admin/types'
+import type { UserRole, AdminUser, AdminFeedback, AdminCustomPlane, AuditLogEntry } from '@/lib/admin/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type AdminTab = 'stats' | 'users' | 'planes' | 'feedback'
+type AdminTab = 'stats' | 'users' | 'planes' | 'feedback' | 'audit'
 
 const FEEDBACK_CATEGORY_EMOJI: Record<string, string> = {
   bug: '🐛',
@@ -46,6 +48,32 @@ const FEEDBACK_CATEGORY_EMOJI: Record<string, string> = {
 
 const FEEDBACK_STATUSES = ['all', 'new', 'read', 'replied', 'resolved'] as const
 type FeedbackStatusFilter = (typeof FEEDBACK_STATUSES)[number]
+
+const USER_ROLE_FILTERS = ['all', 'owner', 'admin', 'mod', 'user'] as const
+type UserRoleFilter = (typeof USER_ROLE_FILTERS)[number]
+
+const USER_STATUS_FILTERS = ['all', 'active', 'banned'] as const
+type UserStatusFilter = (typeof USER_STATUS_FILTERS)[number]
+
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  role_change: 'Changed Role',
+  strike_added: 'Added Strike',
+  user_banned: 'Banned User',
+  user_unbanned: 'Unbanned User',
+  plane_deleted: 'Deleted Plane',
+  feedback_replied: 'Replied to Feedback',
+  feedback_status_changed: 'Changed Status',
+}
+
+const AUDIT_ACTION_COLORS: Record<string, string> = {
+  role_change: 'var(--color-accent)',
+  strike_added: 'var(--color-cta)',
+  user_banned: 'var(--color-cta)',
+  user_unbanned: 'var(--color-accent)',
+  plane_deleted: 'var(--color-cta)',
+  feedback_replied: 'var(--color-accent)',
+  feedback_status_changed: 'var(--color-text-muted)',
+}
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({ value, label, color }: { value: number; label: string; color: string }) {
@@ -142,20 +170,20 @@ function UserCard({
 
   function handleRoleChange(role: UserRole) {
     if (!canModify) return
-    updateRole.mutate({ userId: u.id, role })
+    updateRole.mutate({ adminId: currentUserId, userId: u.id, role, previousRole: u.role })
   }
 
   function handleStrike() {
     if (!canModify) return
     if (!window.confirm(`Add a strike to ${u.display_name}? They have ${u.strike_count}/3 strikes.`)) return
-    addStrike.mutate({ userId: u.id, currentStrikes: u.strike_count })
+    addStrike.mutate({ adminId: currentUserId, userId: u.id, currentStrikes: u.strike_count })
   }
 
   function handleBan() {
     if (!canModify) return
     if (!banReason.trim()) return
     if (!window.confirm(`Ban ${u.display_name}? Reason: "${banReason}"`)) return
-    banUser.mutate({ userId: u.id, reason: banReason.trim() })
+    banUser.mutate({ adminId: currentUserId, userId: u.id, reason: banReason.trim() })
     setBanReason('')
     setShowBanInput(false)
   }
@@ -163,7 +191,7 @@ function UserCard({
   function handleUnban() {
     if (!canModify) return
     if (!window.confirm(`Unban ${u.display_name}?`)) return
-    unbanUser.mutate(u.id)
+    unbanUser.mutate({ adminId: currentUserId, userId: u.id })
   }
 
   return (
@@ -207,7 +235,7 @@ function UserCard({
             className="text-[11px] text-[var(--color-text-muted)] mt-0.5"
             style={{ fontFamily: 'var(--font-body)' }}
           >
-            #{u.friend_code}
+            #{u.friend_code} · Joined {new Date(u.created_at).toLocaleDateString()}
           </p>
         </div>
 
@@ -246,10 +274,10 @@ function UserCard({
 
       {/* Stats row */}
       <div className="flex items-center gap-3 text-[10px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-        <span>{u.games_hosted} games</span>
-        <span>{u.conquests} conquests</span>
-        <span>{u.custom_planes_count} planes</span>
-        <span>{u.feedback_count} feedback</span>
+        <span>{u.games_hosted ?? 0} games</span>
+        <span>{u.conquests ?? 0} conquests</span>
+        <span>{u.custom_planes_count ?? 0} planes</span>
+        <span>{u.feedback_count ?? 0} feedback</span>
       </div>
 
       {/* Actions */}
@@ -340,22 +368,43 @@ function UserCard({
 function UsersTab() {
   const { data: users, isLoading } = useAdminUsers()
   const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState<UserRoleFilter>('all')
+  const [statusFilter, setStatusFilter] = useState<UserStatusFilter>('all')
   const currentUserId = useAppStore((s) => s.user)?.id ?? ''
   const currentUserRole = useAppStore((s) => s.userRole) as UserRole
 
   const filtered = useMemo(() => {
     if (!users) return []
+    let result = users
+
+    // Role filter
+    if (roleFilter !== 'all') {
+      result = result.filter((u) => u.role === roleFilter)
+    }
+
+    // Status filter
+    if (statusFilter === 'banned') {
+      result = result.filter((u) => u.is_banned)
+    } else if (statusFilter === 'active') {
+      result = result.filter((u) => !u.is_banned)
+    }
+
+    // Search
     const q = search.toLowerCase()
-    if (!q) return users
-    return users.filter(
-      (u) =>
-        u.display_name.toLowerCase().includes(q) ||
-        u.friend_code.toLowerCase().includes(q)
-    )
-  }, [users, search])
+    if (q) {
+      result = result.filter(
+        (u) =>
+          u.display_name.toLowerCase().includes(q) ||
+          u.friend_code.toLowerCase().includes(q)
+      )
+    }
+
+    return result
+  }, [users, search, roleFilter, statusFilter])
 
   return (
     <div className="space-y-4">
+      {/* Search */}
       <div className="relative">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
         <input
@@ -366,6 +415,51 @@ function UsersTab() {
           className="w-full h-10 pl-9 pr-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 text-[13px] text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
           style={{ fontFamily: 'var(--font-body)' }}
         />
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Role filter */}
+        <div className="relative">
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value as UserRoleFilter)}
+            className="h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/60 text-[11px] text-[var(--color-text)] pl-2 pr-6 appearance-none focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
+            style={{ fontFamily: 'var(--font-heading)' }}
+          >
+            <option value="all">All Roles</option>
+            <option value="owner">Owner</option>
+            <option value="admin">Admin</option>
+            <option value="mod">Moderator</option>
+            <option value="user">User</option>
+          </select>
+          <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+        </div>
+
+        {/* Status filter */}
+        <div className="relative">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as UserStatusFilter)}
+            className="h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/60 text-[11px] text-[var(--color-text)] pl-2 pr-6 appearance-none focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
+            style={{ fontFamily: 'var(--font-heading)' }}
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="banned">Banned</option>
+          </select>
+          <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+        </div>
+
+        {/* Count */}
+        {users && (
+          <span
+            className="ml-auto text-[11px] text-[var(--color-text-muted)]"
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
+            {filtered.length} / {users.length} users
+          </span>
+        )}
       </div>
 
       {isLoading ? (
@@ -399,7 +493,7 @@ function UsersTab() {
 }
 
 // ─── Plane Card ───────────────────────────────────────────────────────────────
-function PlaneCard({ plane, users }: { plane: AdminCustomPlane; users: AdminUser[] }) {
+function PlaneCard({ plane, users, currentUserId }: { plane: AdminCustomPlane; users: AdminUser[]; currentUserId: string }) {
   const deletePlane = useAdminDeleteCustomPlane()
   const addStrike = useAddStrike()
 
@@ -407,14 +501,14 @@ function PlaneCard({ plane, users }: { plane: AdminCustomPlane; users: AdminUser
 
   function handleDelete() {
     if (!window.confirm(`Delete custom plane "${plane.name}"? This cannot be undone.`)) return
-    deletePlane.mutate(plane.id)
+    deletePlane.mutate({ adminId: currentUserId, planeId: plane.id, planeName: plane.name })
   }
 
   function handleStrikeCreator() {
     const u = users.find((usr) => usr.id === plane.user_id)
     if (!u) return
     if (!window.confirm(`Add a strike to ${creator} for this plane?`)) return
-    addStrike.mutate({ userId: plane.user_id, currentStrikes: u.strike_count })
+    addStrike.mutate({ adminId: currentUserId, userId: plane.user_id, currentStrikes: u.strike_count })
   }
 
   return (
@@ -491,6 +585,7 @@ function PlanesTab() {
   const { data: planes, isLoading } = useAdminCustomPlanes()
   const { data: users } = useAdminUsers()
   const [search, setSearch] = useState('')
+  const currentUserId = useAppStore((s) => s.user)?.id ?? ''
 
   const filtered = useMemo(() => {
     if (!planes) return []
@@ -536,7 +631,7 @@ function PlanesTab() {
       ) : (
         <div className="space-y-3">
           {filtered.map((plane) => (
-            <PlaneCard key={plane.id} plane={plane} users={users ?? []} />
+            <PlaneCard key={plane.id} plane={plane} users={users ?? []} currentUserId={currentUserId} />
           ))}
           {filtered.length === 0 && (
             <p
@@ -634,6 +729,7 @@ function FeedbackCard({ fb }: { fb: AdminFeedback }) {
             value={fb.status}
             onChange={(e) =>
               updateStatus.mutate({
+                adminId: currentUser?.id ?? '',
                 feedbackId: fb.id,
                 status: e.target.value as AdminFeedback['status'],
               })
@@ -817,6 +913,117 @@ function FeedbackTab() {
   )
 }
 
+// ─── Audit Log Entry ─────────────────────────────────────────────────────────
+function AuditEntry({ entry }: { entry: AuditLogEntry }) {
+  const adminName = (entry.profiles as unknown as { display_name: string } | null)?.display_name ?? 'Unknown'
+  const actionLabel = AUDIT_ACTION_LABELS[entry.action] ?? entry.action
+  const actionColor = AUDIT_ACTION_COLORS[entry.action] ?? 'var(--color-text-muted)'
+  const date = new Date(entry.created_at)
+  const timeStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  // Build a human-readable details string
+  const details = entry.details as Record<string, unknown>
+  let detailStr = ''
+  if (entry.action === 'role_change' && details.from && details.to) {
+    detailStr = `${details.from} → ${details.to}`
+  } else if (entry.action === 'strike_added' && details.strike_number) {
+    detailStr = `Strike #${details.strike_number}${details.auto_banned ? ' (auto-banned)' : ''}`
+  } else if (entry.action === 'user_banned' && details.reason) {
+    detailStr = `"${details.reason}"`
+  } else if (entry.action === 'plane_deleted' && details.plane_name) {
+    detailStr = `"${details.plane_name}"`
+  } else if (entry.action === 'feedback_status_changed' && details.new_status) {
+    detailStr = `→ ${details.new_status}`
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -4 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="flex items-start gap-3 py-3 border-b border-[var(--color-border)]/50 last:border-0"
+    >
+      <div
+        className="w-2 h-2 rounded-full mt-1.5 shrink-0"
+        style={{ background: actionColor }}
+      />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className="text-[12px] font-bold text-[var(--color-text)]"
+            style={{ fontFamily: 'var(--font-heading)' }}
+          >
+            {adminName}
+          </span>
+          <span
+            className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md"
+            style={{
+              color: actionColor,
+              background: `color-mix(in srgb, ${actionColor} 12%, transparent)`,
+              fontFamily: 'var(--font-heading)',
+            }}
+          >
+            {actionLabel}
+          </span>
+        </div>
+        {detailStr && (
+          <p
+            className="text-[11px] text-[var(--color-text-secondary)] mt-0.5 truncate"
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
+            {detailStr}
+          </p>
+        )}
+        <p
+          className="text-[10px] text-[var(--color-text-muted)] mt-0.5"
+          style={{ fontFamily: 'var(--font-body)' }}
+        >
+          {timeStr}
+        </p>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Audit Tab ────────────────────────────────────────────────────────────────
+function AuditTab() {
+  const { data: entries, isLoading } = useAuditLog(100)
+
+  return (
+    <div className="space-y-2">
+      <p
+        className="text-[11px] text-[var(--color-text-muted)]"
+        style={{ fontFamily: 'var(--font-body)' }}
+      >
+        Recent admin actions across the platform.
+      </p>
+
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-[60px] rounded-xl bg-[var(--color-surface)]/40 animate-pulse" />
+          ))}
+        </div>
+      ) : entries && entries.length > 0 ? (
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 px-4 py-1">
+          {entries.map((entry) => (
+            <AuditEntry key={entry.id} entry={entry} />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-8 text-center">
+          <ClipboardList size={24} className="mx-auto text-[var(--color-text-muted)] mb-2" />
+          <p
+            className="text-[12px] text-[var(--color-text-muted)]"
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
+            No admin actions recorded yet.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('stats')
@@ -832,6 +1039,7 @@ export default function AdminPage() {
       icon: <MessageSquare size={14} />,
       badge: stats?.new_feedback && stats.new_feedback > 0 ? stats.new_feedback : undefined,
     },
+    { key: 'audit', label: 'Log', icon: <ClipboardList size={14} /> },
   ]
 
   return (
@@ -890,6 +1098,7 @@ export default function AdminPage() {
         {tab === 'users' && <UsersTab />}
         {tab === 'planes' && <PlanesTab />}
         {tab === 'feedback' && <FeedbackTab />}
+        {tab === 'audit' && <AuditTab />}
       </div>
     </main>
   )

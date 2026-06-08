@@ -13,6 +13,7 @@ import {
   updateFeedbackStatus,
   getAdminCustomPlanes,
   adminDeleteCustomPlane,
+  getAuditLog,
 } from '@/lib/admin/queries'
 import type { UserRole } from '@/lib/admin/types'
 
@@ -37,17 +38,19 @@ export function useAdminUsers() {
 export function useUpdateUserRole() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { userId: string; role: UserRole }) =>
-      updateUserRole(params.userId, params.role),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
+    mutationFn: (params: { adminId: string; userId: string; role: UserRole; previousRole: string }) =>
+      updateUserRole(params.adminId, params.userId, params.role, params.previousRole),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin'] })
+    },
   })
 }
 
 export function useAddStrike() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { userId: string; currentStrikes: number }) =>
-      addStrike(params.userId, params.currentStrikes),
+    mutationFn: (params: { adminId: string; userId: string; currentStrikes: number }) =>
+      addStrike(params.adminId, params.userId, params.currentStrikes),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
   })
 }
@@ -55,8 +58,8 @@ export function useAddStrike() {
 export function useBanUser() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { userId: string; reason: string }) =>
-      banUser(params.userId, params.reason),
+    mutationFn: (params: { adminId: string; userId: string; reason: string }) =>
+      banUser(params.adminId, params.userId, params.reason),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
   })
 }
@@ -64,7 +67,8 @@ export function useBanUser() {
 export function useUnbanUser() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (userId: string) => unbanUser(userId),
+    mutationFn: (params: { adminId: string; userId: string }) =>
+      unbanUser(params.adminId, params.userId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
   })
 }
@@ -89,8 +93,8 @@ export function useReplyToFeedback() {
 export function useUpdateFeedbackStatus() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { feedbackId: string; status: 'new' | 'read' | 'replied' | 'resolved' }) =>
-      updateFeedbackStatus(params.feedbackId, params.status),
+    mutationFn: (params: { adminId: string; feedbackId: string; status: 'new' | 'read' | 'replied' | 'resolved' }) =>
+      updateFeedbackStatus(params.adminId, params.feedbackId, params.status),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'feedback'] }),
   })
 }
@@ -106,10 +110,19 @@ export function useAdminCustomPlanes() {
 export function useAdminDeleteCustomPlane() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (planeId: string) => adminDeleteCustomPlane(planeId),
+    mutationFn: (params: { adminId: string; planeId: string; planeName: string }) =>
+      adminDeleteCustomPlane(params.adminId, params.planeId, params.planeName),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'custom-planes'] })
       qc.invalidateQueries({ queryKey: ['full-plane-corpus'] })
     },
+  })
+}
+
+export function useAuditLog(limit = 50) {
+  return useQuery({
+    queryKey: ['admin', 'audit-log', limit],
+    queryFn: () => getAuditLog(limit),
+    staleTime: ADMIN_STALE,
   })
 }

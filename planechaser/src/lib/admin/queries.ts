@@ -1,11 +1,44 @@
 import { createClient } from '@/lib/supabase/client'
-import type { AdminUser, AdminFeedback, AdminCustomPlane, AppStats, UserRole } from './types'
+import type { AdminUser, AdminFeedback, AdminCustomPlane, AppStats, UserRole, AuditLogEntry, AuditAction } from './types'
 
 function supabase() {
   return createClient()
 }
 
-// Stats
+// ─── Audit Log ───────────────────────────────────────────────────────────────
+
+async function logAuditAction(
+  adminId: string,
+  action: AuditAction,
+  targetType: 'user' | 'custom_plane' | 'feedback',
+  targetId: string,
+  details: Record<string, unknown> = {},
+): Promise<void> {
+  const sb = supabase()
+  await sb.from('admin_audit_log').insert({
+    admin_id: adminId,
+    action,
+    target_type: targetType,
+    target_id: targetId,
+    details,
+  })
+  // Fire-and-forget — don't block mutations on audit failures
+}
+
+export async function getAuditLog(limit = 50): Promise<AuditLogEntry[]> {
+  const sb = supabase()
+  const { data, error } = await sb
+    .from('admin_audit_log')
+    .select('*, profiles(display_name)')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+  return (data ?? []) as unknown as AuditLogEntry[]
+}
+
+// ─── Stats ───────────────────────────────────────────────────────────────────
+
 export async function getAppStats(): Promise<AppStats> {
   const sb = supabase()
   const now = new Date()
@@ -37,11 +70,13 @@ export async function getAppStats(): Promise<AppStats> {
   }
 }
 
-// Users
+// ─── Users ───────────────────────────────────────────────────────────────────
+// Uses admin_user_stats view for computed counts
+
 export async function getAdminUsers(): Promise<AdminUser[]> {
   const sb = supabase()
   const { data, error } = await sb
-    .from('profiles')
+    .from('admin_user_stats')
     .select('*')
     .order('created_at', { ascending: true })
 
@@ -49,7 +84,7 @@ export async function getAdminUsers(): Promise<AdminUser[]> {
   return (data ?? []) as AdminUser[]
 }
 
-export async function updateUserRole(userId: string, role: UserRole): Promise<void> {
+export async function updateUserRole(adminId: string, userId: string, role: UserRole, previousRole: string): Promise<void> {
   const sb = supabase()
   const { error } = await sb
     .from('profiles')
@@ -57,9 +92,10 @@ export async function updateUserRole(userId: string, role: UserRole): Promise<vo
     .eq('id', userId)
 
   if (error) throw error
+  await logAuditAction(adminId, 'role_change', 'user', userId, { from: previousRole, to: role })
 }
 
-export async function addStrike(userId: string, currentStrikes: number): Promise<{ banned: boolean }> {
+export async function addStrike(adminId: string, userId: string, currentStrikes: number): Promise<{ banned: boolean }> {
   const sb = supabase()
   const newCount = currentStrikes + 1
   const shouldBan = newCount >= 3
@@ -77,10 +113,11 @@ export async function addStrike(userId: string, currentStrikes: number): Promise
     .eq('id', userId)
 
   if (error) throw error
+  await logAuditAction(adminId, 'strike_added', 'user', userId, { strike_number: newCount, auto_banned: shouldBan })
   return { banned: shouldBan }
 }
 
-export async function banUser(userId: string, reason: string): Promise<void> {
+export async function banUser(adminId: string, userId: string, reason: string): Promise<void> {
   const sb = supabase()
   const { error } = await sb
     .from('profiles')
@@ -92,9 +129,10 @@ export async function banUser(userId: string, reason: string): Promise<void> {
     .eq('id', userId)
 
   if (error) throw error
+  await logAuditAction(adminId, 'user_banned', 'user', userId, { reason })
 }
 
-export async function unbanUser(userId: string): Promise<void> {
+export async function unbanUser(adminId: string, userId: string): Promise<void> {
   const sb = supabase()
   const { error } = await sb
     .from('profiles')
@@ -107,9 +145,11 @@ export async function unbanUser(userId: string): Promise<void> {
     .eq('id', userId)
 
   if (error) throw error
+  await logAuditAction(adminId, 'user_unbanned', 'user', userId, {})
 }
 
-// Feedback
+// ─── Feedback ────────────────────────────────────────────────────────────────
+
 export async function getAdminFeedback(): Promise<AdminFeedback[]> {
   const sb = supabase()
   const { data, error } = await sb
@@ -138,9 +178,11 @@ export async function replyToFeedback(
     .eq('id', feedbackId)
 
   if (error) throw error
+  await logAuditAction(adminUserId, 'feedback_replied', 'feedback', feedbackId, { reply_length: reply.length })
 }
 
 export async function updateFeedbackStatus(
+  adminId: string,
   feedbackId: string,
   status: 'new' | 'read' | 'replied' | 'resolved',
 ): Promise<void> {
@@ -151,9 +193,11 @@ export async function updateFeedbackStatus(
     .eq('id', feedbackId)
 
   if (error) throw error
+  await logAuditAction(adminId, 'feedback_status_changed', 'feedback', feedbackId, { new_status: status })
 }
 
-// Custom Planes (moderation)
+// ─── Custom Planes (moderation) ──────────────────────────────────────────────
+
 export async function getAdminCustomPlanes(): Promise<AdminCustomPlane[]> {
   const sb = supabase()
   const { data, error } = await sb
@@ -165,7 +209,7 @@ export async function getAdminCustomPlanes(): Promise<AdminCustomPlane[]> {
   return (data ?? []) as unknown as AdminCustomPlane[]
 }
 
-export async function adminDeleteCustomPlane(planeId: string): Promise<void> {
+export async function adminDeleteCustomPlane(adminId: string, planeId: string, planeName: string): Promise<void> {
   const sb = supabase()
   const { error } = await sb
     .from('custom_planes')
@@ -173,4 +217,5 @@ export async function adminDeleteCustomPlane(planeId: string): Promise<void> {
     .eq('id', planeId)
 
   if (error) throw error
+  await logAuditAction(adminId, 'plane_deleted', 'custom_plane', planeId, { plane_name: planeName })
 }

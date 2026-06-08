@@ -58,3 +58,24 @@ export interface AppStats {
   users_last_7_days: number
   games_last_7_days: number
 }
+
+export type AuditAction =
+  | 'role_change'
+  | 'strike_added'
+  | 'user_banned'
+  | 'user_unbanned'
+  | 'plane_deleted'
+  | 'feedback_replied'
+  | 'feedback_status_changed'
+
+export interface AuditLogEntry {
+  id: string
+  admin_id: string
+  action: AuditAction
+  target_type: 'user' | 'custom_plane' | 'feedback'
+  target_id: string
+  details: Record<string, unknown>
+  created_at: string
+  // Joined
+  profiles: { display_name: string } | null
+}

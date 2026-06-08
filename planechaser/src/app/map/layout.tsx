@@ -4,7 +4,7 @@ export const metadata: Metadata = {
   title: 'Planar Map',
   openGraph: {
     title: 'Planar Map | PlaneChaser',
-    description: 'See the multiverse — every plane, color-coded by who conquered it.',
+    description: 'See the multiverse. Every plane, color-coded by who conquered it.',
   },
 }
 

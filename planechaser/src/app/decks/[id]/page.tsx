@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Search, Save, X, Shield, Eye, Sparkles, ZoomIn, Wand2, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Search, Save, X, Shield, Eye, Sparkles, ZoomIn, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDeck, useUpdateDeck } from '@/hooks/useDecks'
@@ -12,6 +12,7 @@ import { useUserConquests, usePlaneVisitHistory } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
 import { CardZoomModal } from '@/components/card-zoom-modal'
 import { extractSubtype, getUniqueSubtypes } from '@/lib/cards/subtypes'
+import { SubtypeAutocomplete } from '@/components/subtype-autocomplete'
 
 const MIN_DECK_SIZE = 10
 
@@ -231,24 +232,13 @@ export default function DeckBuilderPage() {
           </div>
 
           {/* Subtype filter */}
-          <div className="relative">
-            <select
-              value={subtypeFilter}
-              onChange={(e) => setSubtypeFilter(e.target.value)}
-              className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 pr-8 text-[12px] text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] appearance-none"
-              style={{ fontFamily: 'var(--font-body)' }}
-            >
-              <option value="all">All Subtypes</option>
-              <option value="custom">Custom</option>
-              {subtypes.map((st) => (
-                <option key={st} value={st}>{st}</option>
-              ))}
-            </select>
-            <ChevronDown
-              size={12}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none"
-            />
-          </div>
+          <SubtypeAutocomplete
+            value={subtypeFilter}
+            onChange={setSubtypeFilter}
+            subtypes={subtypes}
+            extraOptions={[{ value: 'custom', label: 'Custom' }]}
+            size="sm"
+          />
 
           {/* Advanced filters */}
           <div className="flex items-center gap-4 flex-wrap">

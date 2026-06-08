@@ -7,6 +7,7 @@ import { usePlaneCorpus } from '@/hooks/useCardCorpus'
 import { usePodConquests, useUserPods } from '@/hooks/usePods'
 import { useAppStore } from '@/store/app-store'
 import { CardZoomModal } from '@/components/card-zoom-modal'
+import { SubtypeAutocomplete } from '@/components/subtype-autocomplete'
 import type { MapConquest } from '@/lib/map/queries'
 import { extractSubtype, getUniqueSubtypes } from '@/lib/cards/subtypes'
 
@@ -343,23 +344,12 @@ export default function MapPage() {
 
             {/* Subtype + search row */}
             <div className="flex gap-2">
-              <div className="relative flex-1">
-                <select
-                  value={subtypeFilter}
-                  onChange={(e) => setSubtypeFilter(e.target.value)}
-                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 pr-8 text-[13px] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] appearance-none"
-                  style={{ fontFamily: 'var(--font-body)' }}
-                >
-                  <option value="all">All Subtypes</option>
-                  {subtypes.map((st) => (
-                    <option key={st} value={st}>{st}</option>
-                  ))}
-                </select>
-                <ChevronDown
-                  size={14}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none"
-                />
-              </div>
+              <SubtypeAutocomplete
+                value={subtypeFilter}
+                onChange={setSubtypeFilter}
+                subtypes={subtypes}
+                className="flex-1"
+              />
               <div className="relative flex-1">
                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
                 <input
@@ -391,23 +381,12 @@ export default function MapPage() {
             transition={{ delay: 0.15 }}
             className="flex gap-2"
           >
-            <div className="relative flex-1">
-              <select
-                value={subtypeFilter}
-                onChange={(e) => setSubtypeFilter(e.target.value)}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 pr-8 text-[13px] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] appearance-none"
-                style={{ fontFamily: 'var(--font-body)' }}
-              >
-                <option value="all">All Subtypes</option>
-                {subtypes.map((st) => (
-                  <option key={st} value={st}>{st}</option>
-                ))}
-              </select>
-              <ChevronDown
-                size={14}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none"
-              />
-            </div>
+            <SubtypeAutocomplete
+              value={subtypeFilter}
+              onChange={setSubtypeFilter}
+              subtypes={subtypes}
+              className="flex-1"
+            />
             <div className="relative flex-1">
               <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
               <input

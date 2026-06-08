@@ -19,7 +19,7 @@ export const FAQ_SECTIONS: FAQSection[] = [
       },
       {
         question: 'What\'s the difference between "Start with Pod" and "Play in this Pod"?',
-        answer: '"Start with Pod" begins a new Planechase game session with your pod members pre-selected. "Play in this Pod" sets the pod as your active pod for conquest tracking — any game you play will count toward that pod\'s leaderboard.',
+        answer: '"Start with Pod" begins a new Planechase game session with your pod members pre-selected. "Play in this Pod" sets the pod as your active pod for conquest tracking, so any game you play will count toward that pod\'s leaderboard.',
       },
     ],
   },
@@ -37,7 +37,7 @@ export const FAQ_SECTIONS: FAQSection[] = [
       },
       {
         question: 'What happens on a Chaos roll?',
-        answer: 'When you roll chaos (🌀), the current plane\'s chaos ability triggers. Each plane has a unique chaos effect — read the card text to see what happens. The chaos overlay shows you the effect.',
+        answer: 'When you roll chaos (🌀), the current plane\'s chaos ability triggers. Each plane has a unique chaos effect. Read the card text to see what happens. The chaos overlay shows you the effect.',
       },
       {
         question: 'When should I end my turn?',

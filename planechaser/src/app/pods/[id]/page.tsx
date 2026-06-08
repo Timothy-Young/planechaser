@@ -122,7 +122,7 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
               Archenemy: {archenemy.display_name}
             </p>
             <p className="text-[11px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
-              {archenemy.conquered_count} planes conquered — next game is an Archenemy showdown!
+              {archenemy.conquered_count} planes conquered. Next game is an Archenemy showdown!
             </p>
           </motion.div>
         )}

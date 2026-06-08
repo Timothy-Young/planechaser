@@ -18,7 +18,7 @@ const SUPPORT_OPTIONS = [
   },{
     icon: Coffee,
     name: 'Ko-fi',
-    description: 'Buy me a coffee — one-time tips welcome.',
+    description: 'Buy me a coffee! One-time tips welcome.',
     url: 'https://ko-fi.com/planechaser',
     color: '#FF5E5B',
     cta: 'Support on Ko-fi',
@@ -42,7 +42,7 @@ const SUPPORT_OPTIONS = [
   {
     icon: Coins,
     name: 'Crypto',
-    description: 'BTC, ETH, or SOL — DM for wallet addresses.',
+    description: 'BTC, ETH, or SOL. DM for wallet addresses.',
     url: null,
     color: '#F7931A',
     cta: 'Coming Soon',
@@ -98,7 +98,7 @@ export default function SupportPage() {
             style={{ fontFamily: 'var(--font-body)' }}
           >
             PlaneChaser is free and always will be. No ads, no paywalls. If you enjoy it,
-            consider supporting development — every bit helps keep the servers running
+            consider supporting development. Every bit helps keep the servers running
             and new features coming.
           </p>
         </motion.div>

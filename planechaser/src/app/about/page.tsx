@@ -106,7 +106,7 @@ export default function AboutPage() {
           >
             But the goal wasn&apos;t just another die-roller app. The{' '}
             <span className="text-[var(--color-accent)] font-medium">conquest system</span> is what
-            makes PlaneChaser different — it turns every Commander game into part of an ongoing
+            makes PlaneChaser different. It turns every Commander game into part of an ongoing
             campaign. Win a game on a plane and you own it. Lose enough planes and you become a
             target.
           </p>
@@ -114,7 +114,7 @@ export default function AboutPage() {
             className="text-[13px] leading-relaxed text-[var(--color-text-secondary)]"
             style={{ fontFamily: 'var(--font-body)' }}
           >
-            When one player dominates too many planes, the whole pod fights back — and the game
+            When one player dominates too many planes, the whole pod fights back, and the game
             escalates into a full{' '}
             <span className="text-[var(--color-accent)] font-medium">Archenemy showdown</span>.
             Every session has stakes.
@@ -187,7 +187,7 @@ export default function AboutPage() {
             style={{ fontFamily: 'var(--font-body)' }}
           >
             PlaneChaser is built by{' '}
-            <span className="text-[var(--color-text)] font-medium">WheresTim LLC</span> — a
+            <span className="text-[var(--color-text)] font-medium">WheresTim LLC</span>, a
             one-person shop that plays way too much Commander. Every feature in the app was born out
             of real playtesting sessions with the pod, not a product roadmap.
           </p>
@@ -195,7 +195,7 @@ export default function AboutPage() {
             className="text-[13px] leading-relaxed text-[var(--color-text-secondary)]"
             style={{ fontFamily: 'var(--font-body)' }}
           >
-            PlaneChaser is free and has no ads — and it never will. If you want to keep development
+            PlaneChaser is free and has no ads, and it never will. If you want to keep development
             going,{' '}
             <button
               onClick={() => router.push('/support')}

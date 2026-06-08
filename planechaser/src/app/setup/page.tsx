@@ -387,7 +387,7 @@ function SetupPageInner() {
                     Archenemy Detected
                   </p>
                   <p className="text-[12px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
-                    {archenemy.display_name} has {archenemy.conquered_count} conquests — tap to enable
+                    {archenemy.display_name} has {archenemy.conquered_count} conquests. Tap to enable
                   </p>
                 </motion.button>
               )}
@@ -757,7 +757,7 @@ function SetupPageInner() {
                   </div>
                 ) : (
                   <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-                    No decks yet — one will be created automatically.
+                    No decks yet. One will be created automatically.
                   </p>
                 )}
                 <button
@@ -870,7 +870,7 @@ function SetupPageInner() {
             </Button>
           </motion.div>
 
-          {/* Multiplayer button — hidden when starting directly from pod */}
+          {/* Multiplayer button - hidden when starting directly from pod */}
           {!podStartMode && (
             <motion.button
               initial={{ opacity: 0, scale: 0.95 }}

@@ -9,6 +9,19 @@ function supabase() {
   return createClient()
 }
 
+// ─── Input Validation ────────────────────────────────────────────────────────
+
+function sanitizeText(input: string, maxLength: number): string {
+  // Trim, collapse whitespace, enforce max length
+  return input.trim().replace(/\s+/g, ' ').slice(0, maxLength)
+}
+
+function validateRequired(input: string, fieldName: string): string {
+  const cleaned = input.trim()
+  if (!cleaned) throw new Error(`${fieldName} cannot be empty`)
+  return cleaned
+}
+
 // ─── Audit Log ───────────────────────────────────────────────────────────────
 
 async function logAuditAction(
@@ -101,6 +114,9 @@ export async function getAdminUsers(): Promise<AdminUser[]> {
 }
 
 export async function updateUserRole(adminId: string, userId: string, role: UserRole, previousRole: string): Promise<void> {
+  const validRoles: UserRole[] = ['owner', 'admin', 'mod', 'user']
+  if (!validRoles.includes(role)) throw new Error('Invalid role')
+
   const sb = supabase()
   const { error } = await sb
     .from('profiles')
@@ -134,13 +150,16 @@ export async function addStrike(adminId: string, userId: string, currentStrikes:
 }
 
 export async function banUser(adminId: string, userId: string, reason: string): Promise<void> {
+  const cleanReason = sanitizeText(reason, 500)
+  if (!cleanReason) throw new Error('Ban reason is required')
+
   const sb = supabase()
   const { error } = await sb
     .from('profiles')
     .update({
       is_banned: true,
       banned_at: new Date().toISOString(),
-      ban_reason: reason,
+      ban_reason: cleanReason,
     })
     .eq('id', userId)
 
@@ -199,11 +218,13 @@ export async function replyToFeedback(
   adminUserId: string,
   reply: string,
 ): Promise<void> {
+  const cleanReply = validateRequired(sanitizeText(reply, 2000), 'Reply')
+
   const sb = supabase()
   const { error } = await sb
     .from('feedback')
     .update({
-      admin_reply: reply,
+      admin_reply: cleanReply,
       admin_reply_at: new Date().toISOString(),
       admin_reply_by: adminUserId,
       status: 'replied',
@@ -286,11 +307,15 @@ export async function createAnnouncement(
   type: AnnouncementType,
   expiresAt: string | null,
 ): Promise<void> {
+  const cleanMessage = validateRequired(sanitizeText(message, 500), 'Announcement message')
+  const validTypes: AnnouncementType[] = ['info', 'warning', 'maintenance', 'update']
+  if (!validTypes.includes(type)) throw new Error('Invalid announcement type')
+
   const sb = supabase()
   const { error } = await sb
     .from('system_announcements')
     .insert({
-      message,
+      message: cleanMessage,
       type,
       is_active: true,
       created_by: adminId,

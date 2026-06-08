@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { User } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
+import type { UserRole } from '@/lib/admin/types'
 
 type Theme = 'dark' | 'light'
 
@@ -18,6 +19,8 @@ interface AppState {
   toggleTheme: () => void
   includeGoldBorder: boolean
   setIncludeGoldBorder: (include: boolean) => void
+  userRole: UserRole | null
+  setUserRole: (role: UserRole | null) => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -35,6 +38,8 @@ export const useAppStore = create<AppState>()(
       toggleTheme: () => set({ theme: get().theme === 'dark' ? 'light' : 'dark' }),
       includeGoldBorder: false,
       setIncludeGoldBorder: (includeGoldBorder) => set({ includeGoldBorder }),
+      userRole: null,
+      setUserRole: (userRole) => set({ userRole }),
     }),
     { name: 'planechaser-app' }
   )

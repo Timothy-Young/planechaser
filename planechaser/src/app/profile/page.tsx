@@ -3,11 +3,11 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { LogOut, Trophy, History, Swords, Dice5, MapPin, Crown, Pencil, Check, X, Sun, Moon, HelpCircle } from 'lucide-react'
+import { LogOut, Trophy, History, Swords, Dice5, MapPin, Crown, Pencil, Check, X, Sun, Moon, HelpCircle, Shield } from 'lucide-react'
 import { useAppStore } from '@/store/app-store'
 import { useUserStats, useUserConquests, useUserPods, usePlaneVisitHistory, useUserProfile, useUpdateProfile } from '@/hooks/usePods'
 import { useUserAchievements } from '@/hooks/useAchievements'
-import { getRoleLabel, getRoleColor } from '@/lib/admin/guards'
+import { getRoleLabel, getRoleColor, isMod } from '@/lib/admin/guards'
 import type { UserRole } from '@/lib/admin/types'
 import { AchievementBadge } from '@/components/achievement-badge'
 import { ACHIEVEMENTS } from '@/lib/achievements/definitions'
@@ -322,8 +322,22 @@ export default function ProfilePage() {
           <PlaneCarousel slides={historySlides} emptyMessage="No visit history yet. Play a game to start tracking!" />
         )}
 
-        {/* Theme + Sign out */}
+        {/* Actions */}
         <div className="pt-2 space-y-3">
+          {profile?.role && isMod(profile.role as UserRole) && (
+            <button
+              onClick={() => router.push('/admin')}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-cta)]/30 bg-[var(--color-cta)]/8 hover:bg-[var(--color-cta)]/15 transition-colors w-full"
+            >
+              <Shield className="w-4 h-4 text-[var(--color-cta)]" />
+              <span
+                className="text-[13px] font-medium text-[var(--color-cta)]"
+                style={{ fontFamily: 'var(--font-heading)' }}
+              >
+                Admin Dashboard
+              </span>
+            </button>
+          )}
           <button
             onClick={() => router.push('/faq')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/50 hover:bg-white/5 transition-colors w-full"

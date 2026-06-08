@@ -118,7 +118,7 @@ export async function getAdminFeedback(): Promise<AdminFeedback[]> {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return (data ?? []) as AdminFeedback[]
+  return (data ?? []) as unknown as AdminFeedback[]
 }
 
 export async function replyToFeedback(
@@ -162,7 +162,7 @@ export async function getAdminCustomPlanes(): Promise<AdminCustomPlane[]> {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return (data ?? []) as AdminCustomPlane[]
+  return (data ?? []) as unknown as AdminCustomPlane[]
 }
 
 export async function adminDeleteCustomPlane(planeId: string): Promise<void> {

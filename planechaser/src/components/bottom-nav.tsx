@@ -29,7 +29,7 @@ export function BottomNav() {
 
   // Sync role from profile into store
   useEffect(() => {
-    const role = (profile as Record<string, unknown> | undefined)?.role as UserRole | undefined
+    const role = profile?.role as UserRole | undefined
     if (role && role !== userRole) {
       setUserRole(role)
     }

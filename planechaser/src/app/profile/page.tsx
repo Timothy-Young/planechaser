@@ -165,16 +165,16 @@ export default function ProfilePage() {
                 <h1 className="text-[22px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-heading)' }}>
                   {displayName}
                 </h1>
-                {(profile as Record<string, unknown> | undefined)?.role && (profile as Record<string, unknown>).role !== 'user' && (
+                {profile?.role && profile.role !== 'user' && (
                   <span
                     className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md"
                     style={{
-                      color: getRoleColor((profile as Record<string, unknown>).role as UserRole),
-                      background: `color-mix(in srgb, ${getRoleColor((profile as Record<string, unknown>).role as UserRole)} 15%, transparent)`,
+                      color: getRoleColor(profile.role as UserRole),
+                      background: `color-mix(in srgb, ${getRoleColor(profile.role as UserRole)} 15%, transparent)`,
                       fontFamily: 'var(--font-heading)',
                     }}
                   >
-                    {getRoleLabel((profile as Record<string, unknown>).role as UserRole)}
+                    {getRoleLabel(profile.role as UserRole)}
                   </span>
                 )}
                 <button

@@ -14,6 +14,7 @@ import {
   Trash2,
   Mail,
   ChevronDown,
+  ChevronUp,
   AlertTriangle,
   Ban,
   ClipboardList,
@@ -24,13 +25,19 @@ import {
   Info,
   Wrench,
   Sparkles,
+  Undo2,
+  Eye,
+  X,
+  Image as ImageIcon,
 } from 'lucide-react'
 import { useAppStore } from '@/store/app-store'
 import {
   useAppStats,
   useAdminUsers,
   useUpdateUserRole,
+  useUserStrikes,
   useAddStrike,
+  useRevokeStrike,
   useBanUser,
   useUnbanUser,
   useAdminFeedback,
@@ -45,7 +52,8 @@ import {
   useDeleteAnnouncement,
 } from '@/hooks/useAdmin'
 import { getRoleLabel, getRoleColor, isOwner, isAdmin } from '@/lib/admin/guards'
-import type { UserRole, AdminUser, AdminFeedback, AdminCustomPlane, AuditLogEntry, SystemAnnouncement, AnnouncementType } from '@/lib/admin/types'
+import { getImageUrl } from '@/lib/custom-planes/storage'
+import type { UserRole, AdminUser, AdminFeedback, AdminCustomPlane, UserStrike, AuditLogEntry, SystemAnnouncement, AnnouncementType } from '@/lib/admin/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type AdminTab = 'stats' | 'users' | 'planes' | 'feedback' | 'announce' | 'audit'
@@ -69,6 +77,7 @@ type UserStatusFilter = (typeof USER_STATUS_FILTERS)[number]
 const AUDIT_ACTION_LABELS: Record<string, string> = {
   role_change: 'Changed Role',
   strike_added: 'Added Strike',
+  strike_revoked: 'Revoked Strike',
   user_banned: 'Banned User',
   user_unbanned: 'Unbanned User',
   plane_deleted: 'Deleted Plane',
@@ -79,6 +88,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
 const AUDIT_ACTION_COLORS: Record<string, string> = {
   role_change: 'var(--color-accent)',
   strike_added: 'var(--color-cta)',
+  strike_revoked: 'var(--color-gold)',
   user_banned: 'var(--color-cta)',
   user_unbanned: 'var(--color-accent)',
   plane_deleted: 'var(--color-cta)',
@@ -217,6 +227,65 @@ function StatsTab() {
   )
 }
 
+// ─── Strike History ──────────────────────────────────────────────────────────
+function StrikeHistory({ userId, currentUserId, canModify }: { userId: string; currentUserId: string; canModify: boolean }) {
+  const { data: strikes, isLoading } = useUserStrikes(userId)
+  const revokeStrikeMut = useRevokeStrike()
+
+  if (isLoading) return <div className="h-8 animate-pulse bg-[var(--color-surface)]/40 rounded-lg" />
+  if (!strikes || strikes.length === 0) return (
+    <p className="text-[10px] text-[var(--color-text-muted)] italic" style={{ fontFamily: 'var(--font-body)' }}>No strike history.</p>
+  )
+
+  return (
+    <div className="space-y-2">
+      {strikes.map((s) => {
+        const isActive = !s.revoked_at
+        const adminName = (s.admin_profile as { display_name: string } | null)?.display_name ?? 'Unknown'
+        const revokerName = (s.revoker_profile as { display_name: string } | null)?.display_name
+        return (
+          <div
+            key={s.id}
+            className="rounded-lg border px-3 py-2 space-y-1"
+            style={{
+              borderColor: isActive ? 'color-mix(in srgb, var(--color-cta) 30%, transparent)' : 'var(--color-border)',
+              background: isActive ? 'color-mix(in srgb, var(--color-cta) 5%, transparent)' : 'var(--color-surface)',
+              opacity: isActive ? 1 : 0.6,
+            }}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] text-[var(--color-text-secondary)]" style={{ fontFamily: 'var(--font-body)' }}>
+                  {s.reason}
+                </p>
+                <p className="text-[9px] text-[var(--color-text-muted)] mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+                  by {adminName} · {new Date(s.created_at).toLocaleDateString()}
+                  {s.revoked_at && ` · Revoked by ${revokerName ?? 'Unknown'} on ${new Date(s.revoked_at).toLocaleDateString()}`}
+                </p>
+              </div>
+              {isActive && canModify && (
+                <button
+                  onClick={() => {
+                    if (!window.confirm('Revoke this strike?')) return
+                    revokeStrikeMut.mutate({ adminId: currentUserId, strikeId: s.id, userId })
+                  }}
+                  disabled={revokeStrikeMut.isPending}
+                  title="Revoke strike"
+                  className="flex items-center gap-1 h-6 px-2 rounded-md border border-[var(--color-border)] text-[9px] text-[var(--color-text-muted)] hover:border-[var(--color-gold)]/40 hover:text-[var(--color-gold)] transition-colors disabled:opacity-50 shrink-0"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  <Undo2 size={9} />
+                  Revoke
+                </button>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── User Card ────────────────────────────────────────────────────────────────
 function UserCard({
   u,
@@ -228,16 +297,18 @@ function UserCard({
   currentUserRole: UserRole
 }) {
   const updateRole = useUpdateUserRole()
-  const addStrike = useAddStrike()
-  const banUser = useBanUser()
-  const unbanUser = useUnbanUser()
+  const addStrikeMut = useAddStrike()
+  const banUserMut = useBanUser()
+  const unbanUserMut = useUnbanUser()
 
   const [banReason, setBanReason] = useState('')
   const [showBanInput, setShowBanInput] = useState(false)
+  const [strikeReason, setStrikeReason] = useState('')
+  const [showStrikeInput, setShowStrikeInput] = useState(false)
+  const [showStrikes, setShowStrikes] = useState(false)
 
   const isSelf = u.id === currentUserId
   const targetIsOwner = u.role === 'owner'
-  // Only owner can modify admins; admin can only modify mods/users
   const canModify = !isSelf && !targetIsOwner && (
     isOwner(currentUserRole) || (!isAdmin(u.role) && isAdmin(currentUserRole))
   )
@@ -252,16 +323,17 @@ function UserCard({
   }
 
   function handleStrike() {
-    if (!canModify) return
-    if (!window.confirm(`Add a strike to ${u.display_name}? They have ${u.strike_count}/3 strikes.`)) return
-    addStrike.mutate({ adminId: currentUserId, userId: u.id, currentStrikes: u.strike_count })
+    if (!canModify || !strikeReason.trim()) return
+    if (!window.confirm(`Add a strike to ${u.display_name}?\nReason: "${strikeReason.trim()}"`)) return
+    addStrikeMut.mutate({ adminId: currentUserId, userId: u.id, reason: strikeReason.trim() })
+    setStrikeReason('')
+    setShowStrikeInput(false)
   }
 
   function handleBan() {
-    if (!canModify) return
-    if (!banReason.trim()) return
+    if (!canModify || !banReason.trim()) return
     if (!window.confirm(`Ban ${u.display_name}? Reason: "${banReason}"`)) return
-    banUser.mutate({ adminId: currentUserId, userId: u.id, reason: banReason.trim() })
+    banUserMut.mutate({ adminId: currentUserId, userId: u.id, reason: banReason.trim() })
     setBanReason('')
     setShowBanInput(false)
   }
@@ -269,7 +341,7 @@ function UserCard({
   function handleUnban() {
     if (!canModify) return
     if (!window.confirm(`Unban ${u.display_name}?`)) return
-    unbanUser.mutate({ adminId: currentUserId, userId: u.id })
+    unbanUserMut.mutate({ adminId: currentUserId, userId: u.id })
   }
 
   return (
@@ -288,7 +360,6 @@ function UserCard({
             >
               {u.display_name}
             </span>
-            {/* Role badge */}
             <span
               className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full border"
               style={{
@@ -309,16 +380,17 @@ function UserCard({
               </span>
             )}
           </div>
-          <p
-            className="text-[11px] text-[var(--color-text-muted)] mt-0.5"
-            style={{ fontFamily: 'var(--font-body)' }}
-          >
+          <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
             #{u.friend_code} · Joined {new Date(u.created_at).toLocaleDateString()}
           </p>
         </div>
 
-        {/* Strike circles */}
-        <div className="flex items-center gap-1 shrink-0">
+        {/* Strike circles — clickable to toggle history */}
+        <button
+          onClick={() => setShowStrikes((p) => !p)}
+          className="flex items-center gap-1 shrink-0 hover:opacity-80 transition-opacity"
+          title="View strike history"
+        >
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
@@ -329,24 +401,29 @@ function UserCard({
               }}
             />
           ))}
-          <span
-            className="text-[10px] text-[var(--color-text-muted)] ml-1"
-            style={{ fontFamily: 'var(--font-body)' }}
-          >
+          <span className="text-[10px] text-[var(--color-text-muted)] ml-1" style={{ fontFamily: 'var(--font-body)' }}>
             {u.strike_count}/3
           </span>
-        </div>
+          {showStrikes ? <ChevronUp size={10} className="text-[var(--color-text-muted)]" /> : <ChevronDown size={10} className="text-[var(--color-text-muted)]" />}
+        </button>
       </div>
 
       {/* Ban reason */}
       {u.is_banned && u.ban_reason && (
         <div className="rounded-lg border border-[var(--color-cta)]/20 bg-[var(--color-cta)]/5 px-3 py-2">
-          <p
-            className="text-[11px] text-[var(--color-cta)]"
-            style={{ fontFamily: 'var(--font-body)' }}
-          >
+          <p className="text-[11px] text-[var(--color-cta)]" style={{ fontFamily: 'var(--font-body)' }}>
             Ban reason: {u.ban_reason}
           </p>
+        </div>
+      )}
+
+      {/* Strike history (expandable) */}
+      {showStrikes && (
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)]/50 p-3 space-y-2">
+          <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-heading)' }}>
+            Strike History
+          </p>
+          <StrikeHistory userId={u.id} currentUserId={currentUserId} canModify={canModify} />
         </div>
       )}
 
@@ -381,23 +458,24 @@ function UserCard({
             </div>
 
             {/* Strike button */}
-            {u.strike_count < 3 && (
-              <button
-                onClick={handleStrike}
-                disabled={addStrike.isPending}
-                className="flex items-center gap-1 h-8 px-3 rounded-lg border border-[var(--color-border)] text-[11px] text-[var(--color-text-muted)] hover:border-[var(--color-cta)]/40 hover:text-[var(--color-cta)] transition-colors disabled:opacity-50"
-                style={{ fontFamily: 'var(--font-body)' }}
-              >
-                <AlertTriangle size={11} />
-                Strike
-              </button>
-            )}
+            <button
+              onClick={() => setShowStrikeInput((p) => !p)}
+              className={`flex items-center gap-1 h-8 px-3 rounded-lg border text-[11px] transition-colors ${
+                showStrikeInput
+                  ? 'border-[var(--color-cta)]/40 text-[var(--color-cta)] bg-[var(--color-cta)]/5'
+                  : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-cta)]/40 hover:text-[var(--color-cta)]'
+              }`}
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              <AlertTriangle size={11} />
+              Strike
+            </button>
 
             {/* Ban / Unban */}
             {u.is_banned ? (
               <button
                 onClick={handleUnban}
-                disabled={unbanUser.isPending}
+                disabled={unbanUserMut.isPending}
                 className="flex items-center gap-1 h-8 px-3 rounded-lg border border-[var(--color-accent)]/40 text-[11px] text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 transition-colors disabled:opacity-50"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
@@ -415,6 +493,29 @@ function UserCard({
             )}
           </div>
 
+          {/* Strike reason input */}
+          {showStrikeInput && (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={strikeReason}
+                onChange={(e) => setStrikeReason(e.target.value.slice(0, 500))}
+                placeholder="Strike reason (required)..."
+                maxLength={500}
+                className="flex-1 h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] text-[11px] px-2 focus:outline-none focus:border-[var(--color-cta)]/60 transition-colors"
+                style={{ fontFamily: 'var(--font-body)' }}
+              />
+              <button
+                onClick={handleStrike}
+                disabled={!strikeReason.trim() || addStrikeMut.isPending}
+                className="h-8 px-3 rounded-lg text-[11px] font-semibold bg-[var(--color-cta)]/15 border border-[var(--color-cta)]/40 text-[var(--color-cta)] hover:bg-[var(--color-cta)]/25 transition-colors disabled:opacity-40"
+                style={{ fontFamily: 'var(--font-heading)' }}
+              >
+                Add Strike
+              </button>
+            </div>
+          )}
+
           {/* Ban reason input */}
           {showBanInput && !u.is_banned && (
             <div className="flex items-center gap-2">
@@ -428,7 +529,7 @@ function UserCard({
               />
               <button
                 onClick={handleBan}
-                disabled={!banReason.trim() || banUser.isPending}
+                disabled={!banReason.trim() || banUserMut.isPending}
                 className="h-8 px-3 rounded-lg text-[11px] font-semibold bg-[var(--color-cta)]/15 border border-[var(--color-cta)]/40 text-[var(--color-cta)] hover:bg-[var(--color-cta)]/25 transition-colors disabled:opacity-40"
                 style={{ fontFamily: 'var(--font-heading)' }}
               >
@@ -570,23 +671,54 @@ function UsersTab() {
   )
 }
 
+// ─── Image Preview Modal ─────────────────────────────────────────────────────
+function ImagePreviewModal({ url, name, onClose }: { url: string; name: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div className="relative max-w-[90vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          className="absolute -top-3 -right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+        >
+          <X size={16} />
+        </button>
+        <img
+          src={url}
+          alt={name}
+          className="max-w-full max-h-[85vh] rounded-xl border border-[var(--color-border)] object-contain"
+        />
+        <p
+          className="text-center text-[12px] text-[var(--color-text-muted)] mt-2"
+          style={{ fontFamily: 'var(--font-heading)' }}
+        >
+          {name}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ─── Plane Card ───────────────────────────────────────────────────────────────
-function PlaneCard({ plane, users, currentUserId }: { plane: AdminCustomPlane; users: AdminUser[]; currentUserId: string }) {
+function PlaneCard({ plane, currentUserId, onPreview }: { plane: AdminCustomPlane; currentUserId: string; onPreview: (url: string, name: string) => void }) {
   const deletePlane = useAdminDeleteCustomPlane()
-  const addStrike = useAddStrike()
+  const [expanded, setExpanded] = useState(false)
 
   const creator = (plane.profiles as unknown as { display_name: string } | null)?.display_name ?? 'Unknown'
+  const hasImage = !!plane.image_path
+  const hasLongText = (plane.oracle_text?.length ?? 0) > 80 || (plane.chaos_text?.length ?? 0) > 60
 
   function handleDelete() {
     if (!window.confirm(`Delete custom plane "${plane.name}"? This cannot be undone.`)) return
     deletePlane.mutate({ adminId: currentUserId, planeId: plane.id, planeName: plane.name })
   }
 
-  function handleStrikeCreator() {
-    const u = users.find((usr) => usr.id === plane.user_id)
-    if (!u) return
-    if (!window.confirm(`Add a strike to ${creator} for this plane?`)) return
-    addStrike.mutate({ adminId: currentUserId, userId: plane.user_id, currentStrikes: u.strike_count })
+  function handlePreview() {
+    if (!plane.image_path) return
+    const url = getImageUrl(plane.image_path)
+    onPreview(url, plane.name)
   }
 
   return (
@@ -613,26 +745,29 @@ function PlaneCard({ plane, users, currentUserId }: { plane: AdminCustomPlane; u
                 <Lock size={8} /> Private
               </span>
             )}
+            {hasImage && (
+              <span className="flex items-center gap-1 text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full border border-[var(--color-gold)]/50 text-[var(--color-gold)] bg-[var(--color-gold)]/10" style={{ fontFamily: 'var(--font-heading)' }}>
+                <ImageIcon size={8} /> Art
+              </span>
+            )}
           </div>
-          <p
-            className="text-[11px] text-[var(--color-text-muted)] mt-0.5"
-            style={{ fontFamily: 'var(--font-body)' }}
-          >
+          <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
             by {creator} · {plane.type_line}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={handleStrikeCreator}
-            disabled={addStrike.isPending}
-            title="Strike creator"
-            className="flex items-center gap-1 h-7 px-2 rounded-lg border border-[var(--color-border)] text-[10px] text-[var(--color-text-muted)] hover:border-[var(--color-cta)]/40 hover:text-[var(--color-cta)] transition-colors disabled:opacity-50"
-            style={{ fontFamily: 'var(--font-body)' }}
-          >
-            <AlertTriangle size={10} />
-            Strike
-          </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {hasImage && (
+            <button
+              onClick={handlePreview}
+              title="Preview image"
+              className="flex items-center gap-1 h-7 px-2 rounded-lg border border-[var(--color-border)] text-[10px] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40 hover:text-[var(--color-accent)] transition-colors"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              <Eye size={10} />
+              View
+            </button>
+          )}
           <button
             onClick={handleDelete}
             disabled={deletePlane.isPending}
@@ -641,18 +776,35 @@ function PlaneCard({ plane, users, currentUserId }: { plane: AdminCustomPlane; u
             style={{ fontFamily: 'var(--font-body)' }}
           >
             <Trash2 size={10} />
-            Delete
           </button>
         </div>
       </div>
 
+      {/* Card text — expandable */}
       {plane.oracle_text && (
         <p
-          className="text-[11px] text-[var(--color-text-secondary)] line-clamp-2"
+          className={`text-[11px] text-[var(--color-text-secondary)] leading-relaxed ${!expanded ? 'line-clamp-2' : ''}`}
           style={{ fontFamily: 'var(--font-body)' }}
         >
           {plane.oracle_text}
         </p>
+      )}
+      {plane.chaos_text && (
+        <p
+          className={`text-[11px] text-[var(--color-gold)]/80 leading-relaxed ${!expanded ? 'line-clamp-1' : ''}`}
+          style={{ fontFamily: 'var(--font-body)' }}
+        >
+          🌀 {plane.chaos_text}
+        </p>
+      )}
+      {hasLongText && (
+        <button
+          onClick={() => setExpanded((p) => !p)}
+          className="text-[10px] text-[var(--color-accent)] hover:underline"
+          style={{ fontFamily: 'var(--font-body)' }}
+        >
+          {expanded ? 'Show less' : 'Show more...'}
+        </button>
       )}
     </motion.div>
   )
@@ -661,8 +813,8 @@ function PlaneCard({ plane, users, currentUserId }: { plane: AdminCustomPlane; u
 // ─── Planes Tab ───────────────────────────────────────────────────────────────
 function PlanesTab() {
   const { data: planes, isLoading } = useAdminCustomPlanes()
-  const { data: users } = useAdminUsers()
   const [search, setSearch] = useState('')
+  const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null)
   const currentUserId = useAppStore((s) => s.user)?.id ?? ''
 
   const filtered = useMemo(() => {
@@ -709,17 +861,28 @@ function PlanesTab() {
       ) : (
         <div className="space-y-3">
           {filtered.map((plane) => (
-            <PlaneCard key={plane.id} plane={plane} users={users ?? []} currentUserId={currentUserId} />
+            <PlaneCard
+              key={plane.id}
+              plane={plane}
+              currentUserId={currentUserId}
+              onPreview={(url, name) => setPreviewImage({ url, name })}
+            />
           ))}
           {filtered.length === 0 && (
-            <p
-              className="text-center text-[12px] text-[var(--color-text-muted)] py-8"
-              style={{ fontFamily: 'var(--font-body)' }}
-            >
+            <p className="text-center text-[12px] text-[var(--color-text-muted)] py-8" style={{ fontFamily: 'var(--font-body)' }}>
               No custom planes found.
             </p>
           )}
         </div>
+      )}
+
+      {/* Image preview modal */}
+      {previewImage && (
+        <ImagePreviewModal
+          url={previewImage.url}
+          name={previewImage.name}
+          onClose={() => setPreviewImage(null)}
+        />
       )}
     </div>
   )
@@ -1005,8 +1168,10 @@ function AuditEntry({ entry }: { entry: AuditLogEntry }) {
   let detailStr = ''
   if (entry.action === 'role_change' && details.from && details.to) {
     detailStr = `${details.from} → ${details.to}`
-  } else if (entry.action === 'strike_added' && details.strike_number) {
-    detailStr = `Strike #${details.strike_number}${details.auto_banned ? ' (auto-banned)' : ''}`
+  } else if (entry.action === 'strike_added' && details.reason) {
+    detailStr = `"${details.reason}"${details.auto_banned ? ' (auto-banned)' : ''}`
+  } else if (entry.action === 'strike_revoked' && details.new_active_count !== undefined) {
+    detailStr = `Active strikes now: ${details.new_active_count}`
   } else if (entry.action === 'user_banned' && details.reason) {
     detailStr = `"${details.reason}"`
   } else if (entry.action === 'plane_deleted' && details.plane_name) {

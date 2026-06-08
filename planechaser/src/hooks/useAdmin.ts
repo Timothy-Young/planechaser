@@ -5,7 +5,9 @@ import {
   getAppStats,
   getAdminUsers,
   updateUserRole,
+  getUserStrikes,
   addStrike,
+  revokeStrike,
   banUser,
   unbanUser,
   getAdminFeedback,
@@ -52,11 +54,29 @@ export function useUpdateUserRole() {
   })
 }
 
+export function useUserStrikes(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'strikes', userId],
+    queryFn: () => getUserStrikes(userId!),
+    enabled: !!userId,
+    staleTime: ADMIN_STALE,
+  })
+}
+
 export function useAddStrike() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { adminId: string; userId: string; currentStrikes: number }) =>
-      addStrike(params.adminId, params.userId, params.currentStrikes),
+    mutationFn: (params: { adminId: string; userId: string; reason: string }) =>
+      addStrike(params.adminId, params.userId, params.reason),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
+  })
+}
+
+export function useRevokeStrike() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { adminId: string; strikeId: string; userId: string }) =>
+      revokeStrike(params.adminId, params.strikeId, params.userId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
   })
 }

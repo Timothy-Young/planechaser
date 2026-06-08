@@ -73,9 +73,23 @@ export interface SystemAnnouncement {
   expires_at: string | null
 }
 
+export interface UserStrike {
+  id: string
+  user_id: string
+  admin_id: string
+  reason: string
+  created_at: string
+  revoked_at: string | null
+  revoked_by: string | null
+  // Joined
+  admin_profile?: { display_name: string } | null
+  revoker_profile?: { display_name: string } | null
+}
+
 export type AuditAction =
   | 'role_change'
   | 'strike_added'
+  | 'strike_revoked'
   | 'user_banned'
   | 'user_unbanned'
   | 'plane_deleted'
@@ -89,7 +103,7 @@ export interface AuditLogEntry {
   id: string
   admin_id: string
   action: AuditAction
-  target_type: 'user' | 'custom_plane' | 'feedback'
+  target_type: 'user' | 'custom_plane' | 'feedback' | 'strike'
   target_id: string
   details: Record<string, unknown>
   created_at: string

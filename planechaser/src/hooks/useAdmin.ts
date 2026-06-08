@@ -14,8 +14,14 @@ import {
   getAdminCustomPlanes,
   adminDeleteCustomPlane,
   getAuditLog,
+  getActiveAnnouncements,
+  getAllAnnouncements,
+  createAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement,
+  checkUserBanned,
 } from '@/lib/admin/queries'
-import type { UserRole } from '@/lib/admin/types'
+import type { UserRole, AnnouncementType } from '@/lib/admin/types'
 
 const ADMIN_STALE = 30_000
 
@@ -124,5 +130,72 @@ export function useAuditLog(limit = 50) {
     queryKey: ['admin', 'audit-log', limit],
     queryFn: () => getAuditLog(limit),
     staleTime: ADMIN_STALE,
+  })
+}
+
+// ─── Announcements ──────────────────────────────────────────────────────────
+
+/** Active announcements — used by the global banner (any authenticated user) */
+export function useActiveAnnouncements() {
+  return useQuery({
+    queryKey: ['announcements', 'active'],
+    queryFn: getActiveAnnouncements,
+    staleTime: 60_000, // 1 min cache for global component
+  })
+}
+
+/** All announcements — admin management */
+export function useAllAnnouncements() {
+  return useQuery({
+    queryKey: ['admin', 'announcements'],
+    queryFn: getAllAnnouncements,
+    staleTime: ADMIN_STALE,
+  })
+}
+
+export function useCreateAnnouncement() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { adminId: string; message: string; type: AnnouncementType; expiresAt: string | null }) =>
+      createAnnouncement(params.adminId, params.message, params.type, params.expiresAt),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'announcements'] })
+      qc.invalidateQueries({ queryKey: ['announcements', 'active'] })
+    },
+  })
+}
+
+export function useUpdateAnnouncement() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { adminId: string; announcementId: string; updates: { message?: string; type?: AnnouncementType; is_active?: boolean; expires_at?: string | null } }) =>
+      updateAnnouncement(params.adminId, params.announcementId, params.updates),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'announcements'] })
+      qc.invalidateQueries({ queryKey: ['announcements', 'active'] })
+    },
+  })
+}
+
+export function useDeleteAnnouncement() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { adminId: string; announcementId: string }) =>
+      deleteAnnouncement(params.adminId, params.announcementId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'announcements'] })
+      qc.invalidateQueries({ queryKey: ['announcements', 'active'] })
+    },
+  })
+}
+
+// ─── Banned Check ───────────────────────────────────────────────────────────
+
+export function useBannedCheck(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['banned-check', userId],
+    queryFn: () => checkUserBanned(userId!),
+    enabled: !!userId,
+    staleTime: 60_000,
   })
 }

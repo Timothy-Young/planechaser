@@ -17,6 +17,13 @@ import {
   AlertTriangle,
   Ban,
   ClipboardList,
+  Megaphone,
+  Plus,
+  Power,
+  PowerOff,
+  Info,
+  Wrench,
+  Sparkles,
 } from 'lucide-react'
 import { useAppStore } from '@/store/app-store'
 import {
@@ -32,12 +39,16 @@ import {
   useAdminCustomPlanes,
   useAdminDeleteCustomPlane,
   useAuditLog,
+  useAllAnnouncements,
+  useCreateAnnouncement,
+  useUpdateAnnouncement,
+  useDeleteAnnouncement,
 } from '@/hooks/useAdmin'
 import { getRoleLabel, getRoleColor, isOwner, isAdmin } from '@/lib/admin/guards'
-import type { UserRole, AdminUser, AdminFeedback, AdminCustomPlane, AuditLogEntry } from '@/lib/admin/types'
+import type { UserRole, AdminUser, AdminFeedback, AdminCustomPlane, AuditLogEntry, SystemAnnouncement, AnnouncementType } from '@/lib/admin/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type AdminTab = 'stats' | 'users' | 'planes' | 'feedback' | 'audit'
+type AdminTab = 'stats' | 'users' | 'planes' | 'feedback' | 'announce' | 'audit'
 
 const FEEDBACK_CATEGORY_EMOJI: Record<string, string> = {
   bug: '🐛',
@@ -130,11 +141,78 @@ function StatsTab() {
     { value: stats.new_feedback, label: 'Pending', color: 'var(--color-cta)' },
   ]
 
+  const categoryBreakdown = stats.feedback_by_category
+  const totalFb = Object.values(categoryBreakdown).reduce((a, b) => a + b, 0)
+
+  const CATEGORY_CONFIG: Record<string, { emoji: string; color: string }> = {
+    bug: { emoji: '🐛', color: 'var(--color-cta)' },
+    feature: { emoji: '💡', color: 'var(--color-gold)' },
+    general: { emoji: '💬', color: 'var(--color-accent)' },
+    other: { emoji: '📝', color: 'var(--color-text-muted)' },
+  }
+
   return (
-    <div className="grid grid-cols-3 gap-3">
-      {cards.map((card) => (
-        <StatCard key={card.label} {...card} />
-      ))}
+    <div className="space-y-5">
+      <div className="grid grid-cols-3 gap-3">
+        {cards.map((card) => (
+          <StatCard key={card.label} {...card} />
+        ))}
+      </div>
+
+      {/* Feedback Category Breakdown */}
+      {totalFb > 0 && (
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
+          <p
+            className="text-[11px] uppercase tracking-wider font-bold text-[var(--color-text-muted)]"
+            style={{ fontFamily: 'var(--font-heading)' }}
+          >
+            Feedback Breakdown
+          </p>
+
+          {/* Bar chart */}
+          <div className="flex items-end gap-1 h-[60px]">
+            {Object.entries(categoryBreakdown).map(([cat, count]) => {
+              const pct = totalFb > 0 ? (count / totalFb) * 100 : 0
+              const config = CATEGORY_CONFIG[cat] ?? CATEGORY_CONFIG.other
+              return (
+                <div key={cat} className="flex-1 flex flex-col items-center gap-1">
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: `${Math.max(pct, 4)}%` }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    className="w-full rounded-t-md"
+                    style={{ background: config.color, minHeight: count > 0 ? 4 : 0 }}
+                  />
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Labels */}
+          <div className="flex gap-1">
+            {Object.entries(categoryBreakdown).map(([cat, count]) => {
+              const config = CATEGORY_CONFIG[cat] ?? CATEGORY_CONFIG.other
+              return (
+                <div key={cat} className="flex-1 text-center">
+                  <span className="text-[14px]">{config.emoji}</span>
+                  <p
+                    className="text-[10px] font-bold mt-0.5"
+                    style={{ color: config.color, fontFamily: 'var(--font-heading)' }}
+                  >
+                    {count}
+                  </p>
+                  <p
+                    className="text-[9px] text-[var(--color-text-muted)] capitalize"
+                    style={{ fontFamily: 'var(--font-body)' }}
+                  >
+                    {cat === 'bug' ? 'Bugs' : cat === 'feature' ? 'Features' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1024,6 +1102,261 @@ function AuditTab() {
   )
 }
 
+// ─── Announcement Type Icons ─────────────────────────────────────────────────
+const ANNOUNCE_TYPE_CONFIG: Record<AnnouncementType, { icon: typeof Info; label: string; color: string }> = {
+  info: { icon: Info, label: 'Info', color: 'var(--color-accent)' },
+  warning: { icon: AlertTriangle, label: 'Warning', color: 'var(--color-gold)' },
+  maintenance: { icon: Wrench, label: 'Maintenance', color: 'var(--color-cta)' },
+  update: { icon: Sparkles, label: 'Update', color: 'var(--color-accent)' },
+}
+
+// ─── Announcement Card ───────────────────────────────────────────────────────
+function AnnouncementCard({ a, currentUserId }: { a: SystemAnnouncement; currentUserId: string }) {
+  const updateAnnouncement = useUpdateAnnouncement()
+  const deleteAnnouncement = useDeleteAnnouncement()
+
+  const config = ANNOUNCE_TYPE_CONFIG[a.type] ?? ANNOUNCE_TYPE_CONFIG.info
+  const TypeIcon = config.icon
+  const isExpired = a.expires_at && new Date(a.expires_at) < new Date()
+
+  function handleToggle() {
+    updateAnnouncement.mutate({
+      adminId: currentUserId,
+      announcementId: a.id,
+      updates: { is_active: !a.is_active },
+    })
+  }
+
+  function handleDelete() {
+    if (!window.confirm('Delete this announcement permanently?')) return
+    deleteAnnouncement.mutate({ adminId: currentUserId, announcementId: a.id })
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-xl border bg-[var(--color-surface)]/60 p-4 space-y-2"
+      style={{
+        borderColor: a.is_active && !isExpired ? config.color : 'var(--color-border)',
+        opacity: a.is_active && !isExpired ? 1 : 0.6,
+      }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <TypeIcon size={16} style={{ color: config.color }} className="shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full border"
+                style={{
+                  color: config.color,
+                  borderColor: config.color,
+                  background: `color-mix(in srgb, ${config.color} 12%, transparent)`,
+                  fontFamily: 'var(--font-heading)',
+                }}
+              >
+                {config.label}
+              </span>
+              {a.is_active && !isExpired ? (
+                <span
+                  className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                >
+                  Live
+                </span>
+              ) : isExpired ? (
+                <span
+                  className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-[var(--color-text-muted)]/15 text-[var(--color-text-muted)]"
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                >
+                  Expired
+                </span>
+              ) : (
+                <span
+                  className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-[var(--color-text-muted)]/15 text-[var(--color-text-muted)]"
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                >
+                  Inactive
+                </span>
+              )}
+            </div>
+            <p
+              className="text-[10px] text-[var(--color-text-muted)] mt-0.5"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              {new Date(a.created_at).toLocaleDateString()}
+              {a.expires_at && ` · Expires ${new Date(a.expires_at).toLocaleDateString()}`}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={handleToggle}
+            disabled={updateAnnouncement.isPending}
+            title={a.is_active ? 'Deactivate' : 'Activate'}
+            className="flex items-center gap-1 h-7 px-2 rounded-lg border border-[var(--color-border)] text-[10px] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40 hover:text-[var(--color-accent)] transition-colors disabled:opacity-50"
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
+            {a.is_active ? <PowerOff size={10} /> : <Power size={10} />}
+            {a.is_active ? 'Off' : 'On'}
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleteAnnouncement.isPending}
+            title="Delete"
+            className="flex items-center gap-1 h-7 px-2 rounded-lg border border-[var(--color-border)] text-[10px] text-[var(--color-text-muted)] hover:border-[var(--color-cta)]/40 hover:text-[var(--color-cta)] transition-colors disabled:opacity-50"
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
+            <Trash2 size={10} />
+          </button>
+        </div>
+      </div>
+
+      <p
+        className="text-[12px] text-[var(--color-text-secondary)] leading-relaxed"
+        style={{ fontFamily: 'var(--font-body)' }}
+      >
+        {a.message}
+      </p>
+    </motion.div>
+  )
+}
+
+// ─── Announcements Tab ───────────────────────────────────────────────────────
+function AnnouncementsTab() {
+  const { data: announcements, isLoading } = useAllAnnouncements()
+  const createAnnouncement = useCreateAnnouncement()
+  const currentUserId = useAppStore((s) => s.user)?.id ?? ''
+
+  const [showCreate, setShowCreate] = useState(false)
+  const [newMessage, setNewMessage] = useState('')
+  const [newType, setNewType] = useState<AnnouncementType>('info')
+  const [newExpiry, setNewExpiry] = useState('')
+
+  function handleCreate() {
+    if (!newMessage.trim()) return
+    createAnnouncement.mutate({
+      adminId: currentUserId,
+      message: newMessage.trim(),
+      type: newType,
+      expiresAt: newExpiry ? new Date(newExpiry).toISOString() : null,
+    })
+    setNewMessage('')
+    setNewType('info')
+    setNewExpiry('')
+    setShowCreate(false)
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Create button */}
+      <button
+        onClick={() => setShowCreate((p) => !p)}
+        className="flex items-center gap-2 h-10 px-4 rounded-xl text-[12px] font-semibold border transition-all"
+        style={{
+          fontFamily: 'var(--font-heading)',
+          borderColor: showCreate ? 'var(--color-accent)' : 'var(--color-border)',
+          background: showCreate ? 'color-mix(in srgb, var(--color-accent) 10%, transparent)' : 'var(--color-surface)',
+          color: showCreate ? 'var(--color-accent)' : 'var(--color-text)',
+        }}
+      >
+        <Plus size={14} />
+        New Announcement
+      </button>
+
+      {/* Create form */}
+      {showCreate && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className="rounded-xl border border-[var(--color-accent)]/30 bg-[var(--color-surface)]/60 p-4 space-y-3"
+        >
+          <textarea
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Write your announcement message..."
+            rows={3}
+            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] text-[12px] text-[var(--color-text)] placeholder-[var(--color-text-muted)] px-3 py-2 resize-none focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
+            style={{ fontFamily: 'var(--font-body)' }}
+          />
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Type select */}
+            <div className="relative">
+              <select
+                value={newType}
+                onChange={(e) => setNewType(e.target.value as AnnouncementType)}
+                className="h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] text-[11px] text-[var(--color-text)] pl-2 pr-6 appearance-none focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                <option value="info">ℹ️ Info</option>
+                <option value="warning">⚠️ Warning</option>
+                <option value="maintenance">🔧 Maintenance</option>
+                <option value="update">✨ Update</option>
+              </select>
+              <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+            </div>
+
+            {/* Expiry date */}
+            <input
+              type="date"
+              value={newExpiry}
+              onChange={(e) => setNewExpiry(e.target.value)}
+              className="h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] text-[11px] text-[var(--color-text)] px-2 focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
+              style={{ fontFamily: 'var(--font-body)' }}
+              placeholder="Expires (optional)"
+            />
+
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                onClick={() => { setShowCreate(false); setNewMessage('') }}
+                className="h-8 px-3 rounded-lg text-[11px] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-white/5 transition-colors"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={!newMessage.trim() || createAnnouncement.isPending}
+                className="h-8 px-4 rounded-lg text-[11px] font-semibold bg-[var(--color-accent)]/15 border border-[var(--color-accent)]/40 text-[var(--color-accent)] hover:bg-[var(--color-accent)]/25 transition-colors disabled:opacity-40"
+                style={{ fontFamily: 'var(--font-heading)' }}
+              >
+                Publish
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* List */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-[var(--color-border)] h-[100px] animate-pulse bg-[var(--color-surface)]/40" />
+          ))}
+        </div>
+      ) : announcements && announcements.length > 0 ? (
+        <div className="space-y-3">
+          {announcements.map((a) => (
+            <AnnouncementCard key={a.id} a={a} currentUserId={currentUserId} />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-8 text-center">
+          <Megaphone size={24} className="mx-auto text-[var(--color-text-muted)] mb-2" />
+          <p
+            className="text-[12px] text-[var(--color-text-muted)]"
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
+            No announcements yet. Create one to notify all users.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('stats')
@@ -1039,6 +1372,7 @@ export default function AdminPage() {
       icon: <MessageSquare size={14} />,
       badge: stats?.new_feedback && stats.new_feedback > 0 ? stats.new_feedback : undefined,
     },
+    { key: 'announce', label: 'Announce', icon: <Megaphone size={14} /> },
     { key: 'audit', label: 'Log', icon: <ClipboardList size={14} /> },
   ]
 
@@ -1098,6 +1432,7 @@ export default function AdminPage() {
         {tab === 'users' && <UsersTab />}
         {tab === 'planes' && <PlanesTab />}
         {tab === 'feedback' && <FeedbackTab />}
+        {tab === 'announce' && <AnnouncementsTab />}
         {tab === 'audit' && <AuditTab />}
       </div>
     </main>

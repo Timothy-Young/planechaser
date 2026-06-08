@@ -57,6 +57,20 @@ export interface AppStats {
   banned_users: number
   users_last_7_days: number
   games_last_7_days: number
+  feedback_by_category: Record<string, number>
+}
+
+export type AnnouncementType = 'info' | 'warning' | 'maintenance' | 'update'
+
+export interface SystemAnnouncement {
+  id: string
+  message: string
+  type: AnnouncementType
+  is_active: boolean
+  created_by: string
+  created_at: string
+  updated_at: string
+  expires_at: string | null
 }
 
 export type AuditAction =
@@ -67,6 +81,9 @@ export type AuditAction =
   | 'plane_deleted'
   | 'feedback_replied'
   | 'feedback_status_changed'
+  | 'announcement_created'
+  | 'announcement_updated'
+  | 'announcement_deleted'
 
 export interface AuditLogEntry {
   id: string

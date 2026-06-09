@@ -377,7 +377,7 @@ function GameAnalyticsSection() {
         </div>
       )}
       {planePreview && (
-        <ImagePreviewModal url={planePreview.url} name={planePreview.name} onClose={() => setPlanePreview(null)} />
+        <ImagePreviewModal url={planePreview.url} name={planePreview.name} onClose={() => setPlanePreview(null)} landscape />
       )}
     </div>
   )
@@ -1276,11 +1276,11 @@ function UsersTab() {
 }
 
 // ─── Image Preview Modal ─────────────────────────────────────────────────────
-function ImagePreviewModal({ url, name, onClose }: { url: string; name: string; onClose: () => void }) {
+function ImagePreviewModal({ url, name, onClose, landscape }: { url: string; name: string; onClose: () => void; landscape?: boolean }) {
   const [loaded, setLoaded] = useState(false)
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div className="relative max-w-[90vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
@@ -1290,9 +1290,11 @@ function ImagePreviewModal({ url, name, onClose }: { url: string; name: string; 
         >
           <X size={16} />
         </button>
-        {/* Skeleton loader */}
+        {/* Skeleton loader — landscape or portrait */}
         {!loaded && (
-          <div className="w-[280px] h-[400px] rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] animate-pulse flex items-center justify-center">
+          <div
+            className={`rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] animate-pulse flex items-center justify-center ${landscape ? 'w-[400px] h-[280px]' : 'w-[280px] h-[400px]'}`}
+          >
             <ImageIcon size={48} className="text-[var(--color-text-muted)] opacity-30" />
           </div>
         )}
@@ -2224,7 +2226,7 @@ export default function AdminPage() {
       </div>
 
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
+      <div className="sticky top-0 z-[60] border-b border-[var(--color-border)] bg-[var(--color-bg)]">
         <div className="flex items-center gap-3 px-4 py-3">
           <Shield className="w-5 h-5 text-[var(--color-accent)]" />
           <h1

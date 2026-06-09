@@ -33,6 +33,7 @@ import {
 import { useAppStore } from '@/store/app-store'
 import {
   useAppStats,
+  useExtendedStats,
   useAdminUsers,
   useUpdateUserRole,
   useUserStrikes,
@@ -51,6 +52,7 @@ import {
   useUpdateAnnouncement,
   useDeleteAnnouncement,
 } from '@/hooks/useAdmin'
+import { ACHIEVEMENTS } from '@/lib/achievements/definitions'
 import { getRoleLabel, getRoleColor, isOwner, isAdmin } from '@/lib/admin/guards'
 import { getImageUrl } from '@/lib/custom-planes/storage'
 import type { UserRole, AdminUser, AdminFeedback, AdminCustomPlane, UserStrike, AuditLogEntry, SystemAnnouncement, AnnouncementType } from '@/lib/admin/types'
@@ -97,24 +99,28 @@ const AUDIT_ACTION_COLORS: Record<string, string> = {
 }
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ value, label, color }: { value: number; label: string; color: string }) {
+function StatCard({ value, label, color, tooltip }: { value: number | string; label: string; color: string; tooltip?: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 backdrop-blur-sm p-4 text-center"
+      className="group relative rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 backdrop-blur-sm p-4 text-center"
+      title={tooltip}
     >
       <p
         className="text-[28px] font-bold leading-none"
         style={{ fontFamily: 'var(--font-heading)', color }}
       >
-        {value.toLocaleString()}
+        {typeof value === 'number' ? value.toLocaleString() : value}
       </p>
       <p
         className="text-[10px] uppercase tracking-wider text-[var(--color-text-muted)] mt-1"
         style={{ fontFamily: 'var(--font-body)' }}
       >
         {label}
+        {tooltip && (
+          <span className="ml-1 inline-block opacity-40 group-hover:opacity-70 transition-opacity">ⓘ</span>
+        )}
       </p>
     </motion.div>
   )
@@ -140,15 +146,15 @@ function StatsTab() {
   if (!stats) return null
 
   const cards = [
-    { value: stats.total_users, label: 'Total Users', color: 'var(--color-accent)' },
-    { value: stats.users_last_7_days, label: 'New (7d)', color: 'var(--color-accent)' },
-    { value: stats.banned_users, label: 'Banned', color: 'var(--color-cta)' },
-    { value: stats.total_games, label: 'Total Games', color: 'var(--color-accent)' },
-    { value: stats.games_last_7_days, label: 'Games (7d)', color: 'var(--color-accent)' },
-    { value: stats.total_conquests, label: 'Conquests', color: 'var(--color-gold)' },
-    { value: stats.total_custom_planes, label: 'Custom Planes', color: 'var(--color-accent)' },
-    { value: stats.total_feedback, label: 'Feedback', color: 'var(--color-accent)' },
-    { value: stats.new_feedback, label: 'Pending', color: 'var(--color-cta)' },
+    { value: stats.total_users, label: 'Total Users', color: 'var(--color-accent)', tooltip: 'Total registered accounts' },
+    { value: stats.users_last_7_days, label: 'New (7d)', color: 'var(--color-accent)', tooltip: 'Users who signed up in the last 7 days' },
+    { value: stats.banned_users, label: 'Banned', color: 'var(--color-cta)', tooltip: 'Currently banned users' },
+    { value: stats.total_games, label: 'Total Games', color: 'var(--color-accent)', tooltip: 'All completed game sessions' },
+    { value: stats.games_last_7_days, label: 'Games (7d)', color: 'var(--color-accent)', tooltip: 'Games played in the last 7 days' },
+    { value: stats.total_conquests, label: 'Conquests', color: 'var(--color-gold)', tooltip: 'Total planes conquered across all pods' },
+    { value: stats.total_custom_planes, label: 'Custom Planes', color: 'var(--color-accent)', tooltip: 'User-created custom planes' },
+    { value: stats.total_feedback, label: 'Feedback', color: 'var(--color-accent)', tooltip: 'Total feedback submissions' },
+    { value: stats.new_feedback, label: 'Pending', color: 'var(--color-cta)', tooltip: 'Feedback awaiting admin review' },
   ]
 
   const categoryBreakdown = stats.feedback_by_category
@@ -220,6 +226,333 @@ function StatsTab() {
                 </div>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      <GameAnalyticsSection />
+      <ActivitySparkline />
+      <PeakHoursChart />
+      <LeaderboardSection />
+      <AchievementAuditSection />
+    </div>
+  )
+}
+
+// ─── Game Analytics Section ───────────────────────────────────────────────────
+function GameAnalyticsSection() {
+  const { data: ext, isLoading } = useExtendedStats()
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <div className="h-[80px] rounded-xl bg-[var(--color-surface)]/40 animate-pulse border border-[var(--color-border)]" />
+        <div className="h-[120px] rounded-xl bg-[var(--color-surface)]/40 animate-pulse border border-[var(--color-border)]" />
+      </div>
+    )
+  }
+
+  if (!ext) return null
+  const ga = ext.game_analytics
+
+  const analyticCards = [
+    { value: ga.avg_turns_per_game.toString(), label: 'Avg Turns', color: 'var(--color-accent)', tooltip: 'Average number of turns per game' },
+    { value: ga.avg_rolls_per_game.toString(), label: 'Avg Rolls', color: 'var(--color-accent)', tooltip: 'Average die rolls per game' },
+    { value: `${(ga.chaos_trigger_rate * 100).toFixed(1)}%`, label: 'Chaos Rate', color: 'var(--color-cta)', tooltip: 'Percentage of rolls that trigger chaos' },
+    { value: `${(ga.planeswalk_rate * 100).toFixed(1)}%`, label: 'Walk Rate', color: 'var(--color-accent)', tooltip: 'Percentage of rolls that trigger planeswalk' },
+    { value: ga.avg_rolls_per_planeswalk.toString(), label: 'Rolls/Walk', color: 'var(--color-gold)', tooltip: 'Average rolls before a planeswalk happens' },
+    { value: ga.total_planes_visited, label: 'Unique Planes', color: 'var(--color-accent)', tooltip: 'Distinct planes visited across all games' },
+  ]
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[11px] uppercase tracking-wider font-bold text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-heading)' }}>
+        🎲 Game Analytics
+      </p>
+      <div className="grid grid-cols-3 gap-3">
+        {analyticCards.map((card) => (
+          <StatCard key={card.label} {...card} />
+        ))}
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard value={ext.total_pods} label="Pods" color="var(--color-accent)" tooltip="Total pods created" />
+        <StatCard value={ext.returning_players} label="Returning" color="var(--color-gold)" tooltip="Players who played in 2+ distinct weeks" />
+        <StatCard value={ext.total_achievements_earned} label="Achievements" color="var(--color-accent)" tooltip="Total achievements earned across all users" />
+      </div>
+      {ga.plane_of_the_week && (
+        <div className="rounded-xl border border-[var(--color-gold)]/30 bg-[var(--color-gold)]/5 p-3 flex items-center gap-3">
+          <span className="text-[20px]">🌟</span>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--color-gold)]" style={{ fontFamily: 'var(--font-heading)' }}>
+              Plane of the Week
+            </p>
+            <p className="text-[13px] font-semibold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-heading)' }}>
+              {ga.plane_of_the_week.plane_name}
+            </p>
+            <p className="text-[10px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+              Visited {ga.plane_of_the_week.count} time{ga.plane_of_the_week.count !== 1 ? 's' : ''} this week
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Activity Sparkline ───────────────────────────────────────────────────────
+function ActivitySparkline() {
+  const { data: ext } = useExtendedStats()
+  if (!ext || ext.daily_games_30d.length === 0) return null
+
+  const dailyData = ext.daily_games_30d
+  const maxCount = Math.max(...dailyData.map((d) => d.count), 1)
+  const total30d = dailyData.reduce((sum, d) => sum + d.count, 0)
+
+  return (
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] uppercase tracking-wider font-bold text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-heading)' }}>
+          📈 Activity (30 Days)
+        </p>
+        <p className="text-[11px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+          {total30d} game{total30d !== 1 ? 's' : ''}
+        </p>
+      </div>
+      <div className="flex items-end gap-[2px] h-[48px]">
+        {dailyData.map((d) => {
+          const heightPct = maxCount > 0 ? (d.count / maxCount) * 100 : 0
+          return (
+            <div
+              key={d.date}
+              className="flex-1 rounded-t-sm transition-all hover:opacity-80"
+              style={{
+                height: `${Math.max(heightPct, d.count > 0 ? 8 : 2)}%`,
+                background: d.count > 0 ? 'var(--color-accent)' : 'var(--color-border)',
+                minHeight: d.count > 0 ? 3 : 1,
+              }}
+              title={`${d.date}: ${d.count} game${d.count !== 1 ? 's' : ''}`}
+            />
+          )
+        })}
+      </div>
+      <div className="flex justify-between">
+        <span className="text-[8px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>30d ago</span>
+        <span className="text-[8px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>Today</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Peak Hours Chart ─────────────────────────────────────────────────────────
+function PeakHoursChart() {
+  const { data: ext } = useExtendedStats()
+  if (!ext) return null
+
+  const hours = ext.game_analytics.peak_play_hours
+  const maxH = Math.max(...hours, 1)
+  const totalGames = hours.reduce((a, b) => a + b, 0)
+  if (totalGames === 0) return null
+
+  const displayHours = Array.from({ length: 24 }, (_, i) => i)
+
+  return (
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
+      <p className="text-[11px] uppercase tracking-wider font-bold text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-heading)' }}>
+        🕐 Peak Play Times
+      </p>
+      <div className="flex items-end gap-[2px] h-[40px]">
+        {displayHours.map((h) => {
+          const count = hours[h]
+          const heightPct = maxH > 0 ? (count / maxH) * 100 : 0
+          const label = h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`
+          return (
+            <div
+              key={h}
+              className="flex-1 rounded-t-sm"
+              style={{
+                height: `${Math.max(heightPct, count > 0 ? 8 : 2)}%`,
+                background: count > 0 ? 'var(--color-accent)' : 'var(--color-border)',
+                minHeight: count > 0 ? 2 : 1,
+              }}
+              title={`${label}: ${count} game${count !== 1 ? 's' : ''}`}
+            />
+          )
+        })}
+      </div>
+      <div className="flex justify-between">
+        <span className="text-[8px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>12am</span>
+        <span className="text-[8px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>12pm</span>
+        <span className="text-[8px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>11pm</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Leaderboard Section ──────────────────────────────────────────────────────
+function LeaderboardSection() {
+  const { data: ext } = useExtendedStats()
+  if (!ext) return null
+
+  return (
+    <div className="space-y-4">
+      {ext.top_conquerors.length > 0 && (
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
+          <p className="text-[11px] uppercase tracking-wider font-bold text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-heading)' }}>
+            👑 Top Conquerors
+          </p>
+          <div className="space-y-2">
+            {ext.top_conquerors.slice(0, 5).map((c, i) => (
+              <div key={c.user_id} className="flex items-center gap-2">
+                <span
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                  style={{
+                    background: i === 0 ? 'var(--color-gold)' : i === 1 ? 'var(--color-text-muted)' : i === 2 ? '#CD7F32' : 'var(--color-border)',
+                    color: i < 3 ? 'white' : 'var(--color-text-muted)',
+                  }}
+                >
+                  {i + 1}
+                </span>
+                <span className="flex-1 text-[12px] text-[var(--color-text)] truncate" style={{ fontFamily: 'var(--font-body)' }}>
+                  {c.display_name || c.user_id.slice(0, 8)}
+                </span>
+                <span className="text-[12px] font-bold text-[var(--color-gold)]" style={{ fontFamily: 'var(--font-heading)' }}>
+                  {c.count}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {ext.top_conquered_planes.length > 0 && (
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
+          <p className="text-[11px] uppercase tracking-wider font-bold text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-heading)' }}>
+            🏆 Most Conquered Planes
+          </p>
+          <div className="space-y-2">
+            {ext.top_conquered_planes.slice(0, 5).map((p, i) => (
+              <div key={p.plane_name} className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-[var(--color-text-muted)] w-4 text-right shrink-0">{i + 1}</span>
+                <span className="flex-1 text-[12px] text-[var(--color-text)] truncate" style={{ fontFamily: 'var(--font-body)' }}>
+                  {p.plane_name}
+                </span>
+                <span className="text-[12px] font-bold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+                  {p.count}×
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {ext.game_analytics.most_visited_planes.length > 0 && (
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
+          <p className="text-[11px] uppercase tracking-wider font-bold text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-heading)' }}>
+            🗺️ Most Visited Planes
+          </p>
+          <div className="space-y-2">
+            {ext.game_analytics.most_visited_planes.slice(0, 5).map((p, i) => (
+              <div key={p.plane_name} className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-[var(--color-text-muted)] w-4 text-right shrink-0">{i + 1}</span>
+                <span className="flex-1 text-[12px] text-[var(--color-text)] truncate" style={{ fontFamily: 'var(--font-body)' }}>
+                  {p.plane_name}
+                </span>
+                <span className="text-[12px] font-bold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+                  {p.count}×
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {ext.most_active_pods.length > 0 && (
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
+          <p className="text-[11px] uppercase tracking-wider font-bold text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-heading)' }}>
+            🛡️ Most Active Pods (30d)
+          </p>
+          <div className="space-y-2">
+            {ext.most_active_pods.map((pod, i) => (
+              <div key={pod.pod_id} className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-[var(--color-text-muted)] w-4 text-right shrink-0">{i + 1}</span>
+                <span className="flex-1 text-[12px] text-[var(--color-text)] truncate" style={{ fontFamily: 'var(--font-body)' }}>
+                  {pod.pod_name}
+                </span>
+                <span className="text-[12px] font-bold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+                  {pod.game_count} game{pod.game_count !== 1 ? 's' : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Achievement Audit Section ────────────────────────────────────────────────
+function AchievementAuditSection() {
+  const { data: ext } = useExtendedStats()
+  if (!ext || ext.achievement_distribution.length === 0) return null
+
+  const achievementMap = new Map(ACHIEVEMENTS.map((a) => [a.key, a]))
+  const maxEarned = Math.max(...ext.achievement_distribution.map((a) => a.earned_count), 1)
+
+  return (
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] uppercase tracking-wider font-bold text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-heading)' }}>
+          🏅 Achievement Audit
+        </p>
+        <p className="text-[10px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
+          {ext.achievement_distribution.length} / {ACHIEVEMENTS.length} unlocked
+        </p>
+      </div>
+      <div className="space-y-1.5">
+        {ext.achievement_distribution.map((stat) => {
+          const def = achievementMap.get(stat.achievement_key)
+          const widthPct = (stat.earned_count / maxEarned) * 100
+          return (
+            <div key={stat.achievement_key} className="flex items-center gap-2">
+              <span className="text-[14px] shrink-0" title={def?.name ?? stat.achievement_key}>
+                {def?.icon ?? '❓'}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-[10px] text-[var(--color-text)] truncate" style={{ fontFamily: 'var(--font-body)' }}>
+                    {def?.name ?? stat.achievement_key}
+                  </span>
+                  <span className="text-[10px] font-bold text-[var(--color-accent)] shrink-0 ml-2" style={{ fontFamily: 'var(--font-heading)' }}>
+                    {stat.earned_count}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-[var(--color-border)] overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${widthPct}%` }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    className="h-full rounded-full"
+                    style={{ background: 'var(--color-accent)' }}
+                  />
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      {ACHIEVEMENTS.length > ext.achievement_distribution.length && (
+        <div className="pt-2 border-t border-[var(--color-border)]">
+          <p className="text-[9px] text-[var(--color-text-muted)] mb-1" style={{ fontFamily: 'var(--font-body)' }}>
+            Not yet earned:
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {ACHIEVEMENTS
+              .filter((a) => !ext.achievement_distribution.some((s) => s.achievement_key === a.key))
+              .map((a) => (
+                <span key={a.key} className="text-[12px] opacity-30" title={`${a.name}: ${a.description}`}>
+                  {a.icon}
+                </span>
+              ))}
           </div>
         </div>
       )}
@@ -673,6 +1006,7 @@ function UsersTab() {
 
 // ─── Image Preview Modal ─────────────────────────────────────────────────────
 function ImagePreviewModal({ url, name, onClose }: { url: string; name: string; onClose: () => void }) {
+  const [loaded, setLoaded] = useState(false)
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
@@ -685,10 +1019,17 @@ function ImagePreviewModal({ url, name, onClose }: { url: string; name: string; 
         >
           <X size={16} />
         </button>
+        {/* Skeleton loader */}
+        {!loaded && (
+          <div className="w-[280px] h-[400px] rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] animate-pulse flex items-center justify-center">
+            <ImageIcon size={48} className="text-[var(--color-text-muted)] opacity-30" />
+          </div>
+        )}
         <img
           src={url}
           alt={name}
-          className="max-w-full max-h-[85vh] rounded-xl border border-[var(--color-border)] object-contain"
+          className={`max-w-full max-h-[85vh] rounded-xl border border-[var(--color-border)] object-contain transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0 absolute'}`}
+          onLoad={() => setLoaded(true)}
         />
         <p
           className="text-center text-[12px] text-[var(--color-text-muted)] mt-2"

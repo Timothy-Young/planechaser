@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Providers } from '@/components/providers'
 import { BottomNav } from '@/components/bottom-nav'
+import { NavigationLoader } from '@/components/navigation-loader'
 
 export const metadata: Metadata = {
   title: {
@@ -47,6 +48,7 @@ export default function RootLayout({
     <html lang="en" className="dark h-full">
       <body className="min-h-full flex flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
         <Providers>
+          <NavigationLoader />
           {children}
           <BottomNav />
         </Providers>

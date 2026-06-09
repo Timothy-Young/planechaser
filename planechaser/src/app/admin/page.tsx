@@ -145,6 +145,7 @@ function StatCard({ value, label, color, tooltip, onClick }: { value: number | s
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       className={`relative rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 backdrop-blur-sm p-4 text-center ${tooltip || onClick ? 'cursor-pointer active:scale-[0.97] transition-transform' : ''}`}
+      style={{ zIndex: showPopover ? 50 : undefined }}
       onClick={() => {
         if (onClick) { onClick(); return }
         if (tooltip) setShowPopover((p) => !p)
@@ -162,20 +163,20 @@ function StatCard({ value, label, color, tooltip, onClick }: { value: number | s
       >
         {label}
       </p>
-      {/* Popover */}
+      {/* Popover — renders above card to avoid pushing bottom nav */}
       <AnimatePresence>
         {showPopover && tooltip && (
           <motion.div
-            initial={{ opacity: 0, y: 4, scale: 0.95 }}
+            initial={{ opacity: 0, y: -4, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.95 }}
+            exit={{ opacity: 0, y: -4, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-2 w-[180px] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg px-3 py-2"
+            className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-[180px] max-w-[calc(100vw-2rem)] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg px-3 py-2"
           >
             <p className="text-[11px] text-[var(--color-text)] leading-snug text-center" style={{ fontFamily: 'var(--font-body)' }}>
               {tooltip}
             </p>
-            <div className="absolute left-1/2 -translate-x-1/2 -top-1 w-2 h-2 rotate-45 border-l border-t border-[var(--color-border)] bg-[var(--color-surface)]" />
+            <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 rotate-45 border-r border-b border-[var(--color-border)] bg-[var(--color-surface)]" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -2223,7 +2224,7 @@ export default function AdminPage() {
       </div>
 
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 border-b border-[var(--color-border)] glass-strong">
+      <div className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
         <div className="flex items-center gap-3 px-4 py-3">
           <Shield className="w-5 h-5 text-[var(--color-accent)]" />
           <h1

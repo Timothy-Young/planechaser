@@ -307,14 +307,29 @@ export async function recordGameSession(params: {
 }
 
 export async function getGameSessions(userId: string) {
-  const { data, error } = await supabase()
+  // Fetch games where user is host
+  const { data: hosted, error: e1 } = await supabase()
     .from('game_sessions')
-    .select('id, started_at, ended_at, win_condition, planes_visited, die_roll_history, players_snapshot, pod_id, pods(name)')
+    .select('id, started_at, ended_at, win_condition, planes_visited, die_roll_history, players_snapshot, pod_id, host_user_id, pods(name)')
     .eq('host_user_id', userId)
     .order('started_at', { ascending: false })
 
-  if (error) throw error
-  return data ?? []
+  if (e1) throw e1
+
+  // Fetch games where user is a participant (but not host, to avoid dupes)
+  const { data: participated, error: e2 } = await supabase()
+    .from('game_sessions')
+    .select('id, started_at, ended_at, win_condition, planes_visited, die_roll_history, players_snapshot, pod_id, host_user_id, pods(name)')
+    .neq('host_user_id', userId)
+    .contains('players_snapshot', JSON.stringify([{ id: userId }]))
+    .order('started_at', { ascending: false })
+
+  if (e2) throw e2
+
+  // Merge and sort by most recent first
+  const all = [...(hosted ?? []), ...(participated ?? [])]
+  all.sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
+  return all
 }
 
 export async function getGameSession(sessionId: string) {

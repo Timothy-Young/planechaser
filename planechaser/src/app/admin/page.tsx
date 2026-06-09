@@ -51,6 +51,9 @@ import {
   useCreateAnnouncement,
   useUpdateAnnouncement,
   useDeleteAnnouncement,
+  useAdminNotes,
+  useAddAdminNote,
+  useDeleteAdminNote,
 } from '@/hooks/useAdmin'
 import { ACHIEVEMENTS } from '@/lib/achievements/definitions'
 import { getRoleLabel, getRoleColor, isOwner, isAdmin } from '@/lib/admin/guards'
@@ -85,6 +88,11 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   plane_deleted: 'Deleted Plane',
   feedback_replied: 'Replied to Feedback',
   feedback_status_changed: 'Changed Status',
+  note_added: 'Added Note',
+  note_deleted: 'Deleted Note',
+  announcement_created: 'Created Announcement',
+  announcement_updated: 'Updated Announcement',
+  announcement_deleted: 'Deleted Announcement',
 }
 
 const AUDIT_ACTION_COLORS: Record<string, string> = {
@@ -96,6 +104,24 @@ const AUDIT_ACTION_COLORS: Record<string, string> = {
   plane_deleted: 'var(--color-cta)',
   feedback_replied: 'var(--color-accent)',
   feedback_status_changed: 'var(--color-text-muted)',
+  note_added: 'var(--color-accent)',
+  note_deleted: 'var(--color-text-muted)',
+  announcement_created: 'var(--color-accent)',
+  announcement_updated: 'var(--color-text-muted)',
+  announcement_deleted: 'var(--color-cta)',
+}
+
+// ─── CSV Export ───────────────────────────────────────────────────────────────
+function downloadCSV(filename: string, headers: string[], rows: string[][]) {
+  const escape = (s: string) => `"${s.replace(/"/g, '""')}"`
+  const csv = [headers.map(escape).join(','), ...rows.map((r) => r.map(escape).join(','))].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
@@ -619,6 +645,85 @@ function StrikeHistory({ userId, currentUserId, canModify }: { userId: string; c
   )
 }
 
+// ─── Admin Notes Panel ────────────────────────────────────────────────────────
+function AdminNotesPanel({ userId, currentUserId, canModify }: { userId: string; currentUserId: string; canModify: boolean }) {
+  const { data: notes, isLoading } = useAdminNotes(userId)
+  const addNote = useAddAdminNote()
+  const deleteNote = useDeleteAdminNote()
+  const [newNote, setNewNote] = useState('')
+
+  if (isLoading) return <div className="h-8 animate-pulse bg-[var(--color-surface)]/40 rounded-lg" />
+
+  return (
+    <div className="space-y-2">
+      {notes && notes.length > 0 ? (
+        notes.map((n) => {
+          const adminName = (n.admin_profile as { display_name: string } | null)?.display_name ?? 'Unknown'
+          return (
+            <div key={n.id} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] text-[var(--color-text-secondary)] flex-1" style={{ fontFamily: 'var(--font-body)' }}>
+                  {n.note}
+                </p>
+                {(n.admin_id === currentUserId || canModify) && (
+                  <button
+                    onClick={() => {
+                      if (!window.confirm('Delete this note?')) return
+                      deleteNote.mutate({ adminId: currentUserId, noteId: n.id, userId })
+                    }}
+                    disabled={deleteNote.isPending}
+                    className="text-[var(--color-text-muted)] hover:text-[var(--color-cta)] transition-colors shrink-0"
+                    title="Delete note"
+                  >
+                    <Trash2 size={10} />
+                  </button>
+                )}
+              </div>
+              <p className="text-[9px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+                {adminName} · {new Date(n.created_at).toLocaleDateString()}
+              </p>
+            </div>
+          )
+        })
+      ) : (
+        <p className="text-[10px] text-[var(--color-text-muted)] italic" style={{ fontFamily: 'var(--font-body)' }}>No notes yet.</p>
+      )}
+
+      {canModify && (
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={newNote}
+            onChange={(e) => setNewNote(e.target.value.slice(0, 1000))}
+            placeholder="Add a note..."
+            maxLength={1000}
+            className="flex-1 h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] text-[11px] px-2 focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
+            style={{ fontFamily: 'var(--font-body)' }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && newNote.trim()) {
+                addNote.mutate({ adminId: currentUserId, userId, note: newNote.trim() })
+                setNewNote('')
+              }
+            }}
+          />
+          <button
+            onClick={() => {
+              if (!newNote.trim()) return
+              addNote.mutate({ adminId: currentUserId, userId, note: newNote.trim() })
+              setNewNote('')
+            }}
+            disabled={!newNote.trim() || addNote.isPending}
+            className="h-8 px-3 rounded-lg text-[11px] font-semibold bg-[var(--color-accent)]/15 border border-[var(--color-accent)]/40 text-[var(--color-accent)] hover:bg-[var(--color-accent)]/25 transition-colors disabled:opacity-40"
+            style={{ fontFamily: 'var(--font-heading)' }}
+          >
+            Add
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── User Card ────────────────────────────────────────────────────────────────
 function UserCard({
   u,
@@ -639,6 +744,7 @@ function UserCard({
   const [strikeReason, setStrikeReason] = useState('')
   const [showStrikeInput, setShowStrikeInput] = useState(false)
   const [showStrikes, setShowStrikes] = useState(false)
+  const [showNotes, setShowNotes] = useState(false)
 
   const isSelf = u.id === currentUserId
   const targetIsOwner = u.role === 'owner'
@@ -760,6 +866,16 @@ function UserCard({
         </div>
       )}
 
+      {/* Admin notes (expandable) */}
+      {showNotes && (
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)]/50 p-3 space-y-2">
+          <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-heading)' }}>
+            Admin Notes
+          </p>
+          <AdminNotesPanel userId={u.id} currentUserId={currentUserId} canModify={canModify || isSelf} />
+        </div>
+      )}
+
       {/* Stats row */}
       <div className="flex items-center gap-3 text-[10px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
         <span>{u.games_hosted ?? 0} games</span>
@@ -824,6 +940,20 @@ function UserCard({
                 Ban
               </button>
             )}
+
+            {/* Notes toggle */}
+            <button
+              onClick={() => setShowNotes((p) => !p)}
+              className={`flex items-center gap-1 h-8 px-3 rounded-lg border text-[11px] transition-colors ${
+                showNotes
+                  ? 'border-[var(--color-accent)]/40 text-[var(--color-accent)] bg-[var(--color-accent)]/5'
+                  : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40 hover:text-[var(--color-accent)]'
+              }`}
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              <MessageSquare size={11} />
+              Notes
+            </button>
           </div>
 
           {/* Strike reason input */}
@@ -963,6 +1093,33 @@ function UsersTab() {
           <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
         </div>
 
+        {/* CSV export */}
+        <button
+          onClick={() => {
+            if (!users) return
+            downloadCSV(
+              `planechaser-users-${new Date().toISOString().split('T')[0]}.csv`,
+              ['Name', 'Friend Code', 'Role', 'Strikes', 'Banned', 'Games Hosted', 'Conquests', 'Custom Planes', 'Joined'],
+              users.map((u) => [
+                u.display_name,
+                u.friend_code,
+                u.role,
+                u.strike_count.toString(),
+                u.is_banned ? 'Yes' : 'No',
+                (u.games_hosted ?? 0).toString(),
+                (u.conquests ?? 0).toString(),
+                (u.custom_planes_count ?? 0).toString(),
+                new Date(u.created_at).toLocaleDateString(),
+              ])
+            )
+          }}
+          className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-[var(--color-border)] text-[11px] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40 hover:text-[var(--color-accent)] transition-colors"
+          style={{ fontFamily: 'var(--font-body)' }}
+          title="Export users to CSV"
+        >
+          ↓ CSV
+        </button>
+
         {/* Count */}
         {users && (
           <span
@@ -1043,7 +1200,7 @@ function ImagePreviewModal({ url, name, onClose }: { url: string; name: string; 
 }
 
 // ─── Plane Card ───────────────────────────────────────────────────────────────
-function PlaneCard({ plane, currentUserId, onPreview }: { plane: AdminCustomPlane; currentUserId: string; onPreview: (url: string, name: string) => void }) {
+function PlaneCard({ plane, currentUserId, onPreview, isDuplicate }: { plane: AdminCustomPlane; currentUserId: string; onPreview: (url: string, name: string) => void; isDuplicate?: boolean }) {
   const deletePlane = useAdminDeleteCustomPlane()
   const [expanded, setExpanded] = useState(false)
 
@@ -1089,6 +1246,15 @@ function PlaneCard({ plane, currentUserId, onPreview }: { plane: AdminCustomPlan
             {hasImage && (
               <span className="flex items-center gap-1 text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full border border-[var(--color-gold)]/50 text-[var(--color-gold)] bg-[var(--color-gold)]/10" style={{ fontFamily: 'var(--font-heading)' }}>
                 <ImageIcon size={8} /> Art
+              </span>
+            )}
+            {isDuplicate && (
+              <span
+                className="flex items-center gap-1 text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full border border-[var(--color-cta)]/50 text-[var(--color-cta)] bg-[var(--color-cta)]/10"
+                style={{ fontFamily: 'var(--font-heading)' }}
+                title="Another custom plane has the same name"
+              >
+                <AlertTriangle size={8} /> Dupe
               </span>
             )}
           </div>
@@ -1169,6 +1335,22 @@ function PlanesTab() {
     )
   }, [planes, search])
 
+  const duplicates = useMemo(() => {
+    if (!planes) return new Set<string>()
+    const nameCounts: Record<string, number> = {}
+    for (const p of planes) {
+      const normalized = p.name.toLowerCase().trim()
+      nameCounts[normalized] = (nameCounts[normalized] ?? 0) + 1
+    }
+    const dupeIds = new Set<string>()
+    for (const p of planes) {
+      if (nameCounts[p.name.toLowerCase().trim()] > 1) {
+        dupeIds.add(p.id)
+      }
+    }
+    return dupeIds
+  }, [planes])
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
@@ -1191,6 +1373,11 @@ function PlanesTab() {
             {filtered.length} / {planes.length}
           </span>
         )}
+        {duplicates.size > 0 && (
+          <span className="text-[10px] text-[var(--color-cta)] shrink-0" style={{ fontFamily: 'var(--font-body)' }}>
+            ⚠ {duplicates.size} dupe{duplicates.size !== 1 ? 's' : ''}
+          </span>
+        )}
       </div>
 
       {isLoading ? (
@@ -1207,6 +1394,7 @@ function PlanesTab() {
               plane={plane}
               currentUserId={currentUserId}
               onPreview={(url, name) => setPreviewImage({ url, name })}
+              isDuplicate={duplicates.has(plane.id)}
             />
           ))}
           {filtered.length === 0 && (
@@ -1461,6 +1649,30 @@ function FeedbackTab() {
             </button>
           )
         })}
+        {/* CSV export */}
+        <button
+          onClick={() => {
+            if (!feedback) return
+            downloadCSV(
+              `planechaser-feedback-${new Date().toISOString().split('T')[0]}.csv`,
+              ['Category', 'Status', 'Message', 'User', 'Date', 'Admin Reply'],
+              feedback.map((fb) => [
+                fb.category,
+                fb.status,
+                fb.message,
+                (fb.profiles as unknown as { display_name: string } | null)?.display_name ?? 'Anonymous',
+                new Date(fb.created_at).toLocaleDateString(),
+                fb.admin_reply ?? '',
+              ])
+            )
+          }}
+          className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-[var(--color-border)] text-[11px] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40 hover:text-[var(--color-accent)] transition-colors"
+          style={{ fontFamily: 'var(--font-body)' }}
+          title="Export feedback to CSV"
+        >
+          ↓ CSV
+        </button>
+
         {feedback && (
           <span
             className="ml-auto text-[11px] text-[var(--color-text-muted)]"

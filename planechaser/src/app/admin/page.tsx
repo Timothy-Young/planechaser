@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Shield,
   Users,
@@ -125,13 +125,30 @@ function downloadCSV(filename: string, headers: string[], rows: string[][]) {
 }
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ value, label, color, tooltip }: { value: number | string; label: string; color: string; tooltip?: string }) {
+function StatCard({ value, label, color, tooltip, onClick }: { value: number | string; label: string; color: string; tooltip?: string; onClick?: () => void }) {
+  const [showPopover, setShowPopover] = useState(false)
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showPopover) return
+    function handleOutside(e: MouseEvent | TouchEvent) {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node)) setShowPopover(false)
+    }
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('touchstart', handleOutside)
+    return () => { document.removeEventListener('mousedown', handleOutside); document.removeEventListener('touchstart', handleOutside) }
+  }, [showPopover])
+
   return (
     <motion.div
+      ref={cardRef}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="group relative rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 backdrop-blur-sm p-4 text-center"
-      title={tooltip}
+      className={`relative rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 backdrop-blur-sm p-4 text-center ${tooltip || onClick ? 'cursor-pointer active:scale-[0.97] transition-transform' : ''}`}
+      onClick={() => {
+        if (onClick) { onClick(); return }
+        if (tooltip) setShowPopover((p) => !p)
+      }}
     >
       <p
         className="text-[28px] font-bold leading-none"
@@ -144,16 +161,30 @@ function StatCard({ value, label, color, tooltip }: { value: number | string; la
         style={{ fontFamily: 'var(--font-body)' }}
       >
         {label}
-        {tooltip && (
-          <span className="ml-1 inline-block opacity-40 group-hover:opacity-70 transition-opacity">ⓘ</span>
-        )}
       </p>
+      {/* Popover */}
+      <AnimatePresence>
+        {showPopover && tooltip && (
+          <motion.div
+            initial={{ opacity: 0, y: 4, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-2 w-[180px] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg px-3 py-2"
+          >
+            <p className="text-[11px] text-[var(--color-text)] leading-snug text-center" style={{ fontFamily: 'var(--font-body)' }}>
+              {tooltip}
+            </p>
+            <div className="absolute left-1/2 -translate-x-1/2 -top-1 w-2 h-2 rotate-45 border-l border-t border-[var(--color-border)] bg-[var(--color-surface)]" />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
 
 // ─── Stats Tab ────────────────────────────────────────────────────────────────
-function StatsTab() {
+function StatsTab({ setTab }: { setTab: (t: AdminTab) => void }) {
   const { data: stats, isLoading } = useAppStats()
 
   if (isLoading) {
@@ -201,9 +232,15 @@ function StatsTab() {
         ))}
       </div>
 
-      {/* Feedback Category Breakdown */}
+      {/* Feedback Category Breakdown — click to jump to feedback tab */}
       {totalFb > 0 && (
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
+        <div
+          className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3 cursor-pointer active:scale-[0.98] transition-transform hover:border-[var(--color-accent)]/40"
+          onClick={() => setTab('feedback')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter') setTab('feedback') }}
+        >
           <p
             className="text-[11px] uppercase tracking-wider font-bold text-[var(--color-text-muted)]"
             style={{ fontFamily: 'var(--font-heading)' }}
@@ -268,6 +305,7 @@ function StatsTab() {
 // ─── Game Analytics Section ───────────────────────────────────────────────────
 function GameAnalyticsSection() {
   const { data: ext, isLoading } = useExtendedStats()
+  const [planePreview, setPlanePreview] = useState<{ url: string; name: string } | null>(null)
 
   if (isLoading) {
     return (
@@ -306,7 +344,23 @@ function GameAnalyticsSection() {
         <StatCard value={ext.total_achievements_earned} label="Achievements" color="var(--color-accent)" tooltip="Total achievements earned across all users" />
       </div>
       {ga.plane_of_the_week && (
-        <div className="rounded-xl border border-[var(--color-gold)]/30 bg-[var(--color-gold)]/5 p-3 flex items-center gap-3">
+        <div
+          className="rounded-xl border border-[var(--color-gold)]/30 bg-[var(--color-gold)]/5 p-3 flex items-center gap-3 cursor-pointer active:scale-[0.98] transition-transform hover:border-[var(--color-gold)]/60"
+          onClick={() => {
+            const name = ga.plane_of_the_week!.plane_name
+            const encoded = encodeURIComponent(name)
+            setPlanePreview({ url: `https://api.scryfall.com/cards/named?fuzzy=${encoded}&format=image&version=border_crop`, name })
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              const name = ga.plane_of_the_week!.plane_name
+              const encoded = encodeURIComponent(name)
+              setPlanePreview({ url: `https://api.scryfall.com/cards/named?fuzzy=${encoded}&format=image&version=border_crop`, name })
+            }
+          }}
+        >
           <span className="text-[20px]">🌟</span>
           <div>
             <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--color-gold)]" style={{ fontFamily: 'var(--font-heading)' }}>
@@ -321,6 +375,9 @@ function GameAnalyticsSection() {
           </div>
         </div>
       )}
+      {planePreview && (
+        <ImagePreviewModal url={planePreview.url} name={planePreview.name} onClose={() => setPlanePreview(null)} />
+      )}
     </div>
   )
 }
@@ -328,11 +385,13 @@ function GameAnalyticsSection() {
 // ─── Activity Sparkline ───────────────────────────────────────────────────────
 function ActivitySparkline() {
   const { data: ext } = useExtendedStats()
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   if (!ext || ext.daily_games_30d.length === 0) return null
 
   const dailyData = ext.daily_games_30d
   const maxCount = Math.max(...dailyData.map((d) => d.count), 1)
   const total30d = dailyData.reduce((sum, d) => sum + d.count, 0)
+  const selected = selectedIdx !== null ? dailyData[selectedIdx] : null
 
   return (
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
@@ -344,18 +403,39 @@ function ActivitySparkline() {
           {total30d} game{total30d !== 1 ? 's' : ''}
         </p>
       </div>
+      {/* Selected day detail */}
+      <AnimatePresence>
+        {selected && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="rounded-lg bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 px-3 py-1.5 flex items-center justify-between"
+          >
+            <span className="text-[11px] font-semibold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+              {new Date(selected.date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+            </span>
+            <span className="text-[12px] font-bold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+              {selected.count} game{selected.count !== 1 ? 's' : ''}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="flex items-end gap-[2px] h-[48px]">
-        {dailyData.map((d) => {
+        {dailyData.map((d, i) => {
           const heightPct = maxCount > 0 ? (d.count / maxCount) * 100 : 0
+          const isSelected = selectedIdx === i
           return (
             <div
               key={d.date}
-              className="flex-1 rounded-t-sm transition-all hover:opacity-80"
+              className="flex-1 rounded-t-sm transition-all cursor-pointer"
               style={{
                 height: `${Math.max(heightPct, d.count > 0 ? 8 : 2)}%`,
-                background: d.count > 0 ? 'var(--color-accent)' : 'var(--color-border)',
+                background: isSelected ? 'var(--color-gold)' : d.count > 0 ? 'var(--color-accent)' : 'var(--color-border)',
                 minHeight: d.count > 0 ? 3 : 1,
+                opacity: selectedIdx !== null && !isSelected ? 0.5 : 1,
               }}
+              onClick={() => setSelectedIdx(isSelected ? null : i)}
               title={`${d.date}: ${d.count} game${d.count !== 1 ? 's' : ''}`}
             />
           )
@@ -372,6 +452,7 @@ function ActivitySparkline() {
 // ─── Peak Hours Chart ─────────────────────────────────────────────────────────
 function PeakHoursChart() {
   const { data: ext } = useExtendedStats()
+  const [selectedHour, setSelectedHour] = useState<number | null>(null)
   if (!ext) return null
 
   const hours = ext.game_analytics.peak_play_hours
@@ -380,27 +461,48 @@ function PeakHoursChart() {
   if (totalGames === 0) return null
 
   const displayHours = Array.from({ length: 24 }, (_, i) => i)
+  const formatHour = (h: number) => h === 0 ? '12:00 AM' : h < 12 ? `${h}:00 AM` : h === 12 ? '12:00 PM' : `${h - 12}:00 PM`
 
   return (
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
       <p className="text-[11px] uppercase tracking-wider font-bold text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-heading)' }}>
         🕐 Peak Play Times
       </p>
+      {/* Selected hour detail */}
+      <AnimatePresence>
+        {selectedHour !== null && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="rounded-lg bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 px-3 py-1.5 flex items-center justify-between"
+          >
+            <span className="text-[11px] font-semibold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+              {formatHour(selectedHour)}
+            </span>
+            <span className="text-[12px] font-bold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+              {hours[selectedHour]} game{hours[selectedHour] !== 1 ? 's' : ''}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="flex items-end gap-[2px] h-[40px]">
         {displayHours.map((h) => {
           const count = hours[h]
           const heightPct = maxH > 0 ? (count / maxH) * 100 : 0
-          const label = h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`
+          const isSelected = selectedHour === h
           return (
             <div
               key={h}
-              className="flex-1 rounded-t-sm"
+              className="flex-1 rounded-t-sm cursor-pointer transition-all"
               style={{
                 height: `${Math.max(heightPct, count > 0 ? 8 : 2)}%`,
-                background: count > 0 ? 'var(--color-accent)' : 'var(--color-border)',
+                background: isSelected ? 'var(--color-gold)' : count > 0 ? 'var(--color-accent)' : 'var(--color-border)',
                 minHeight: count > 0 ? 2 : 1,
+                opacity: selectedHour !== null && !isSelected ? 0.5 : 1,
               }}
-              title={`${label}: ${count} game${count !== 1 ? 's' : ''}`}
+              onClick={() => setSelectedHour(isSelected ? null : h)}
+              title={`${formatHour(h)}: ${count} game${count !== 1 ? 's' : ''}`}
             />
           )
         })}
@@ -417,7 +519,17 @@ function PeakHoursChart() {
 // ─── Leaderboard Section ──────────────────────────────────────────────────────
 function LeaderboardSection() {
   const { data: ext } = useExtendedStats()
+  const { data: allUsers } = useAdminUsers()
   if (!ext) return null
+
+  // Build user_id → display_name map from admin users
+  const userNameMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const u of allUsers ?? []) {
+      if (u.display_name) map[u.id] = u.display_name
+    }
+    return map
+  }, [allUsers])
 
   return (
     <div className="space-y-4">
@@ -439,7 +551,7 @@ function LeaderboardSection() {
                   {i + 1}
                 </span>
                 <span className="flex-1 text-[12px] text-[var(--color-text)] truncate" style={{ fontFamily: 'var(--font-body)' }}>
-                  {c.display_name || c.user_id.slice(0, 8)}
+                  {userNameMap[c.user_id] || c.display_name || c.user_id.slice(0, 8)}
                 </span>
                 <span className="text-[12px] font-bold text-[var(--color-gold)]" style={{ fontFamily: 'var(--font-heading)' }}>
                   {c.count}
@@ -1960,7 +2072,7 @@ function AnnouncementsTab() {
       adminId: currentUserId,
       message: newMessage.trim(),
       type: newType,
-      expiresAt: newExpiry ? new Date(newExpiry).toISOString() : null,
+      expiresAt: newExpiry ? new Date(newExpiry + 'T23:59:59').toISOString() : null,
     })
     setNewMessage('')
     setNewType('info')
@@ -2151,7 +2263,7 @@ export default function AdminPage() {
 
       {/* Content */}
       <div className="relative z-10 flex-1 px-4 py-5 max-w-[680px] mx-auto w-full">
-        {tab === 'stats' && <StatsTab />}
+        {tab === 'stats' && <StatsTab setTab={setTab} />}
         {tab === 'users' && <UsersTab />}
         {tab === 'planes' && <PlanesTab />}
         {tab === 'feedback' && <FeedbackTab />}

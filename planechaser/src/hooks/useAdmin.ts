@@ -22,6 +22,10 @@ import {
   updateAnnouncement,
   deleteAnnouncement,
   checkUserBanned,
+  getExtendedStats,
+  getAdminNotes,
+  addAdminNote,
+  deleteAdminNote,
 } from '@/lib/admin/queries'
 import type { UserRole, AnnouncementType } from '@/lib/admin/types'
 
@@ -217,5 +221,44 @@ export function useBannedCheck(userId: string | undefined) {
     queryFn: () => checkUserBanned(userId!),
     enabled: !!userId,
     staleTime: 60_000,
+  })
+}
+
+// ─── Extended Stats ──────────────────────────────────────────────────────────
+
+export function useExtendedStats() {
+  return useQuery({
+    queryKey: ['admin', 'extended-stats'],
+    queryFn: getExtendedStats,
+    staleTime: 60_000,
+  })
+}
+
+// ─── Admin Notes ─────────────────────────────────────────────────────────────
+
+export function useAdminNotes(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'notes', userId],
+    queryFn: () => getAdminNotes(userId!),
+    enabled: !!userId,
+    staleTime: ADMIN_STALE,
+  })
+}
+
+export function useAddAdminNote() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { adminId: string; userId: string; note: string }) =>
+      addAdminNote(params.adminId, params.userId, params.note),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
+  })
+}
+
+export function useDeleteAdminNote() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { adminId: string; noteId: string; userId: string }) =>
+      deleteAdminNote(params.adminId, params.noteId, params.userId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
   })
 }

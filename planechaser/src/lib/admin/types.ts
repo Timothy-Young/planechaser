@@ -60,6 +60,66 @@ export interface AppStats {
   feedback_by_category: Record<string, number>
 }
 
+export interface TopPlane {
+  plane_name: string
+  count: number
+}
+
+export interface TopConqueror {
+  user_id: string
+  display_name: string
+  count: number
+}
+
+export interface DailyGameCount {
+  date: string // YYYY-MM-DD
+  count: number
+}
+
+export interface AchievementStat {
+  achievement_key: string
+  earned_count: number
+}
+
+export interface PodActivity {
+  pod_id: string
+  pod_name: string
+  game_count: number
+}
+
+export interface AdminNote {
+  id: string
+  user_id: string
+  admin_id: string
+  note: string
+  created_at: string
+  admin_profile?: { display_name: string } | null
+}
+
+export interface GameAnalytics {
+  avg_turns_per_game: number
+  avg_rolls_per_game: number
+  chaos_trigger_rate: number
+  planeswalk_rate: number
+  avg_rolls_per_planeswalk: number
+  total_planes_visited: number
+  peak_play_hours: number[]
+  most_visited_planes: TopPlane[]
+  plane_of_the_week: TopPlane | null
+}
+
+export interface ExtendedStats {
+  top_conquered_planes: TopPlane[]
+  top_conquerors: TopConqueror[]
+  most_active_pods: PodActivity[]
+  daily_games_30d: DailyGameCount[]
+  achievement_distribution: AchievementStat[]
+  total_achievements_earned: number
+  total_pods: number
+  returning_players: number
+  game_analytics: GameAnalytics
+}
+
 export type AnnouncementType = 'info' | 'warning' | 'maintenance' | 'update'
 
 export interface SystemAnnouncement {
@@ -98,12 +158,14 @@ export type AuditAction =
   | 'announcement_created'
   | 'announcement_updated'
   | 'announcement_deleted'
+  | 'note_added'
+  | 'note_deleted'
 
 export interface AuditLogEntry {
   id: string
   admin_id: string
   action: AuditAction
-  target_type: 'user' | 'custom_plane' | 'feedback' | 'strike'
+  target_type: 'user' | 'custom_plane' | 'feedback' | 'strike' | 'announcement'
   target_id: string
   details: Record<string, unknown>
   created_at: string

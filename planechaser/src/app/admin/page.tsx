@@ -520,7 +520,6 @@ function PeakHoursChart() {
 function LeaderboardSection() {
   const { data: ext } = useExtendedStats()
   const { data: allUsers } = useAdminUsers()
-  if (!ext) return null
 
   // Build user_id → display_name map from admin users
   const userNameMap = useMemo(() => {
@@ -530,6 +529,8 @@ function LeaderboardSection() {
     }
     return map
   }, [allUsers])
+
+  if (!ext) return null
 
   return (
     <div className="space-y-4">

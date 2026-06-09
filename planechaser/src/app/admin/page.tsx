@@ -163,20 +163,20 @@ function StatCard({ value, label, color, tooltip, onClick }: { value: number | s
       >
         {label}
       </p>
-      {/* Popover — renders above card to avoid pushing bottom nav */}
+      {/* Popover — renders below card */}
       <AnimatePresence>
         {showPopover && tooltip && (
           <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.95 }}
+            initial={{ opacity: 0, y: 4, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.95 }}
+            exit={{ opacity: 0, y: 4, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-[180px] max-w-[calc(100vw-2rem)] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg px-3 py-2"
+            className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-2 w-[180px] max-w-[calc(100vw-2rem)] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg px-3 py-2"
           >
             <p className="text-[11px] text-[var(--color-text)] leading-snug text-center" style={{ fontFamily: 'var(--font-body)' }}>
               {tooltip}
             </p>
-            <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 rotate-45 border-r border-b border-[var(--color-border)] bg-[var(--color-surface)]" />
+            <div className="absolute left-1/2 -translate-x-1/2 -top-1 w-2 h-2 rotate-45 border-l border-t border-[var(--color-border)] bg-[var(--color-surface)]" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -1280,37 +1280,57 @@ function ImagePreviewModal({ url, name, onClose, landscape }: { url: string; nam
   const [loaded, setLoaded] = useState(false)
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm p-6"
       onClick={onClose}
     >
-      <div className="relative max-w-[90vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-        <button
-          onClick={onClose}
-          className="absolute -top-3 -right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
-        >
-          <X size={16} />
-        </button>
-        {/* Skeleton loader — landscape or portrait */}
+      {/* Close button — always visible at top-right */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+      >
+        <X size={20} />
+      </button>
+
+      <div className="relative" onClick={(e) => e.stopPropagation()}>
+        {/* Skeleton loader */}
         {!loaded && (
           <div
-            className={`rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] animate-pulse flex items-center justify-center ${landscape ? 'w-[400px] h-[280px]' : 'w-[280px] h-[400px]'}`}
+            className={`rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] animate-pulse flex items-center justify-center ${landscape ? 'w-[min(400px,85vw)] aspect-[7/5]' : 'w-[280px] h-[400px]'}`}
           >
             <ImageIcon size={48} className="text-[var(--color-text-muted)] opacity-30" />
           </div>
         )}
-        <img
-          src={url}
-          alt={name}
-          className={`max-w-full max-h-[85vh] rounded-xl border border-[var(--color-border)] object-contain transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0 absolute'}`}
-          onLoad={() => setLoaded(true)}
-        />
-        <p
-          className="text-center text-[12px] text-[var(--color-text-muted)] mt-2"
-          style={{ fontFamily: 'var(--font-heading)' }}
-        >
-          {name}
-        </p>
+
+        {landscape ? (
+          /* Plane cards: rotate portrait Scryfall image 90° to display landscape */
+          <div className={`w-[min(400px,85vw)] aspect-[7/5] rounded-xl overflow-hidden border border-[var(--color-border)] transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0 absolute'}`}>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative h-[140%] aspect-[5/7] rotate-90">
+                <img
+                  src={url}
+                  alt={name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onLoad={() => setLoaded(true)}
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <img
+            src={url}
+            alt={name}
+            className={`max-w-full max-h-[75vh] rounded-xl border border-[var(--color-border)] object-contain transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0 absolute'}`}
+            onLoad={() => setLoaded(true)}
+          />
+        )}
       </div>
+
+      <p
+        className="text-center text-[12px] text-[var(--color-text-muted)] mt-3"
+        style={{ fontFamily: 'var(--font-heading)' }}
+      >
+        {name}
+      </p>
     </div>
   )
 }

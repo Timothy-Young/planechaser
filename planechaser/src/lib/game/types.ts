@@ -115,9 +115,8 @@ export type GameAction =
   | { type: 'DISMISS_REVEAL' }
   | { type: 'REORDER_BOTTOM'; cardIds: string[] }
   | { type: 'REORDER_TOP'; cardIds: string[] }
-  | { type: 'SPATIAL_MERGE'; planeIndices: [number, number] }
-  | { type: 'LEAVE_DUAL_PLANE' }
   | { type: 'RESOLVE_SPATIAL_MERGE' }
+  | { type: 'PLANESWALK_NO_LEAVE' }
   | { type: 'ELIMINATE_PLAYER'; playerId: string }
   | { type: 'RESTORE_PLAYER'; playerId: string }
   | { type: 'ADD_ROLL' }

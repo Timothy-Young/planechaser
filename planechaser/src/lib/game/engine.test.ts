@@ -313,6 +313,43 @@ describe('RESOLVE_SPATIAL_MERGE', () => {
   })
 })
 
+describe("PLANESWALK_NO_LEAVE (Norn's Seedcore chaos)", () => {
+  it('adds the next plane as second plane without leaving the current one', () => {
+    const state = makeState({ currentPlaneIndex: 3, planesVisited: 4 })
+    const next = gameReducer(state, { type: 'PLANESWALK_NO_LEAVE' })
+    expect(next.currentPlaneIndex).toBe(3) // didn't leave
+    expect(next.secondPlaneIndex).toBe(4)
+    expect(next.planesVisited).toBe(5)
+  })
+
+  it('bottoms revealed phenomena before the revealed plane', () => {
+    // deck[4] is a phenomenon; reveal should skip it to plane-5 and bottom plane-4
+    const state = withPhenomenonAt(makeState({ currentPlaneIndex: 3, planesVisited: 4 }), 4)
+    const next = gameReducer(state, { type: 'PLANESWALK_NO_LEAVE' })
+    expect(next.currentPlaneIndex).toBe(3)
+    expect(next.secondPlaneIndex).toBe(4)
+    expect(next.deck[4].id).toBe('plane-5') // revealed plane moved adjacent
+    expect(next.deck[next.deck.length - 1].id).toBe('plane-4') // phenomenon bottomed
+  })
+
+  it('replaces the second plane when already on two planes (app caps at 2)', () => {
+    const state = makeState({ currentPlaneIndex: 3, secondPlaneIndex: 4, planesVisited: 5 })
+    const next = gameReducer(state, { type: 'PLANESWALK_NO_LEAVE' })
+    expect(next.currentPlaneIndex).toBe(3)
+    expect(next.secondPlaneIndex).toBe(5)
+    // a later planeswalk leaves everything behind
+    const after = gameReducer(next, { type: 'PLANESWALK' })
+    expect(after.currentPlaneIndex).toBe(6)
+    expect(after.secondPlaneIndex).toBeNull()
+  })
+
+  it('is a no-op when no plane card remains ahead', () => {
+    const state = withPhenomenonAt(makeState({ currentPlaneIndex: 7 }), 8, 9)
+    const next = gameReducer(state, { type: 'PLANESWALK_NO_LEAVE' })
+    expect(next).toEqual(state)
+  })
+})
+
 describe('reveal chaos actions', () => {
   it('BEGIN_REVEAL_CHAOS sets revealState', () => {
     const state = makeState()

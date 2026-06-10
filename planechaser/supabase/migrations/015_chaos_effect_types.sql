@@ -2,7 +2,7 @@
 -- the CHECK constraint from migration 006, so re-seeds silently kept stale
 -- values. Extend the constraint and reclassify the two affected cards.
 
-ALTER TABLE cards DROP CONSTRAINT cards_chaos_effect_type_check;
+ALTER TABLE cards DROP CONSTRAINT IF EXISTS cards_chaos_effect_type_check;
 
 ALTER TABLE cards ADD CONSTRAINT cards_chaos_effect_type_check
   CHECK (chaos_effect_type IN (

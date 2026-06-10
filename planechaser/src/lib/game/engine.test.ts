@@ -310,6 +310,7 @@ describe('RESOLVE_SPATIAL_MERGE', () => {
     expect(next.secondPlaneIndex).toBeNull()
     expect(next.currentPlaneIndex).toBe(8)
     expect(next.phenomenonActive).toBe(false)
+    expect(next.planesVisited).toBe(2)
   })
 })
 

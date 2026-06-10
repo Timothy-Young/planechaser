@@ -69,7 +69,7 @@ function applyAction(state: GameState, action: GameAction): GameState {
       const ahead = state.deck.slice(anchor + 1)
 
       let revealedPlane: PlaneCard | null = null
-      const skipped: PlaneCard[] = []
+      const skippedNonPlanes: PlaneCard[] = []
       let consumed = 0
       for (const card of ahead) {
         consumed++
@@ -77,7 +77,7 @@ function applyAction(state: GameState, action: GameAction): GameState {
           revealedPlane = card
           break
         }
-        skipped.push(card)
+        skippedNonPlanes.push(card)
       }
 
       if (!revealedPlane) return state
@@ -85,7 +85,7 @@ function applyAction(state: GameState, action: GameAction): GameState {
       const rest = ahead.slice(consumed)
       return {
         ...state,
-        deck: [...before, revealedPlane, ...rest, ...skipped],
+        deck: [...before, revealedPlane, ...rest, ...skippedNonPlanes],
         secondPlaneIndex: anchor + 1,
         planesVisited: state.planesVisited + 1,
       }
@@ -102,7 +102,7 @@ function applyAction(state: GameState, action: GameAction): GameState {
       const ahead = state.deck.slice(state.currentPlaneIndex + 1)
 
       const planes: PlaneCard[] = []
-      const skipped: PlaneCard[] = []
+      const skippedNonPlanes: PlaneCard[] = []
       let consumed = 0
       for (const card of ahead) {
         consumed++
@@ -110,12 +110,13 @@ function applyAction(state: GameState, action: GameAction): GameState {
           planes.push(card)
           if (planes.length === 2) break
         } else {
-          skipped.push(card)
+          skippedNonPlanes.push(card)
         }
       }
 
       if (planes.length < 2) {
         // Not enough planes — just planeswalk to whatever is next
+        // modulo wrap matches PLANESWALK's existing behavior for deck exhaustion
         const nextIndex = (state.currentPlaneIndex + 1) % state.deck.length
         return {
           ...state,
@@ -129,7 +130,7 @@ function applyAction(state: GameState, action: GameAction): GameState {
       const rest = ahead.slice(consumed)
       return {
         ...state,
-        deck: [...before, ...planes, ...rest, ...skipped],
+        deck: [...before, ...planes, ...rest, ...skippedNonPlanes],
         currentPlaneIndex: state.currentPlaneIndex + 1,
         secondPlaneIndex: state.currentPlaneIndex + 2,
         planesVisited: state.planesVisited + 2,

@@ -252,6 +252,14 @@ describe('phenomenon handling', () => {
   })
 })
 
+function withPhenomenonAt(state: GameState, ...indices: number[]): GameState {
+  const deck = [...state.deck]
+  for (const idx of indices) {
+    deck[idx] = { ...deck[idx], card_type: 'phenomenon' as const, type_line: 'Phenomenon' }
+  }
+  return { ...state, deck }
+}
+
 describe('PLANESWALK from a dual-plane state', () => {
   it('leaves both planes and advances past the second plane', () => {
     const state = makeState({ currentPlaneIndex: 1, secondPlaneIndex: 2, planesVisited: 3 })
@@ -266,6 +274,42 @@ describe('PLANESWALK from a dual-plane state', () => {
     const next = gameReducer(state, { type: 'PLANESWALK' })
     expect(next.currentPlaneIndex).toBe(2)
     expect(next.secondPlaneIndex).toBeNull()
+  })
+})
+
+describe('RESOLVE_SPATIAL_MERGE', () => {
+  it('merges onto the next two planes, adjacent after the phenomenon', () => {
+    // deck[0] is the Spatial Merging phenomenon; deck[1] and deck[2] are planes
+    const state = withPhenomenonAt(makeState({ phenomenonActive: true }), 0)
+    const next = gameReducer(state, { type: 'RESOLVE_SPATIAL_MERGE' })
+    expect(next.currentPlaneIndex).toBe(1)
+    expect(next.secondPlaneIndex).toBe(2)
+    expect(next.planesVisited).toBe(3) // started at 1, +2
+    expect(next.phenomenonActive).toBe(false)
+    expect(next.deck.map((c) => c.id)).toEqual(state.deck.map((c) => c.id)) // no reorder needed
+  })
+
+  it('bottoms a revealed phenomenon that sits between the two planes', () => {
+    // deck[0] = Spatial Merging (current), deck[2] = another phenomenon.
+    // Revealing finds planes at original indices 1 and 3; the phenomenon at 2
+    // goes to the bottom of the deck.
+    const state = withPhenomenonAt(makeState({ phenomenonActive: true }), 0, 2)
+    const next = gameReducer(state, { type: 'RESOLVE_SPATIAL_MERGE' })
+    expect(next.currentPlaneIndex).toBe(1)
+    expect(next.secondPlaneIndex).toBe(2)
+    expect(next.deck[1].id).toBe('plane-1')
+    expect(next.deck[2].id).toBe('plane-3') // plane moved up into adjacency
+    expect(next.deck[next.deck.length - 1].id).toBe('plane-2') // phenomenon bottomed
+    expect(next.deck).toHaveLength(state.deck.length)
+  })
+
+  it('falls back to a simple planeswalk when fewer than two planes remain ahead', () => {
+    const base = makeState({ phenomenonActive: true, currentPlaneIndex: 7 })
+    const state = withPhenomenonAt(base, 7, 8, 9) // only phenomena ahead of index 7
+    const next = gameReducer(state, { type: 'RESOLVE_SPATIAL_MERGE' })
+    expect(next.secondPlaneIndex).toBeNull()
+    expect(next.currentPlaneIndex).toBe(8)
+    expect(next.phenomenonActive).toBe(false)
   })
 })
 

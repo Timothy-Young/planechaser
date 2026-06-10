@@ -73,16 +73,29 @@ function applyAction(state: GameState, action: GameAction): GameState {
     }
 
     case 'RESOLVE_SPATIAL_MERGE': {
-      // Find the next 2 plane cards (not phenomena) in the deck after current position
-      const planeIndices: number[] = []
-      for (let i = 1; i < state.deck.length && planeIndices.length < 2; i++) {
-        const idx = (state.currentPlaneIndex + i) % state.deck.length
-        if (state.deck[idx].card_type === 'plane') {
-          planeIndices.push(idx)
+      // Spatial Merging: reveal until two plane cards; simultaneously
+      // planeswalk to both. Revealed non-plane cards go to the bottom of the
+      // planar deck, so the two planes end up adjacent right after the
+      // phenomenon. The deck is treated linearly (same assumption as
+      // SHUFFLE_REMAINING / REORDER_TOP): cards before currentPlaneIndex are
+      // the visited pile.
+      const before = state.deck.slice(0, state.currentPlaneIndex + 1)
+      const ahead = state.deck.slice(state.currentPlaneIndex + 1)
+
+      const planes: PlaneCard[] = []
+      const skipped: PlaneCard[] = []
+      let consumed = 0
+      for (const card of ahead) {
+        consumed++
+        if (card.card_type === 'plane') {
+          planes.push(card)
+          if (planes.length === 2) break
+        } else {
+          skipped.push(card)
         }
       }
 
-      if (planeIndices.length < 2) {
+      if (planes.length < 2) {
         // Not enough planes — just planeswalk to whatever is next
         const nextIndex = (state.currentPlaneIndex + 1) % state.deck.length
         return {
@@ -94,10 +107,12 @@ function applyAction(state: GameState, action: GameAction): GameState {
         }
       }
 
+      const rest = ahead.slice(consumed)
       return {
         ...state,
-        currentPlaneIndex: planeIndices[0],
-        secondPlaneIndex: planeIndices[1],
+        deck: [...before, ...planes, ...rest, ...skipped],
+        currentPlaneIndex: state.currentPlaneIndex + 1,
+        secondPlaneIndex: state.currentPlaneIndex + 2,
         planesVisited: state.planesVisited + 2,
         phenomenonActive: false,
       }

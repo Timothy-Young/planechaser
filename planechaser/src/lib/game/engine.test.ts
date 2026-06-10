@@ -252,6 +252,23 @@ describe('phenomenon handling', () => {
   })
 })
 
+describe('PLANESWALK from a dual-plane state', () => {
+  it('leaves both planes and advances past the second plane', () => {
+    const state = makeState({ currentPlaneIndex: 1, secondPlaneIndex: 2, planesVisited: 3 })
+    const next = gameReducer(state, { type: 'PLANESWALK' })
+    expect(next.currentPlaneIndex).toBe(3) // not 2 — that plane is already occupied
+    expect(next.secondPlaneIndex).toBeNull()
+    expect(next.planesVisited).toBe(4)
+  })
+
+  it('advances normally from a single-plane state', () => {
+    const state = makeState({ currentPlaneIndex: 1, secondPlaneIndex: null, planesVisited: 2 })
+    const next = gameReducer(state, { type: 'PLANESWALK' })
+    expect(next.currentPlaneIndex).toBe(2)
+    expect(next.secondPlaneIndex).toBeNull()
+  })
+})
+
 describe('reveal chaos actions', () => {
   it('BEGIN_REVEAL_CHAOS sets revealState', () => {
     const state = makeState()

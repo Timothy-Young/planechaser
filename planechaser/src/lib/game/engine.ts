@@ -40,7 +40,12 @@ function applyAction(state: GameState, action: GameAction): GameState {
       return { ...state, dieState: 'idle' }
 
     case 'PLANESWALK': {
-      const nextIndex = (state.currentPlaneIndex + 1) % state.deck.length
+      // When on two planes, planeswalking leaves both — advance past the
+      // furthest-forward occupied plane, never onto a plane already occupied.
+      const base = state.secondPlaneIndex !== null
+        ? Math.max(state.currentPlaneIndex, state.secondPlaneIndex)
+        : state.currentPlaneIndex
+      const nextIndex = (base + 1) % state.deck.length
       return {
         ...state,
         currentPlaneIndex: nextIndex,

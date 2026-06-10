@@ -38,7 +38,7 @@ export function classifyCardEffect(typeLine: string, oracleText: string): Effect
   }
 
   // "Planeswalk to it, except don't planeswalk away from any plane" (Norn's Seedcore)
-  if (/planeswalk to it, except don.t planeswalk away/i.test(chaosSection)) {
+  if (/planeswalk to it, except don['’]t planeswalk away/i.test(chaosSection)) {
     return { chaos_effect_type: 'planeswalk_no_leave', chaos_effect_config: null }
   }
 

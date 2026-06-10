@@ -70,6 +70,12 @@ describe('classifyCardEffect', () => {
     expect(result).toEqual({ chaos_effect_type: 'spatial_merge', chaos_effect_config: null })
   })
 
+  it('classifies Norn\'s Seedcore with typographic apostrophe as planeswalk_no_leave (real Scryfall data)', () => {
+    const oracleText = "When you planeswalk to Norn’s Seedcore, chaos ensues.\nWhenever chaos ensues, reveal cards from the top of your planar deck until you reveal a plane card. Planeswalk to it, except don’t planeswalk away from any plane. Put the rest of the revealed cards on the bottom of your planar deck in any order."
+    const result = classifyCardEffect('Plane — New Phyrexia', oracleText)
+    expect(result).toEqual({ chaos_effect_type: 'planeswalk_no_leave', chaos_effect_config: null })
+  })
+
   it('still classifies "Then planeswalk." chaos as force_planeswalk (Bad Wolf Bay)', () => {
     const oracleText = "At the beginning of combat on your turn, exile up to one target creature. Return it to the battlefield under its owner's control at the beginning of the next end step.\nWhen chaos ensues, cards can't enter from exile this turn. Then planeswalk."
     const result = classifyCardEffect('Plane — Pete\'s World', oracleText)

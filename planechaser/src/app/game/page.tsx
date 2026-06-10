@@ -175,6 +175,7 @@ export default function GamePage() {
       })
     } else if (plane.chaos_effect_type === 'force_planeswalk') {
       setSlideDirection('right')
+      audioManager.playPlaneswalkLayered()
       setTimeout(() => {
         setState((prev) => {
           if (!prev) return prev
@@ -188,6 +189,8 @@ export default function GamePage() {
       setTimeout(() => {
         setState((prev) => {
           if (!prev) return prev
+          // PLANESWALK_NO_LEAVE scans to the next plane card (bottoming
+          // phenomena), so it can never land on a phenomenon
           return gameReducer(prev, { type: 'PLANESWALK_NO_LEAVE' })
         })
       }, 1200)
@@ -216,25 +219,24 @@ export default function GamePage() {
   }, [])
 
   const handleDismissChaos = useCallback(() => {
-    // Capture which plane's overlay is actually being dismissed: the override
-    // (second plane of a dual state) or the primary plane.
-    const shownOverride = chaosPlaneOverride
+    if (!state) return
+    // Which plane's overlay is being dismissed: the override (second plane of
+    // a dual state) or the primary plane.
+    const plane = chaosPlaneOverride ?? state.deck[state.currentPlaneIndex]
+    if (plane?.chaos_effect_type && plane.chaos_effect_type !== 'standard') {
+      setTimeout(() => handleSpecialChaos(plane), 300)
+    }
+    // Queue the second plane's chaos only when dismissing the PRIMARY
+    // overlay — dismissing the second plane's overlay must not re-queue it.
+    if (chaosPlaneOverride === null && state.secondPlaneIndex !== null) {
+      setPendingSecondChaos(true)
+    }
     setState((prev) => {
       if (!prev) return prev
-      const plane = shownOverride ?? prev.deck[prev.currentPlaneIndex]
-      const dismissed = gameReducer(prev, { type: 'DISMISS_CHAOS' })
-      if (plane?.chaos_effect_type && plane.chaos_effect_type !== 'standard') {
-        setTimeout(() => handleSpecialChaos(plane), 300)
-      }
-      // Queue the second plane's chaos only when dismissing the PRIMARY
-      // overlay — dismissing the second plane's overlay must not re-queue it.
-      if (shownOverride === null && prev.secondPlaneIndex !== null) {
-        setPendingSecondChaos(true)
-      }
-      return dismissed
+      return gameReducer(prev, { type: 'DISMISS_CHAOS' })
     })
     setChaosPlaneOverride(null)
-  }, [handleSpecialChaos, chaosPlaneOverride])
+  }, [state, chaosPlaneOverride, handleSpecialChaos])
 
   const handleUndo = useCallback(() => {
     setState((prev) => {

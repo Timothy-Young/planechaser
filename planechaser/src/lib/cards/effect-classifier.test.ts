@@ -51,4 +51,28 @@ describe('classifyCardEffect', () => {
     const result = classifyCardEffect('Plane — Lorwyn', 'All creatures have haste.')
     expect(result).toEqual({ chaos_effect_type: 'standard', chaos_effect_config: null })
   })
+
+  it('classifies Norn\'s Seedcore as planeswalk_no_leave (extraction skips entry-trigger line)', () => {
+    const oracleText = "When you planeswalk to Norn's Seedcore, chaos ensues.\nWhenever chaos ensues, reveal cards from the top of your planar deck until you reveal a plane card. Planeswalk to it, except don't planeswalk away from any plane. Put the rest of the revealed cards on the bottom of your planar deck in any order."
+    const result = classifyCardEffect('Plane — New Phyrexia', oracleText)
+    expect(result).toEqual({ chaos_effect_type: 'planeswalk_no_leave', chaos_effect_config: null })
+  })
+
+  it('uses the chaos ability line, not an entry trigger that mentions chaos (Oteclán)', () => {
+    const oracleText = 'When you planeswalk to Oteclán and at the beginning of your upkeep, chaos ensues.\nWhenever chaos ensues, discover 3. (Exile cards from the top of your library until you exile a nonland card with mana value 3 or less. Cast it or put it into your hand.)'
+    const result = classifyCardEffect('Plane — Ixalan', oracleText)
+    expect(result).toEqual({ chaos_effect_type: 'standard', chaos_effect_config: null })
+  })
+
+  it('classifies Spatial Merging phenomenon as spatial_merge', () => {
+    const oracleText = 'When you encounter Spatial Merging, reveal cards from the top of your planar deck until you reveal two plane cards. Simultaneously planeswalk to both of them. Put all other cards revealed this way on the bottom of your planar deck in any order.'
+    const result = classifyCardEffect('Phenomenon', oracleText)
+    expect(result).toEqual({ chaos_effect_type: 'spatial_merge', chaos_effect_config: null })
+  })
+
+  it('still classifies "Then planeswalk." chaos as force_planeswalk (Bad Wolf Bay)', () => {
+    const oracleText = "At the beginning of combat on your turn, exile up to one target creature. Return it to the battlefield under its owner's control at the beginning of the next end step.\nWhen chaos ensues, cards can't enter from exile this turn. Then planeswalk."
+    const result = classifyCardEffect('Plane — Pete\'s World', oracleText)
+    expect(result).toEqual({ chaos_effect_type: 'force_planeswalk', chaos_effect_config: null })
+  })
 })

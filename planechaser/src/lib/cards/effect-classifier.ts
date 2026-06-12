@@ -1,5 +1,5 @@
 export interface EffectClassification {
-  chaos_effect_type: 'standard' | 'reveal_and_chaos' | 'reveal_and_choose' | 'scry_top' | 'phenomenon' | 'force_planeswalk' | 'spatial_merge'
+  chaos_effect_type: 'standard' | 'reveal_and_chaos' | 'reveal_and_choose' | 'scry_top' | 'phenomenon' | 'force_planeswalk' | 'spatial_merge' | 'planeswalk_no_leave'
   chaos_effect_config: Record<string, unknown> | null
 }
 
@@ -37,6 +37,11 @@ export function classifyCardEffect(typeLine: string, oracleText: string): Effect
     }
   }
 
+  // "Planeswalk to it, except don't planeswalk away from any plane" (Norn's Seedcore)
+  if (/planeswalk to it, except don['’]t planeswalk away/i.test(chaosSection)) {
+    return { chaos_effect_type: 'planeswalk_no_leave', chaos_effect_config: null }
+  }
+
   // "Then planeswalk to a new plane" or "planeswalk away from" in chaos text
   if (/then planeswalk|planeswalk to a new plane|planeswalk away from/i.test(chaosSection)) {
     return {
@@ -50,8 +55,14 @@ export function classifyCardEffect(typeLine: string, oracleText: string): Effect
 
 function extractChaosSection(oracleText: string): string | null {
   const lines = oracleText.split('\n')
-  const chaosLine = lines.find((l) => /chaos/i.test(l))
-  return chaosLine ?? null
+  // Prefer the actual chaos ability line ("Whenever chaos ensues, ..." or
+  // "Whenever you roll {CHAOS}, ...") over lines that merely mention chaos,
+  // e.g. entry triggers like "When you planeswalk here, chaos ensues."
+  const abilityLine = lines.find(
+    (l) => /^\s*(whenever|when) chaos ensues/i.test(l) || /\{CHAOS\}/i.test(l)
+  )
+  if (abilityLine) return abilityLine
+  return lines.find((l) => /chaos/i.test(l)) ?? null
 }
 
 const WORD_NUMBERS: Record<string, number> = {

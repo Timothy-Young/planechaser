@@ -40,7 +40,12 @@ function applyAction(state: GameState, action: GameAction): GameState {
       return { ...state, dieState: 'idle' }
 
     case 'PLANESWALK': {
-      const nextIndex = (state.currentPlaneIndex + 1) % state.deck.length
+      // When on two planes, planeswalking leaves both — advance past the
+      // furthest-forward occupied plane, never onto a plane already occupied.
+      const base = state.secondPlaneIndex !== null
+        ? Math.max(state.currentPlaneIndex, state.secondPlaneIndex)
+        : state.currentPlaneIndex
+      const nextIndex = (base + 1) % state.deck.length
       return {
         ...state,
         currentPlaneIndex: nextIndex,
@@ -51,34 +56,67 @@ function applyAction(state: GameState, action: GameAction): GameState {
       }
     }
 
-    case 'SPATIAL_MERGE': {
-      return {
-        ...state,
-        currentPlaneIndex: action.planeIndices[0],
-        secondPlaneIndex: action.planeIndices[1],
-        phenomenonActive: false,
-      }
-    }
+    case 'PLANESWALK_NO_LEAVE': {
+      // Norn's Seedcore chaos: reveal until a plane card, planeswalk to it
+      // WITHOUT leaving the current plane(s). Revealed non-planes go to the
+      // bottom. The app caps at two simultaneous planes: a newly revealed
+      // plane becomes the second plane, replacing any prior second plane
+      // (which stays behind in the visited pile).
+      const anchor = state.secondPlaneIndex !== null
+        ? Math.max(state.currentPlaneIndex, state.secondPlaneIndex)
+        : state.currentPlaneIndex
+      const before = state.deck.slice(0, anchor + 1)
+      const ahead = state.deck.slice(anchor + 1)
 
-    case 'LEAVE_DUAL_PLANE': {
+      let revealedPlane: PlaneCard | null = null
+      const skippedNonPlanes: PlaneCard[] = []
+      let consumed = 0
+      for (const card of ahead) {
+        consumed++
+        if (card.card_type === 'plane') {
+          revealedPlane = card
+          break
+        }
+        skippedNonPlanes.push(card)
+      }
+
+      if (!revealedPlane) return state
+
+      const rest = ahead.slice(consumed)
       return {
         ...state,
-        secondPlaneIndex: null,
+        deck: [...before, revealedPlane, ...rest, ...skippedNonPlanes],
+        secondPlaneIndex: anchor + 1,
+        planesVisited: state.planesVisited + 1,
       }
     }
 
     case 'RESOLVE_SPATIAL_MERGE': {
-      // Find the next 2 plane cards (not phenomena) in the deck after current position
-      const planeIndices: number[] = []
-      for (let i = 1; i < state.deck.length && planeIndices.length < 2; i++) {
-        const idx = (state.currentPlaneIndex + i) % state.deck.length
-        if (state.deck[idx].card_type === 'plane') {
-          planeIndices.push(idx)
+      // Spatial Merging: reveal until two plane cards; simultaneously
+      // planeswalk to both. Revealed non-plane cards go to the bottom of the
+      // planar deck, so the two planes end up adjacent right after the
+      // phenomenon. The deck is treated linearly (same assumption as
+      // SHUFFLE_REMAINING / REORDER_TOP): cards before currentPlaneIndex are
+      // the visited pile.
+      const before = state.deck.slice(0, state.currentPlaneIndex + 1)
+      const ahead = state.deck.slice(state.currentPlaneIndex + 1)
+
+      const planes: PlaneCard[] = []
+      const skippedNonPlanes: PlaneCard[] = []
+      let consumed = 0
+      for (const card of ahead) {
+        consumed++
+        if (card.card_type === 'plane') {
+          planes.push(card)
+          if (planes.length === 2) break
+        } else {
+          skippedNonPlanes.push(card)
         }
       }
 
-      if (planeIndices.length < 2) {
+      if (planes.length < 2) {
         // Not enough planes — just planeswalk to whatever is next
+        // modulo wrap matches PLANESWALK's existing behavior for deck exhaustion
         const nextIndex = (state.currentPlaneIndex + 1) % state.deck.length
         return {
           ...state,
@@ -89,10 +127,12 @@ function applyAction(state: GameState, action: GameAction): GameState {
         }
       }
 
+      const rest = ahead.slice(consumed)
       return {
         ...state,
-        currentPlaneIndex: planeIndices[0],
-        secondPlaneIndex: planeIndices[1],
+        deck: [...before, ...planes, ...rest, ...skippedNonPlanes],
+        currentPlaneIndex: state.currentPlaneIndex + 1,
+        secondPlaneIndex: state.currentPlaneIndex + 2,
         planesVisited: state.planesVisited + 2,
         phenomenonActive: false,
       }
@@ -344,7 +384,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   if (action.type === 'PLANESWALK' || action.type === 'SETTLE_DIE'
     || action.type === 'RESOLVE_PHENOMENON' || action.type === 'BEGIN_REVEAL_CHAOS'
     || action.type === 'DISMISS_REVEAL' || action.type === 'REORDER_BOTTOM'
-    || action.type === 'SPATIAL_MERGE' || action.type === 'LEAVE_DUAL_PLANE'
+    || action.type === 'PLANESWALK_NO_LEAVE'
     || action.type === 'RESOLVE_SPATIAL_MERGE' || action.type === 'REORDER_TOP'
     || action.type === 'ADD_ROLL' || action.type === 'REMOVE_ROLL') {
     return applyAction(state, action)

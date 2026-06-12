@@ -30,6 +30,15 @@ import { getPlaneEnvironment, AMBIENT_URLS } from '@/lib/game/plane-environments
 import { useAppStore } from '@/store/app-store'
 import type { GameState, DieResult, PlaneCard as PlaneCardType, TurnRecord } from '@/lib/game/types'
 
+function planeswalkAndCheckPhenomenon(prev: GameState): GameState {
+  const next = gameReducer(prev, { type: 'PLANESWALK' })
+  const landedCard = next.deck[next.currentPlaneIndex]
+  if (landedCard?.card_type === 'phenomenon') {
+    return { ...next, phenomenonActive: true }
+  }
+  return next
+}
+
 export default function GamePage() {
   const router = useRouter()
   const [state, setState] = useState<GameState | null>(null)
@@ -139,12 +148,7 @@ export default function GamePage() {
       setTimeout(() => {
         setState((prev) => {
           if (!prev) return prev
-          const next = gameReducer(prev, { type: 'PLANESWALK' })
-          const landedCard = next.deck[next.currentPlaneIndex]
-          if (landedCard?.card_type === 'phenomenon') {
-            return { ...next, phenomenonActive: true }
-          }
-          return next
+          return planeswalkAndCheckPhenomenon(prev)
         })
       }, 1200)
     }
@@ -171,10 +175,23 @@ export default function GamePage() {
       })
     } else if (plane.chaos_effect_type === 'force_planeswalk') {
       setSlideDirection('right')
+      audioManager.playPlaneswalkLayered()
       setTimeout(() => {
         setState((prev) => {
           if (!prev) return prev
-          return gameReducer(prev, { type: 'PLANESWALK' })
+          return planeswalkAndCheckPhenomenon(prev)
+        })
+      }, 1200)
+    } else if (plane.chaos_effect_type === 'planeswalk_no_leave') {
+      // Norn's Seedcore: planeswalk to the next plane without leaving this one
+      setSlideDirection('right')
+      audioManager.playPlaneswalkLayered()
+      setTimeout(() => {
+        setState((prev) => {
+          if (!prev) return prev
+          // PLANESWALK_NO_LEAVE scans to the next plane card (bottoming
+          // phenomena), so it can never land on a phenomenon
+          return gameReducer(prev, { type: 'PLANESWALK_NO_LEAVE' })
         })
       }, 1200)
     }
@@ -202,20 +219,24 @@ export default function GamePage() {
   }, [])
 
   const handleDismissChaos = useCallback(() => {
+    if (!state) return
+    // Which plane's overlay is being dismissed: the override (second plane of
+    // a dual state) or the primary plane.
+    const plane = chaosPlaneOverride ?? state.deck[state.currentPlaneIndex]
+    if (plane?.chaos_effect_type && plane.chaos_effect_type !== 'standard') {
+      setTimeout(() => handleSpecialChaos(plane), 300)
+    }
+    // Queue the second plane's chaos only when dismissing the PRIMARY
+    // overlay — dismissing the second plane's overlay must not re-queue it.
+    if (chaosPlaneOverride === null && state.secondPlaneIndex !== null) {
+      setPendingSecondChaos(true)
+    }
     setState((prev) => {
       if (!prev) return prev
-      const plane = prev.deck[prev.currentPlaneIndex]
-      const dismissed = gameReducer(prev, { type: 'DISMISS_CHAOS' })
-      if (plane?.chaos_effect_type && plane.chaos_effect_type !== 'standard') {
-        setTimeout(() => handleSpecialChaos(plane), 300)
-      }
-      if (prev.secondPlaneIndex !== null && !pendingSecondChaos) {
-        setPendingSecondChaos(true)
-      }
-      return dismissed
+      return gameReducer(prev, { type: 'DISMISS_CHAOS' })
     })
     setChaosPlaneOverride(null)
-  }, [handleSpecialChaos, pendingSecondChaos])
+  }, [state, chaosPlaneOverride, handleSpecialChaos])
 
   const handleUndo = useCallback(() => {
     setState((prev) => {
@@ -235,7 +256,7 @@ export default function GamePage() {
     setSlideDirection('right')
     setState((prev) => {
       if (!prev) return prev
-      return gameReducer(prev, { type: 'PLANESWALK' })
+      return planeswalkAndCheckPhenomenon(prev)
     })
   }, [])
 

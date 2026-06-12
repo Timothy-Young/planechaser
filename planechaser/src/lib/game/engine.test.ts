@@ -252,6 +252,105 @@ describe('phenomenon handling', () => {
   })
 })
 
+function withPhenomenonAt(state: GameState, ...indices: number[]): GameState {
+  const deck = [...state.deck]
+  for (const idx of indices) {
+    deck[idx] = { ...deck[idx], card_type: 'phenomenon' as const, type_line: 'Phenomenon' }
+  }
+  return { ...state, deck }
+}
+
+describe('PLANESWALK from a dual-plane state', () => {
+  it('leaves both planes and advances past the second plane', () => {
+    const state = makeState({ currentPlaneIndex: 1, secondPlaneIndex: 2, planesVisited: 3 })
+    const next = gameReducer(state, { type: 'PLANESWALK' })
+    expect(next.currentPlaneIndex).toBe(3) // not 2 — that plane is already occupied
+    expect(next.secondPlaneIndex).toBeNull()
+    expect(next.planesVisited).toBe(4)
+  })
+
+  it('advances normally from a single-plane state', () => {
+    const state = makeState({ currentPlaneIndex: 1, secondPlaneIndex: null, planesVisited: 2 })
+    const next = gameReducer(state, { type: 'PLANESWALK' })
+    expect(next.currentPlaneIndex).toBe(2)
+    expect(next.secondPlaneIndex).toBeNull()
+  })
+})
+
+describe('RESOLVE_SPATIAL_MERGE', () => {
+  it('merges onto the next two planes, adjacent after the phenomenon', () => {
+    // deck[0] is the Spatial Merging phenomenon; deck[1] and deck[2] are planes
+    const state = withPhenomenonAt(makeState({ phenomenonActive: true }), 0)
+    const next = gameReducer(state, { type: 'RESOLVE_SPATIAL_MERGE' })
+    expect(next.currentPlaneIndex).toBe(1)
+    expect(next.secondPlaneIndex).toBe(2)
+    expect(next.planesVisited).toBe(3) // started at 1, +2
+    expect(next.phenomenonActive).toBe(false)
+    expect(next.deck.map((c) => c.id)).toEqual(state.deck.map((c) => c.id)) // no reorder needed
+  })
+
+  it('bottoms a revealed phenomenon that sits between the two planes', () => {
+    // deck[0] = Spatial Merging (current), deck[2] = another phenomenon.
+    // Revealing finds planes at original indices 1 and 3; the phenomenon at 2
+    // goes to the bottom of the deck.
+    const state = withPhenomenonAt(makeState({ phenomenonActive: true }), 0, 2)
+    const next = gameReducer(state, { type: 'RESOLVE_SPATIAL_MERGE' })
+    expect(next.currentPlaneIndex).toBe(1)
+    expect(next.secondPlaneIndex).toBe(2)
+    expect(next.deck[1].id).toBe('plane-1')
+    expect(next.deck[2].id).toBe('plane-3') // plane moved up into adjacency
+    expect(next.deck[next.deck.length - 1].id).toBe('plane-2') // phenomenon bottomed
+    expect(next.deck).toHaveLength(state.deck.length)
+  })
+
+  it('falls back to a simple planeswalk when fewer than two planes remain ahead', () => {
+    const base = makeState({ phenomenonActive: true, currentPlaneIndex: 7 })
+    const state = withPhenomenonAt(base, 7, 8, 9) // only phenomena ahead of index 7
+    const next = gameReducer(state, { type: 'RESOLVE_SPATIAL_MERGE' })
+    expect(next.secondPlaneIndex).toBeNull()
+    expect(next.currentPlaneIndex).toBe(8)
+    expect(next.phenomenonActive).toBe(false)
+    expect(next.planesVisited).toBe(2)
+  })
+})
+
+describe("PLANESWALK_NO_LEAVE (Norn's Seedcore chaos)", () => {
+  it('adds the next plane as second plane without leaving the current one', () => {
+    const state = makeState({ currentPlaneIndex: 3, planesVisited: 4 })
+    const next = gameReducer(state, { type: 'PLANESWALK_NO_LEAVE' })
+    expect(next.currentPlaneIndex).toBe(3) // didn't leave
+    expect(next.secondPlaneIndex).toBe(4)
+    expect(next.planesVisited).toBe(5)
+  })
+
+  it('bottoms revealed phenomena before the revealed plane', () => {
+    // deck[4] is a phenomenon; reveal should skip it to plane-5 and bottom plane-4
+    const state = withPhenomenonAt(makeState({ currentPlaneIndex: 3, planesVisited: 4 }), 4)
+    const next = gameReducer(state, { type: 'PLANESWALK_NO_LEAVE' })
+    expect(next.currentPlaneIndex).toBe(3)
+    expect(next.secondPlaneIndex).toBe(4)
+    expect(next.deck[4].id).toBe('plane-5') // revealed plane moved adjacent
+    expect(next.deck[next.deck.length - 1].id).toBe('plane-4') // phenomenon bottomed
+  })
+
+  it('replaces the second plane when already on two planes (app caps at 2)', () => {
+    const state = makeState({ currentPlaneIndex: 3, secondPlaneIndex: 4, planesVisited: 5 })
+    const next = gameReducer(state, { type: 'PLANESWALK_NO_LEAVE' })
+    expect(next.currentPlaneIndex).toBe(3)
+    expect(next.secondPlaneIndex).toBe(5)
+    // a later planeswalk leaves everything behind
+    const after = gameReducer(next, { type: 'PLANESWALK' })
+    expect(after.currentPlaneIndex).toBe(6)
+    expect(after.secondPlaneIndex).toBeNull()
+  })
+
+  it('is a no-op when no plane card remains ahead', () => {
+    const state = withPhenomenonAt(makeState({ currentPlaneIndex: 7 }), 8, 9)
+    const next = gameReducer(state, { type: 'PLANESWALK_NO_LEAVE' })
+    expect(next).toEqual(state)
+  })
+})
+
 describe('reveal chaos actions', () => {
   it('BEGIN_REVEAL_CHAOS sets revealState', () => {
     const state = makeState()

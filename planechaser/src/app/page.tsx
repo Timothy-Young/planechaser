@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Swords, Users, Trophy, Dice5, ChevronRight, Sparkles, Layers, History } from 'lucide-react'
+import { Swords, Users, Trophy, Dice5, ChevronRight, Layers, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store/app-store'
 import { Footer } from '@/components/footer'
@@ -69,6 +69,7 @@ const STATS = [
 export default function Home() {
   const router = useRouter()
   const user = useAppStore((s) => s.user)
+  const uiTheme = useAppStore((s) => s.uiTheme)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => setMounted(true), [])
@@ -77,11 +78,77 @@ export default function Home() {
 
   return (
     <main className="min-h-screen relative overflow-hidden">
-      {/* Ambient background */}
+      {/* Ambient background — theme-conditional SVG geometry */}
       <div className="fixed inset-0 z-0">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full bg-[var(--color-accent-deep)]/12 blur-[180px]" />
-        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-[var(--color-gold)]/6 blur-[150px]" />
-        <div className="absolute top-1/2 left-0 w-[400px] h-[400px] rounded-full bg-[var(--color-cta)]/4 blur-[120px]" />
+        {uiTheme === 'atlas' ? (
+          <svg className="absolute inset-0 w-full h-full opacity-50" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="emberGlowHero" cx="50%" cy="45%" r="55%">
+                <stop offset="0%" stopColor="#8a5a1f" stopOpacity="0.25"/>
+                <stop offset="60%" stopColor="#3d2a4e" stopOpacity="0.12"/>
+                <stop offset="100%" stopColor="#0d0a10" stopOpacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect width="1200" height="700" fill="url(#emberGlowHero)"/>
+            {/* concentric portal rings */}
+            <g fill="none" stroke="#d4a64a" transform="translate(600 330)">
+              <circle r="160" strokeWidth="0.7" opacity="0.35"/>
+              <circle r="220" strokeWidth="0.5" opacity="0.22" strokeDasharray="3 9"/>
+              <circle r="290" strokeWidth="0.4" opacity="0.15"/>
+              <circle r="370" strokeWidth="0.3" opacity="0.1" strokeDasharray="2 14"/>
+              {/* compass points */}
+              <g opacity="0.5" strokeWidth="1">
+                <line x1="0" y1="-172" x2="0" y2="-148"/><line x1="0" y1="148" x2="0" y2="172"/>
+                <line x1="-172" y1="0" x2="-148" y2="0"/><line x1="148" y1="0" x2="172" y2="0"/>
+              </g>
+            </g>
+            <g fill="#e8c476">
+              <circle cx="600" cy="170" r="2" opacity="0.7"/><circle cx="600" cy="490" r="1.5" opacity="0.45"/>
+              <circle cx="440" cy="330" r="1.5" opacity="0.5"/><circle cx="760" cy="330" r="1.8" opacity="0.55"/>
+              <circle cx="280" cy="180" r="1" opacity="0.35"/><circle cx="930" cy="470" r="1.2" opacity="0.4"/>
+            </g>
+          </svg>
+        ) : (
+          <svg className="absolute inset-0 w-full h-full opacity-50" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="voidGlowHero" cx="50%" cy="40%" r="60%">
+                <stop offset="0%" stopColor="#3b1f8a" stopOpacity="0.35"/>
+                <stop offset="55%" stopColor="#1d1145" stopOpacity="0.15"/>
+                <stop offset="100%" stopColor="#0a0813" stopOpacity="0"/>
+              </radialGradient>
+              <g id="hedronHero">
+                <polygon points="0,-22 9,-8 9,8 0,22 -9,8 -9,-8" fill="none" stroke="#b18aff" strokeWidth="1"/>
+                <line x1="0" y1="-22" x2="0" y2="22" stroke="#b18aff" strokeWidth="0.5" opacity="0.5"/>
+              </g>
+            </defs>
+            <rect width="1200" height="700" fill="url(#voidGlowHero)"/>
+            {/* constellation lines */}
+            <g stroke="#6f4fd8" strokeWidth="0.6" opacity="0.3">
+              <line x1="180" y1="160" x2="380" y2="90"/><line x1="380" y1="90" x2="590" y2="170"/>
+              <line x1="900" y1="120" x2="1050" y2="230"/><line x1="760" y1="520" x2="950" y2="580"/>
+              <line x1="150" y1="500" x2="320" y2="590"/><line x1="590" y1="170" x2="760" y2="80"/>
+            </g>
+            {/* hedrons */}
+            <use href="#hedronHero" x="180" y="160" opacity="0.7" transform="rotate(15 180 160)"/>
+            <use href="#hedronHero" x="380" y="90" opacity="0.4" transform="rotate(-25 380 90) scale(0.7)"/>
+            <use href="#hedronHero" x="590" y="170" opacity="0.55" transform="rotate(40 590 170) scale(1.3)"/>
+            <use href="#hedronHero" x="900" y="120" opacity="0.6" transform="rotate(-10 900 120)"/>
+            <use href="#hedronHero" x="1050" y="230" opacity="0.35" transform="rotate(30 1050 230) scale(0.6)"/>
+            <use href="#hedronHero" x="150" y="500" opacity="0.45" transform="rotate(-35 150 500) scale(0.8)"/>
+            <use href="#hedronHero" x="320" y="590" opacity="0.3" transform="rotate(10 320 590) scale(0.55)"/>
+            <use href="#hedronHero" x="760" y="520" opacity="0.5" transform="rotate(50 760 520) scale(0.9)"/>
+            <use href="#hedronHero" x="950" y="580" opacity="0.35" transform="rotate(-20 950 580) scale(0.65)"/>
+            <use href="#hedronHero" x="760" y="80" opacity="0.3" transform="rotate(65 760 80) scale(0.5)"/>
+            {/* stars */}
+            <g fill="#cbb8ff">
+              <circle cx="250" cy="300" r="1.2" opacity="0.6"/><circle cx="480" cy="240" r="0.8" opacity="0.4"/>
+              <circle cx="680" cy="330" r="1" opacity="0.5"/><circle cx="850" cy="280" r="1.4" opacity="0.7"/>
+              <circle cx="1000" cy="420" r="0.9" opacity="0.4"/><circle cx="120" cy="350" r="1.1" opacity="0.5"/>
+              <circle cx="560" cy="540" r="1" opacity="0.45"/><circle cx="420" cy="430" r="0.7" opacity="0.35"/>
+              <circle cx="320" cy="180" r="0.9" opacity="0.5"/><circle cx="720" cy="210" r="0.8" opacity="0.4"/>
+            </g>
+          </svg>
+        )}
       </div>
 
       {/* Hero */}
@@ -92,12 +159,12 @@ export default function Home() {
           transition={{ duration: 0.8 }}
           className="max-w-[600px] space-y-6"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/8 text-[11px] text-[var(--color-accent)] font-medium tracking-wide" style={{ fontFamily: 'var(--font-body)' }}>
-            <Sparkles size={12} /> MTG Planechase Companion
+          <div className="inline-flex items-center gap-2 px-5 py-2 border border-[var(--color-gold)]/40 rounded-sm bg-gradient-to-b from-[var(--color-gold)]/8 to-transparent text-[11px] tracking-[0.25em] uppercase text-[var(--color-gold)]" style={{ fontFamily: 'var(--font-heading)' }}>
+            Planechase Companion
           </div>
 
           <h1
-            className="text-[44px] sm:text-[56px] md:text-[68px] font-bold text-[var(--color-accent)] text-glow-purple leading-[1.1] tracking-wide"
+            className="hero-h1-gradient text-[44px] sm:text-[56px] md:text-[68px] font-bold leading-[1.1] tracking-wide"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             PlaneChaser
@@ -111,8 +178,10 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Button
               onClick={() => router.push(user ? '/setup' : '/auth')}
-              className="h-13 px-8 text-[16px] bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] hover:opacity-90 text-white rounded-xl"
-              style={{ fontFamily: 'var(--font-heading)', boxShadow: '0 4px 40px rgba(124, 58, 237, 0.4)', height: 52 }}
+              variant="cta"
+              size="lg"
+              className="px-8 text-[16px]"
+              style={{ fontFamily: 'var(--font-heading)', height: 52 }}
             >
               {user ? 'Start Playing' : 'Get Started'} <ChevronRight size={18} className="ml-1" />
             </Button>
@@ -315,8 +384,10 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button
               onClick={() => router.push(user ? '/setup' : '/auth')}
-              className="h-13 px-10 text-[16px] bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] hover:opacity-90 text-white rounded-xl"
-              style={{ fontFamily: 'var(--font-heading)', boxShadow: '0 4px 40px rgba(124, 58, 237, 0.4)', height: 52 }}
+              variant="cta"
+              size="lg"
+              className="px-10 text-[16px]"
+              style={{ fontFamily: 'var(--font-heading)', height: 52 }}
             >
               {user ? 'Go to Game' : 'Create Free Account'}
             </Button>

@@ -45,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark h-full" data-theme="atlas">
+    <html lang="en" className="dark h-full" data-theme="eternities">
       <body className="min-h-full flex flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
         <Providers>
           <NavigationLoader />

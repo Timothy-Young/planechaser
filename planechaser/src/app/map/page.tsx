@@ -251,7 +251,7 @@ export default function MapPage() {
         >
           <MapIcon className="w-6 h-6 text-[var(--color-accent)]" />
           <h1
-            className="text-2xl font-bold text-[var(--color-text)]"
+            className="text-2xl font-bold title-gradient"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             Planar Map

@@ -64,7 +64,7 @@ export default function PodsPage() {
 
       <div className="relative z-10 flex-1 px-4 py-8 max-w-[520px] mx-auto w-full space-y-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-2">
-          <h1 className="text-[26px] font-bold text-[var(--color-text)] tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
+          <h1 className="text-[26px] font-bold title-gradient tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
             Your Pods
           </h1>
           <p className="text-[13px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>

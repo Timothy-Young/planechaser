@@ -108,7 +108,7 @@ export default function LobbyPage() {
       <div className="max-w-md mx-auto w-full flex flex-col gap-6">
         <div className="text-center">
           <h1
-            className="text-2xl font-bold text-white"
+            className="text-2xl font-bold title-gradient"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             Game Lobby

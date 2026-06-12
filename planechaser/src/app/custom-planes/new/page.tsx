@@ -100,7 +100,7 @@ export default function CreateCustomPlanePage() {
           <ArrowLeft size={20} />
         </button>
         <h1
-          className="text-[17px] font-bold text-[var(--color-text)]"
+          className="text-[17px] font-bold title-gradient"
           style={{ fontFamily: 'var(--font-heading)' }}
         >
           Create Custom Plane

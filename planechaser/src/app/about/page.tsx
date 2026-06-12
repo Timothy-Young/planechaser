@@ -62,7 +62,7 @@ export default function AboutPage() {
         </button>
         <div>
           <h1
-            className="text-lg font-bold text-[var(--color-text)]"
+            className="text-lg font-bold title-gradient"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             About PlaneChaser

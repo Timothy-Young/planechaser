@@ -69,7 +69,7 @@ export default function SupportPage() {
           <ArrowLeft size={18} />
         </button>
         <h1
-          className="text-[18px] font-bold text-[var(--color-text)] tracking-wide"
+          className="text-[18px] font-bold title-gradient tracking-wide"
           style={{ fontFamily: 'var(--font-heading)' }}
         >
           Support PlaneChaser

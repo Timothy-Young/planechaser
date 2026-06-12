@@ -99,7 +99,7 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
       <div className="relative z-10 flex-1 px-4 py-6 max-w-[520px] mx-auto w-full space-y-6">
         {/* Pod info */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-2">
-          <h1 className="text-[24px] font-bold text-[var(--color-text)] tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
+          <h1 className="text-[24px] font-bold title-gradient tracking-wide" style={{ fontFamily: 'var(--font-heading)' }}>
             {pod?.name ?? 'Loading...'}
           </h1>
           {pod && (

@@ -162,7 +162,7 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="flex items-center justify-center gap-2">
-                <h1 className="text-[22px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-heading)' }}>
+                <h1 className="text-[22px] font-bold title-gradient" style={{ fontFamily: 'var(--font-heading)' }}>
                   {displayName}
                 </h1>
                 {profile?.role && profile.role !== 'user' && (

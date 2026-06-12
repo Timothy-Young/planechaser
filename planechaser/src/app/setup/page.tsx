@@ -280,7 +280,7 @@ function SetupPageInner() {
           {/* Title */}
           <div className="text-center space-y-2">
             <h1
-              className="text-[32px] md:text-[40px] font-bold text-[var(--color-accent)] text-glow-purple tracking-wide"
+              className="text-[32px] md:text-[40px] font-bold title-gradient tracking-wide"
               style={{ fontFamily: 'var(--font-heading)' }}
             >
               PlaneChaser

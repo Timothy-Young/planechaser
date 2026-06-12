@@ -5,27 +5,27 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  /* PlaneChaser MTG-inspired design tokens */
-  --color-bg: #0f0f1a;
-  --color-bg-subtle: #151524;
-  --color-surface: #1c1c34;
-  --color-surface-raised: #242442;
-  --color-accent: #c084fc;
-  --color-accent-deep: #7c3aed;
-  --color-accent-muted: #a78bfa;
-  --color-gold: #f59e0b;
-  --color-gold-muted: #d97706;
-  --color-cta: #ef4444;
-  --color-cta-hover: #dc2626;
-  --color-text: #f1f5f9;
-  --color-text-secondary: #cbd5e1;
-  --color-text-muted: #64748b;
-  --color-destructive: #ef4444;
-  --color-border: #2a2a48;
-  --color-border-subtle: #1e1e38;
-  --color-glow-purple: rgba(168, 85, 247, 0.4);
-  --color-glow-gold: rgba(245, 158, 11, 0.3);
-  --color-glow-red: rgba(239, 68, 68, 0.3);
+  /* PlaneChaser MTG-inspired design tokens — values resolve via CSS vars for theme-switching */
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-muted: var(--accent-muted);
+  --color-gold: var(--gold);
+  --color-gold-muted: var(--gold-muted);
+  --color-cta: var(--cta);
+  --color-cta-hover: var(--cta-hover);
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-glow-purple: var(--glow-purple);
+  --color-glow-gold: var(--glow-gold);
+  --color-glow-red: var(--glow-red);
   --font-heading: 'Cinzel', serif;
   --font-body: 'Inter', sans-serif;
   --radius-card: 16px;
@@ -52,71 +52,194 @@
   --radius-xl: calc(var(--radius) * 1.4);
 }
 
+/* ═══════════════════════════════════════════════
+   ATLAS THEME (default — gold-forward)
+   Active on :root (i.e. html[data-theme="atlas"] or no data-theme)
+   ═══════════════════════════════════════════════ */
 :root {
   color-scheme: dark;
 
-  --background: #0f0f1a;
-  --foreground: #f1f5f9;
-  --card: #1c1c34;
-  --card-foreground: #f1f5f9;
-  --popover: #1c1c34;
-  --popover-foreground: #f1f5f9;
-  --primary: #7c3aed;
-  --primary-foreground: #ffffff;
-  --secondary: #1c1c34;
-  --secondary-foreground: #f1f5f9;
-  --muted: #1c1c34;
-  --muted-foreground: #64748b;
-  --accent: #7c3aed;
-  --accent-foreground: #ffffff;
-  --destructive: #ef4444;
-  --border: #2a2a48;
-  --input: #2a2a48;
-  --ring: #7c3aed;
+  /* Custom PlaneChaser raw vars — Atlas */
+  --bg: #0d0a10;
+  --bg-subtle: #141017;
+  --surface: #1c1622;
+  --surface-raised: #261d2e;
+  --accent: #d4a64a;
+  --accent-deep: #9a742c;
+  --accent-muted: #9f7aea;
+  --gold: #d4a64a;
+  --gold-deep: #9a742c;
+  --gold-muted: #9a742c;
+  --purple: #9f7aea;
+  --cta: #c45c3a;
+  --cta-hover: #a84a2d;
+  --text: #f5f1e8;
+  --text-secondary: #c9c2b4;
+  --text-muted: #847d6e;
+  --border: #3a2f44;
+  --border-subtle: #2a2230;
+  --destructive: #c45c3a;
+  --glow-purple: rgba(159, 122, 234, 0.3);
+  --glow-gold: rgba(212, 166, 74, 0.3);
+  --glow-red: rgba(196, 92, 58, 0.3);
+  /* CTA gradient tokens — Atlas (dark text on gold) */
+  --gradient-cta-from: #e8c476;
+  --gradient-cta-to: #c89638;
+  --color-cta-text: #1a1208;
+  --cta-border: #f0d490;
+
+  /* shadcn semantic vars — Atlas */
+  --background: #0d0a10;
+  --foreground: #f5f1e8;
+  --card: #1c1622;
+  --card-foreground: #f5f1e8;
+  --popover: #1c1622;
+  --popover-foreground: #f5f1e8;
+  --primary: #9a742c;
+  --primary-foreground: #1a1208;
+  --secondary: #1c1622;
+  --secondary-foreground: #f5f1e8;
+  --muted: #1c1622;
+  --muted-foreground: #847d6e;
+  --accent: #9a742c;
+  --accent-foreground: #1a1208;
+  --destructive: #c45c3a;
+  --border: #3a2f44;
+  --input: #3a2f44;
+  --ring: #d4a64a;
   --radius: 0.75rem;
 }
 
+/* ═══════════════════════════════════════════════
+   ETERNITIES THEME (purple-forward)
+   Active on html[data-theme="eternities"]
+   ═══════════════════════════════════════════════ */
+html[data-theme="eternities"] {
+  /* Custom PlaneChaser raw vars — Eternities */
+  --bg: #0a0813;
+  --bg-subtle: #100d1d;
+  --surface: #171331;
+  --surface-raised: #1f1a3e;
+  --accent: #b18aff;
+  --accent-deep: #5b2bd6;
+  --accent-muted: #cbb8ff;
+  --gold: #d9a648;
+  --gold-deep: #b08030;
+  --gold-muted: #b08030;
+  --purple: #b18aff;
+  --cta: #e25c4a;
+  --cta-hover: #c94a3a;
+  --text: #f2f0f7;
+  --text-secondary: #b8b3cc;
+  --text-muted: #756f8f;
+  --border: #2b2450;
+  --border-subtle: #1d1840;
+  --destructive: #e25c4a;
+  --glow-purple: rgba(91, 43, 214, 0.4);
+  --glow-gold: rgba(217, 166, 72, 0.3);
+  --glow-red: rgba(226, 92, 74, 0.3);
+  /* CTA gradient tokens — Eternities (white text on purple) */
+  --gradient-cta-from: #4a21b8;
+  --gradient-cta-to: #7a44e8;
+  --color-cta-text: #ffffff;
+  --cta-border: rgba(177, 138, 255, 0.4);
+
+  /* shadcn semantic vars — Eternities */
+  --background: #0a0813;
+  --foreground: #f2f0f7;
+  --card: #171331;
+  --card-foreground: #f2f0f7;
+  --popover: #171331;
+  --popover-foreground: #f2f0f7;
+  --primary: #5b2bd6;
+  --primary-foreground: #ffffff;
+  --secondary: #171331;
+  --secondary-foreground: #f2f0f7;
+  --muted: #171331;
+  --muted-foreground: #756f8f;
+  --accent: #5b2bd6;
+  --accent-foreground: #ffffff;
+  --destructive: #e25c4a;
+  --border: #2b2450;
+  --input: #2b2450;
+  --ring: #b18aff;
+}
+
+/* ═══════════════════════════════════════════════
+   LIGHT MODE — shared surfaces + darkened gold
+   Overrides for both themes on html.light
+   ═══════════════════════════════════════════════ */
 html.light {
   color-scheme: light;
 
-  --color-bg: #f5f0fa;
-  --color-bg-subtle: #ebe5f2;
-  --color-surface: #ffffff;
-  --color-surface-raised: #f0ebf5;
-  --color-accent: #7c3aed;
-  --color-accent-deep: #6d28d9;
-  --color-accent-muted: #8b5cf6;
-  --color-gold: #d97706;
-  --color-gold-muted: #b45309;
-  --color-cta: #dc2626;
-  --color-cta-hover: #b91c1c;
-  --color-text: #1e1b2e;
-  --color-text-secondary: #3f3a52;
-  --color-text-muted: #6b6580;
-  --color-destructive: #dc2626;
-  --color-border: #d8d0e4;
-  --color-border-subtle: #e8e2f0;
-  --color-glow-purple: rgba(124, 58, 237, 0.2);
-  --color-glow-gold: rgba(217, 119, 6, 0.15);
-  --color-glow-red: rgba(220, 38, 38, 0.15);
+  --bg: #f5f0fa;
+  --bg-subtle: #ebe5f2;
+  --surface: #ffffff;
+  --surface-raised: #f0ebf5;
+  --accent: #9a742c;
+  --accent-deep: #7a5a20;
+  --accent-muted: #b08030;
+  --gold: #9a742c;
+  --gold-deep: #7a5a20;
+  --gold-muted: #7a5a20;
+  --purple: #7c3aed;
+  --cta: #dc2626;
+  --cta-hover: #b91c1c;
+  --text: #1e1b2e;
+  --text-secondary: #3f3a52;
+  --text-muted: #6b6580;
+  --border: #d8d0e4;
+  --border-subtle: #e8e2f0;
+  --destructive: #dc2626;
+  --glow-purple: rgba(124, 58, 237, 0.2);
+  --glow-gold: rgba(154, 116, 44, 0.2);
+  --glow-red: rgba(220, 38, 38, 0.15);
+  /* CTA gradient stays legible on light — gold with dark text */
+  --gradient-cta-from: #c89638;
+  --gradient-cta-to: #9a742c;
+  --color-cta-text: #1a1208;
+  --cta-border: #b08030;
 
+  /* shadcn semantic vars — Atlas light */
   --background: #f5f0fa;
   --foreground: #1e1b2e;
   --card: #ffffff;
   --card-foreground: #1e1b2e;
   --popover: #ffffff;
   --popover-foreground: #1e1b2e;
-  --primary: #7c3aed;
-  --primary-foreground: #ffffff;
+  --primary: #9a742c;
+  --primary-foreground: #1a1208;
   --secondary: #f0ebf5;
   --secondary-foreground: #1e1b2e;
   --muted: #f0ebf5;
   --muted-foreground: #6b6580;
-  --accent: #7c3aed;
-  --accent-foreground: #ffffff;
+  --accent: #9a742c;
+  --accent-foreground: #1a1208;
   --destructive: #dc2626;
   --border: #d8d0e4;
   --input: #d8d0e4;
+  --ring: #9a742c;
+}
+
+/* Light mode + Eternities — purple accent, gold darkened */
+html.light[data-theme="eternities"] {
+  --accent: #6d28d9;
+  --accent-deep: #5b21b6;
+  --accent-muted: #7c3aed;
+  --purple: #6d28d9;
+  --gold: #9a742c;
+  --gold-deep: #7a5a20;
+  /* CTA stays purple with white text — legible on light cards */
+  --gradient-cta-from: #5b21b6;
+  --gradient-cta-to: #7c3aed;
+  --color-cta-text: #ffffff;
+  --cta-border: rgba(109, 40, 217, 0.4);
+
+  /* shadcn overrides for eternities light */
+  --primary: #6d28d9;
+  --primary-foreground: #ffffff;
+  --accent: #6d28d9;
+  --accent-foreground: #ffffff;
   --ring: #7c3aed;
 }
 
@@ -209,6 +332,24 @@ html.light body::before {
   text-shadow: 0 0 20px rgba(245, 158, 11, 0.5), 0 0 40px rgba(245, 158, 11, 0.2);
 }
 
+/* Hero H1 gradient — Atlas (gold) */
+.hero-h1-gradient {
+  background: linear-gradient(180deg, #f3e3bd 10%, var(--gold) 50%, var(--gold-deep) 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 18px rgba(212, 166, 74, 0.3));
+}
+
+/* Hero H1 gradient — Eternities (purple) override */
+html[data-theme="eternities"] .hero-h1-gradient {
+  background: linear-gradient(175deg, #e8dcff 20%, var(--accent) 55%, #7a52e0 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 24px rgba(140, 100, 255, 0.35));
+}
+
 /* Animated gradient border */
 .gradient-border {
   position: relative;
@@ -271,6 +412,9 @@ html.light body::before {
   }
   html {
     @apply font-sans;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading);
   }
   button,
   [role="button"] {

@@ -31,12 +31,14 @@ function AuthSync() {
 
 function ThemeSync() {
   const theme = useAppStore((s) => s.theme)
+  const uiTheme = useAppStore((s) => s.uiTheme)
 
   useEffect(() => {
     const root = document.documentElement
     root.classList.remove('dark', 'light')
     root.classList.add(theme)
-  }, [theme])
+    root.setAttribute('data-theme', uiTheme)
+  }, [theme, uiTheme])
 
   return null
 }

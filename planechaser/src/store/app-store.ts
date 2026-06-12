@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import type { UserRole } from '@/lib/admin/types'
 
 type Theme = 'dark' | 'light'
+export type UiTheme = 'atlas' | 'eternities'
 
 interface AppState {
   user: User | null
@@ -17,6 +18,8 @@ interface AppState {
   setIsHost: (isHost: boolean) => void
   theme: Theme
   toggleTheme: () => void
+  uiTheme: UiTheme
+  setUiTheme: (t: UiTheme) => void
   includeGoldBorder: boolean
   setIncludeGoldBorder: (include: boolean) => void
   userRole: UserRole | null
@@ -36,6 +39,8 @@ export const useAppStore = create<AppState>()(
       setIsHost: (isHost) => set({ isHost }),
       theme: 'dark' as Theme,
       toggleTheme: () => set({ theme: get().theme === 'dark' ? 'light' : 'dark' }),
+      uiTheme: 'atlas' as UiTheme,
+      setUiTheme: (uiTheme) => set({ uiTheme }),
       includeGoldBorder: false,
       setIncludeGoldBorder: (includeGoldBorder) => set({ includeGoldBorder }),
       userRole: null,

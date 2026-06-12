@@ -39,7 +39,7 @@ export const useAppStore = create<AppState>()(
       setIsHost: (isHost) => set({ isHost }),
       theme: 'dark' as Theme,
       toggleTheme: () => set({ theme: get().theme === 'dark' ? 'light' : 'dark' }),
-      uiTheme: 'atlas' as UiTheme,
+      uiTheme: 'eternities' as UiTheme,
       setUiTheme: (uiTheme) => set({ uiTheme }),
       includeGoldBorder: false,
       setIncludeGoldBorder: (includeGoldBorder) => set({ includeGoldBorder }),

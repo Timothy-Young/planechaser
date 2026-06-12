@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-05-13)
 
 Phase: 7a complete, 8 next (Planar Map & Social)
 Status: User testing all merged work before starting Phase 8
-Last activity: 2026-06-12 — Completed quick task 260611-w6e: Planar Atlas styling refresh with theme toggle
+Last activity: 2026-06-12 — Completed quick task 260612-94j: Blind Eternities default, gradient buttons + titles (pending user visual verification)
 
 Progress: Phases 2-7a COMPLETE, 7b deferred, 8-9 NOT STARTED
 
@@ -111,6 +111,7 @@ Recent decisions affecting current work:
 | 260518-mur | Polish audit: whileTap animations and cursor consistency across all interactive elements | 2026-05-18 | 2ae0fa8 | [260518-mur-polish-audit](./quick/260518-mur-polish-audit-whiletap-animations-and-cur/) |
 | 260518-tu7 | Fix game history detail page player names and planeswalk banner | 2026-05-19 | pending | [260518-tu7-fix-game-history](./quick/260518-tu7-fix-game-history-detail-page-player-name/) |
 | 260611-w6e | Styling refresh: Planar Atlas (default) + Blind Eternities theme variants, admin toggle, cta button variant, hero SVG geometry | 2026-06-12 | ddec074 | [260611-w6e-styling-refresh](./quick/260611-w6e-styling-refresh-planar-atlas-blind-etern/) |
+| 260612-94j | Styling follow-up: Blind Eternities now default theme, gradient on default buttons, gradient page titles app-wide | 2026-06-12 | d892a5e | [260612-94j-styling-follow-up](./quick/260612-94j-styling-follow-up-default-to-blind-etern/) |
 
 ## Deferred Items
 

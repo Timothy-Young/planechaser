@@ -39,7 +39,7 @@ export default function CustomPlanesPage() {
             <div className="flex items-center gap-2">
               <Wand2 size={18} className="text-[var(--color-accent)]" />
               <h1
-                className="text-[17px] font-bold text-[var(--color-text)]"
+                className="text-[17px] font-bold title-gradient"
                 style={{ fontFamily: 'var(--font-heading)' }}
               >
                 Custom Planes

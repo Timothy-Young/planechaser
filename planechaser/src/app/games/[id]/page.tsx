@@ -120,7 +120,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
           >
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-xl font-bold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
+          <h1 className="text-xl font-bold title-gradient" style={{ fontFamily: 'var(--font-heading)' }}>
             {isArchenemy ? 'Archenemy Game' : 'Planechase Game'}
           </h1>
         </div>

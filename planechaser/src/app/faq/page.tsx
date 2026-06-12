@@ -37,7 +37,7 @@ export default function FAQPage() {
         </button>
         <div>
           <h1
-            className="text-lg font-bold text-[var(--color-text)]"
+            className="text-lg font-bold title-gradient"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             Tips & Tricks

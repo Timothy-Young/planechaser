@@ -51,7 +51,7 @@ export default function SpectatePage() {
             <Eye className="w-6 h-6 text-[var(--color-accent)]" />
           </div>
           <h1
-            className="text-xl font-bold text-white"
+            className="text-xl font-bold title-gradient"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             Waiting for host to start...
@@ -73,7 +73,7 @@ export default function SpectatePage() {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center bg-[var(--color-bg)] p-6">
         <div className="text-center">
-          <h1 className="text-xl font-bold text-white" style={{ fontFamily: 'var(--font-heading)' }}>
+          <h1 className="text-xl font-bold title-gradient" style={{ fontFamily: 'var(--font-heading)' }}>
             Game Over
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-2">

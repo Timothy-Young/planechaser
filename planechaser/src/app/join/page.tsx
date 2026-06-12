@@ -46,7 +46,7 @@ export default function JoinPage() {
       >
         <div className="text-center">
           <h1
-            className="text-2xl font-bold text-[var(--color-text)]"
+            className="text-2xl font-bold title-gradient"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             Join Game

@@ -333,7 +333,7 @@ html.light body::before {
 }
 
 /* Hero H1 gradient — Atlas (gold) */
-.hero-h1-gradient {
+.hero-h1-gradient, .title-gradient {
   background: linear-gradient(180deg, #f3e3bd 10%, var(--gold) 50%, var(--gold-deep) 95%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -342,12 +342,29 @@ html.light body::before {
 }
 
 /* Hero H1 gradient — Eternities (purple) override */
-html[data-theme="eternities"] .hero-h1-gradient {
+html[data-theme="eternities"] .hero-h1-gradient, html[data-theme="eternities"] .title-gradient {
   background: linear-gradient(175deg, #e8dcff 20%, var(--accent) 55%, #7a52e0 95%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   filter: drop-shadow(0 0 24px rgba(140, 100, 255, 0.35));
+}
+
+/* Light mode overrides — darker stops for legibility on light backgrounds */
+html.light .hero-h1-gradient, html.light .title-gradient {
+  background: linear-gradient(180deg, var(--gold) 0%, var(--gold-deep) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 4px rgba(154, 116, 44, 0.2));
+}
+
+html.light[data-theme="eternities"] .hero-h1-gradient, html.light[data-theme="eternities"] .title-gradient {
+  background: linear-gradient(175deg, var(--accent) 0%, var(--accent-deep) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 4px rgba(109, 40, 217, 0.2));
 }
 
 /* Animated gradient border */

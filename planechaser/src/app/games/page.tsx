@@ -56,7 +56,7 @@ export default function GamesPage() {
               <ArrowLeft size={20} />
             </button>
             <h1
-              className="text-[24px] font-bold text-[var(--color-text)]"
+              className="text-[24px] font-bold title-gradient"
               style={{ fontFamily: 'var(--font-heading)' }}
             >
               Game History

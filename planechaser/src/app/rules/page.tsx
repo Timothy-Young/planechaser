@@ -2,15 +2,16 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ChevronDown } from 'lucide-react'
-import { RULES_SECTIONS } from '@/lib/rules/content'
+import { ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react'
+import { HUB_SECTIONS } from '@/lib/rules/content'
 import { Footer } from '@/components/footer'
 
 export default function RulesPage() {
   const router = useRouter()
   const [openSections, setOpenSections] = useState<Set<string>>(
-    new Set(['Planechase Basics'])
+    new Set()
   )
 
   function toggleSection(title: string) {
@@ -71,8 +72,53 @@ export default function RulesPage() {
           </p>
         </div>
 
-        {/* Accordion sections */}
-        {RULES_SECTIONS.map((section) => {
+        {/* Navigation cards */}
+        <Link
+          href="/rules/planechase"
+          className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 backdrop-blur-sm p-4 transition-colors hover:bg-white/5"
+        >
+          <span className="text-[24px] shrink-0">🌍</span>
+          <div className="min-w-0 flex-1">
+            <div
+              className="text-[14px] font-semibold title-gradient"
+              style={{ fontFamily: 'var(--font-heading)' }}
+            >
+              Planechase Rules
+            </div>
+            <p
+              className="text-[12px] text-[var(--color-text-muted)]"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              Planar deck, the die, phenomena &amp; spatial merging
+            </p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-[var(--color-text-muted)] shrink-0" />
+        </Link>
+
+        <Link
+          href="/rules/archenemy"
+          className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 backdrop-blur-sm p-4 transition-colors hover:bg-white/5"
+        >
+          <span className="text-[24px] shrink-0">⚔️</span>
+          <div className="min-w-0 flex-1">
+            <div
+              className="text-[14px] font-semibold title-gradient"
+              style={{ fontFamily: 'var(--font-heading)' }}
+            >
+              Archenemy Rules
+            </div>
+            <p
+              className="text-[12px] text-[var(--color-text-muted)]"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              Schemes, team play &amp; Supervillain Rumble
+            </p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-[var(--color-text-muted)] shrink-0" />
+        </Link>
+
+        {/* Accordion sections (app-specific) */}
+        {HUB_SECTIONS.map((section) => {
           const isOpen = openSections.has(section.title)
 
           return (

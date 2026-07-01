@@ -9,7 +9,7 @@ export interface RulesSection {
   steps: RulesStep[]
 }
 
-export const RULES_SECTIONS: RulesSection[] = [
+export const PLANECHASE_SECTIONS: RulesSection[] = [
   {
     title: 'Planechase Basics',
     icon: '🌍',
@@ -59,17 +59,64 @@ export const RULES_SECTIONS: RulesSection[] = [
     ],
   },
   {
-    title: 'Archenemy Mode',
-    icon: '⚔️',
-    intro: 'One dominant player faces the rest of the pod as a team.',
+    title: 'Deck Building Rules',
+    icon: '📚',
+    intro: 'Official Planechase deck construction rules, as used by PlaneChaser\'s shared planar deck.',
     steps: [
-      { text: 'Each pod has a conquest threshold (configurable in pod settings). When a player crosses it, they become the Archenemy.' },
-      { text: 'In Archenemy mode, the Archenemy plays against all other players working as a team.' },
-      { text: 'The Archenemy gets a Scheme deck: powerful one-shot abilities drawn each turn.' },
-      { text: 'If the team defeats the Archenemy, each team member can steal one of the Archenemy\'s conquered planes.' },
-      { text: 'If the Archenemy wins, they remain dominant. The meta-game continues.' },
+      { text: 'The shared planar deck must contain at least 40 cards, or at least 10 × the number of players — whichever is SMALLER (2 players → 20 cards; 4 players → 40 cards).' },
+      { text: 'The shared deck cannot contain more phenomenon cards than 2 × the number of players.' },
+      { text: 'No two plane or phenomenon cards in a planar deck may share a name.' },
+      { text: 'In PlaneChaser, you choose which planes appear in your deck — use all 86+ available planes or curate a smaller set.' },
+      { text: 'Decks are saved to your account and can be selected at game setup.' },
+      { text: 'The "Random" option at setup shuffles all available planes without needing a saved deck.' },
+      { text: 'Preset decks are available as starting points. One click to start with a curated set.' },
+      { text: 'Some chaos effects reveal or rearrange the top cards of the planar deck. When this happens, you can choose to put them on top or on the bottom.' },
     ],
   },
+  {
+    title: 'Individual Deck Planechase — Coming Soon',
+    icon: '🚧',
+    intro: 'A planned future variant where each player builds and plays their own plane deck.',
+    steps: [
+      { text: 'Individual Deck Planechase (each player building and drawing from their own smaller plane deck) is a planned future variant. PlaneChaser currently supports the shared-deck format described above.' },
+    ],
+  },
+]
+
+export const ARCHENEMY_SECTIONS: RulesSection[] = [
+  {
+    title: 'Archenemy Mode',
+    icon: '⚔️',
+    intro: 'One dominant player faces the rest of the pod as a team, using the official Archenemy format.',
+    steps: [
+      { text: 'Each pod has a conquest threshold (configurable in pod settings). When a player crosses it, they become the Archenemy.' },
+      { text: 'Archenemy mode pits 1 Archenemy against a team of the other players (3+ players total).' },
+      { text: 'Team members use standard 60+ card decks and start at 20 life each, with separate life totals.' },
+      { text: 'The Archenemy uses a standard 60+ card deck plus a scheme deck of 20+ oversized scheme cards (max 2 copies of any one scheme).' },
+      { text: 'The Archenemy starts at 40 life and always goes first — and still draws a card on their first draw step.' },
+      { text: 'At the start of the Archenemy\'s first main phase each turn, they reveal the top card of their scheme deck and set it in motion.' },
+      { text: 'One-shot schemes trigger immediately, then go to the bottom of the scheme deck. Ongoing schemes stay face-up and active until an ability says to "abandon" them, then they go to the bottom.' },
+      { text: 'The team takes a simultaneous turn (like Two-Headed Giant), sharing beginning, main, and combat phases.' },
+      { text: 'The Archenemy declares attackers and chooses which player or planeswalker each creature attacks; the team declares blockers together and may block for allies.' },
+      { text: 'A team member reduced to 0 life is removed from the game. Play continues until the Archenemy loses, or all team members have lost.' },
+      { text: 'If the team defeats the Archenemy, each team member can steal one of the Archenemy\'s conquered planes.' },
+      { text: 'If the Archenemy wins, they remain dominant and the meta-game continues.' },
+    ],
+  },
+  {
+    title: 'Supervillain Rumble Variant',
+    icon: '🦹',
+    intro: 'A free-for-all variant where every player is their own Archenemy.',
+    steps: [
+      { text: 'Supervillain Rumble is played with 3+ players in a free-for-all — every player is an archenemy with their own scheme deck.' },
+      { text: 'Each player starts at 40 life.' },
+      { text: 'The starting player is determined randomly.' },
+      { text: 'At the start of each player\'s first main phase, that player sets a scheme in motion from their own scheme deck.' },
+    ],
+  },
+]
+
+export const HUB_SECTIONS: RulesSection[] = [
   {
     title: 'Conquest System',
     icon: '👑',
@@ -79,7 +126,7 @@ export const RULES_SECTIONS: RulesSection[] = [
       { text: 'Conquered planes appear in your profile collection and count toward pod leaderboards.' },
       { text: 'Each conquest records who you took it from (if anyone) and which pod it belongs to.' },
       { text: 'Conquered planes are removed from future game decks by default, making the pool smaller over time.' },
-      { text: 'Earn achievements like "First Blood" (first conquest) and "Planar Dominion" (conquer 10+ planes).' },
+      { text: 'Earn conquest achievements like First Conquest (your first plane), Conqueror (5 planes), and Planar Dominion (conquer all 185).' },
     ],
   },
   {
@@ -92,19 +139,6 @@ export const RULES_SECTIONS: RulesSection[] = [
       { text: 'Start games directly from a pod with pre-selected members.' },
       { text: 'Pod owners can configure the Archenemy threshold, manage members, and regenerate invite codes.' },
       { text: 'You can belong to multiple pods. Each one tracks its own conquest separately.' },
-    ],
-  },
-  {
-    title: 'Building Decks',
-    icon: '📚',
-    intro: 'Curate your plane and scheme decks for every session.',
-    steps: [
-      { text: 'Plane Decks: Choose which planes appear in your Planechase games. Use all 86+ or curate a smaller set.' },
-      { text: 'Scheme Decks: Build decks for Archenemy mode with powerful scheme cards.' },
-      { text: 'Decks are saved to your account and can be selected at game setup.' },
-      { text: 'The "Random" option at setup shuffles all available planes without needing a saved deck.' },
-      { text: 'Preset decks are available as starting points. One click to start with a curated set.' },
-      { text: 'Some chaos effects reveal or rearrange the top cards of the planar deck. When this happens, you can choose to put them on top or on the bottom.' },
     ],
   },
 ]

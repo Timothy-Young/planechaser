@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-05-13)
 
 Phase: 7a complete, 8 next (Planar Map & Social)
 Status: User testing all merged work before starting Phase 8
-Last activity: 2026-07-01 — Completed quick task 260701-d85: Fix low-contrast border tokens app-wide (all 3 theme variants) + match /auth wordmark to home hero gradient
+Last activity: 2026-07-01 — Completed quick task 260701-dok: Bumped border/input contrast to ~3.2:1 WCAG (final pass after 260701-d85 undershot at ~2.2:1)
 
 Progress: Phases 2-7a COMPLETE, 7b deferred, 8-9 NOT STARTED
 
@@ -113,6 +113,7 @@ Recent decisions affecting current work:
 | 260611-w6e | Styling refresh: Planar Atlas (default) + Blind Eternities theme variants, admin toggle, cta button variant, hero SVG geometry | 2026-06-12 | ddec074 | [260611-w6e-styling-refresh](./quick/260611-w6e-styling-refresh-planar-atlas-blind-etern/) |
 | 260612-94j | Styling follow-up: Blind Eternities now default theme, gradient on default buttons, gradient page titles app-wide | 2026-06-12 | d892a5e | [260612-94j-styling-follow-up](./quick/260612-94j-styling-follow-up-default-to-blind-etern/) |
 | 260701-d85 | Fix low-contrast --border/--input tokens app-wide (Atlas/Eternities/light themes, ~3:1 WCAG) + match /auth wordmark to home hero gradient | 2026-07-01 | e1e0242 | [260701-d85-fix-low-contrast-border-color-app-wide-a](./quick/260701-d85-fix-low-contrast-border-color-app-wide-a/) |
+| 260701-dok | Bump border/input contrast the rest of the way to ~3.2:1 WCAG (260701-d85 undershot at ~2.2:1) | 2026-07-01 | 46c2dbc | [260701-dok-bump-border-input-contrast-to-3-1-in-all](./quick/260701-dok-bump-border-input-contrast-to-3-1-in-all/) |
 
 ## Deferred Items
 

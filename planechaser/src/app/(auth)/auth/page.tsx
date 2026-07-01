@@ -120,7 +120,7 @@ function AuthContent() {
         {/* Wordmark */}
         <div className="text-center space-y-2">
           <h1
-            className="text-[36px] font-bold text-[var(--color-accent)] text-glow-purple tracking-wider"
+            className="hero-h1-gradient text-[36px] font-bold tracking-wider"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             PlaneChaser

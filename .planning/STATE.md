@@ -95,9 +95,9 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- User is testing all merged work (PRs #16-18) before proceeding to Phase 8
 - Die roll audio file (die-roll.mp3) is 35s but playback capped at 1500ms via code — could trim file to save bandwidth
 - User should verify 2 substitute audio files (planeswalk SFX from freesound 523651, button-click from 220206) sound acceptable
+- See `.planning/todos/pending/` — 2026-07-01: Reconsider Phase 12 Eternities Map Variant scope (naming collision with Blind Eternities theme); Conquest/Dominion game-design layer (deferred, large engine+schema change, needs discuss-phase pass before starting)
 
 ### Blockers/Concerns
 

@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-05-13)
 
 Phase: 7a complete, 8 next (Planar Map & Social)
 Status: User testing all merged work before starting Phase 8
-Last activity: 2026-06-12 — Completed quick task 260612-94j: Blind Eternities default, gradient buttons + titles (pending user visual verification)
+Last activity: 2026-07-01 — Completed quick task 260701-d85: Fix low-contrast border tokens app-wide (all 3 theme variants) + match /auth wordmark to home hero gradient
 
 Progress: Phases 2-7a COMPLETE, 7b deferred, 8-9 NOT STARTED
 
@@ -112,6 +112,7 @@ Recent decisions affecting current work:
 | 260518-tu7 | Fix game history detail page player names and planeswalk banner | 2026-05-19 | pending | [260518-tu7-fix-game-history](./quick/260518-tu7-fix-game-history-detail-page-player-name/) |
 | 260611-w6e | Styling refresh: Planar Atlas (default) + Blind Eternities theme variants, admin toggle, cta button variant, hero SVG geometry | 2026-06-12 | ddec074 | [260611-w6e-styling-refresh](./quick/260611-w6e-styling-refresh-planar-atlas-blind-etern/) |
 | 260612-94j | Styling follow-up: Blind Eternities now default theme, gradient on default buttons, gradient page titles app-wide | 2026-06-12 | d892a5e | [260612-94j-styling-follow-up](./quick/260612-94j-styling-follow-up-default-to-blind-etern/) |
+| 260701-d85 | Fix low-contrast --border/--input tokens app-wide (Atlas/Eternities/light themes, ~3:1 WCAG) + match /auth wordmark to home hero gradient | 2026-07-01 | e1e0242 | [260701-d85-fix-low-contrast-border-color-app-wide-a](./quick/260701-d85-fix-low-contrast-border-color-app-wide-a/) |
 
 ## Deferred Items
 

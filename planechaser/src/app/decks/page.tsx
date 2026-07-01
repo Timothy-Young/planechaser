@@ -158,7 +158,7 @@ export default function DecksPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <h1
-              className="text-[24px] font-bold text-[var(--color-text)]"
+              className="text-[24px] font-bold title-gradient"
               style={{ fontFamily: 'var(--font-heading)' }}
             >
               My Decks

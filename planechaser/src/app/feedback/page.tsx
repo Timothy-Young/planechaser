@@ -80,7 +80,7 @@ export default function FeedbackPage() {
           <MessageSquare className="w-4 h-4 text-[var(--color-accent)]" />
           <div>
             <h1
-              className="text-lg font-bold text-[var(--color-text)]"
+              className="text-lg font-bold title-gradient"
               style={{ fontFamily: 'var(--font-heading)' }}
             >
               Send Feedback

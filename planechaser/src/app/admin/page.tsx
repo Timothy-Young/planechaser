@@ -2220,6 +2220,8 @@ function AnnouncementsTab() {
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('stats')
   const { data: stats } = useAppStats()
+  const uiTheme = useAppStore((s) => s.uiTheme)
+  const setUiTheme = useAppStore((s) => s.setUiTheme)
 
   const TABS: { key: AdminTab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { key: 'stats', label: 'Stats', icon: <BarChart3 size={14} /> },
@@ -2250,11 +2252,23 @@ export default function AdminPage() {
         <div className="flex items-center gap-3 px-4 py-3">
           <Shield className="w-5 h-5 text-[var(--color-accent)]" />
           <h1
-            className="text-lg font-bold text-[var(--color-text)]"
+            className="text-lg font-bold title-gradient"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             Admin Dashboard
           </h1>
+          <div className="relative ml-auto">
+            <select
+              value={uiTheme}
+              onChange={(e) => setUiTheme(e.target.value as 'atlas' | 'eternities')}
+              className="h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/60 text-[11px] text-[var(--color-text)] pl-2 pr-6 appearance-none focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
+              style={{ fontFamily: 'var(--font-heading)' }}
+            >
+              <option value="atlas">Planar Atlas</option>
+              <option value="eternities">Blind Eternities</option>
+            </select>
+            <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+          </div>
         </div>
 
         {/* Tab bar — scrollable on mobile */}

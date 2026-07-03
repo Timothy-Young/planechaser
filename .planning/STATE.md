@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-05-13)
 
 Phase: 2-13 complete (per docs/superpowers/specs/2026-05-16-v2-campaign-mode-design.md + admin dashboard), only Phase 12 (Eternities Map Variant) not started. This "Phase: 7a complete, 8 next" line was stale — see memory/project_v2_status.md for the authoritative per-phase breakdown, not this file.
 Status: Closing content-page gaps found in a 2026-07-01 audit (see memory/user_notes_status.md); Conquest/Dominion game-design layer intentionally deferred per user decision
-Last activity: 2026-07-01 — Completed quick task 260701-jyz: split /rules into hub + dedicated /rules/planechase and /rules/archenemy pages (CP-03/CP-04), fixed achievement-name content bug
+Last activity: 2026-07-03 — Completed quick task 260702-xa8: pre-launch Supabase security hardening (advisors 29 findings → 3 accepted warnings); leaked-password protection dashboard toggle still pending (manual)
 
 Progress: Phases 2-7a COMPLETE, 7b deferred, 8-9 NOT STARTED
 
@@ -115,6 +115,7 @@ Recent decisions affecting current work:
 | 260701-d85 | Fix low-contrast --border/--input tokens app-wide (Atlas/Eternities/light themes, ~3:1 WCAG) + match /auth wordmark to home hero gradient | 2026-07-01 | e1e0242 | [260701-d85-fix-low-contrast-border-color-app-wide-a](./quick/260701-d85-fix-low-contrast-border-color-app-wide-a/) |
 | 260701-dok | Bump border/input contrast the rest of the way to ~3.2:1 WCAG (260701-d85 undershot at ~2.2:1) | 2026-07-01 | 46c2dbc | [260701-dok-bump-border-input-contrast-to-3-1-in-all](./quick/260701-dok-bump-border-input-contrast-to-3-1-in-all/) |
 | 260701-jyz | Split /rules into hub + dedicated /rules/planechase + /rules/archenemy pages (CP-03/CP-04), fixed achievement-name bug | 2026-07-01 | cdc4cca | [260701-jyz-split-rules-into-a-hub-plus-dedicated-ru](./quick/260701-jyz-split-rules-into-a-hub-plus-dedicated-ru/) |
+| 260702-xa8 | Pre-launch Supabase security hardening: dropped 7 foreign tiktok-dashboard tables, scoped conquered_planes writes to pod membership, security_invoker on admin_user_stats, locked card_cache writes, pinned function search_paths, revoked anon EXECUTE on SECURITY DEFINER fns, removed bucket-listing policy | 2026-07-03 | 6f520b8 | [260702-xa8-supabase-security-hardening](./quick/260702-xa8-supabase-security-hardening/) |
 
 ## Deferred Items
 

@@ -29,13 +29,27 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  applicationName: 'PlaneChaser',
+  appleWebApp: {
+    capable: true,
+    title: 'PlaneChaser',
+    statusBarStyle: 'black-translucent',
+  },
+  icons: {
+    icon: [
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
 }
 
 export const viewport: Viewport = {
   themeColor: '#080810',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  // No maximumScale/userScalable lock — players need to pinch-zoom card rules
+  // text on a 375px screen (WCAG 1.4.4 Resize Text).
   viewportFit: 'cover',
 }
 

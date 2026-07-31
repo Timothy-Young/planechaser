@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import { generateSessionCode } from './session-code'
+import { toWireState } from './wire-state'
 import type { GameState } from './types'
 import type {
   GameSession,
@@ -110,7 +111,7 @@ export async function startSession(
     .from('active_game_sessions')
     .update({
       status: 'active',
-      game_state: initialState as unknown as Record<string, unknown>,
+      game_state: toWireState(initialState) as unknown as Record<string, unknown>,
       current_turn_user_id: firstPlayerId,
       updated_at: new Date().toISOString(),
     })
@@ -127,7 +128,8 @@ export async function syncGameState(
   const { error } = await supabase()
     .from('active_game_sessions')
     .update({
-      game_state: state as unknown as Record<string, unknown>,
+      // Slimmed wire projection, not the whole GameState — see wire-state.ts.
+      game_state: toWireState(state) as unknown as Record<string, unknown>,
       current_turn_user_id: currentTurnUserId,
       updated_at: new Date().toISOString(),
     })

@@ -290,8 +290,10 @@ export async function recordGameSession(params: {
   podId?: string
   turnLog?: TurnRecord[]
   players?: { id: string; display_name: string }[]
-}) {
-  const { error } = await supabase()
+  /** Epoch ms the game actually began (GameState.startedAt). */
+  startedAt?: number
+}): Promise<string> {
+  const { data, error } = await supabase()
     .from('game_sessions')
     .insert({
       host_user_id: params.hostUserId,
@@ -301,9 +303,19 @@ export async function recordGameSession(params: {
       pod_id: params.podId ?? null,
       turn_log: params.turnLog ?? [],
       players_snapshot: params.players ?? [],
+      // started_at defaulted to now() on insert, making every recorded game
+      // look zero-length. The server-side achievement guard needs a real
+      // duration, so send the actual start time; ended_at keeps its now()
+      // default and stays server-controlled.
+      ...(params.startedAt
+        ? { started_at: new Date(params.startedAt).toISOString() }
+        : {}),
     })
+    .select('id')
+    .single()
 
   if (error) throw error
+  return (data as { id: string }).id
 }
 
 export async function getGameSessions(userId: string) {

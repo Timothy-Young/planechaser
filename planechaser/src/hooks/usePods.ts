@@ -219,6 +219,7 @@ export function useRecordGameSession() {
       podId?: string
       turnLog?: TurnRecord[]
       players?: { id: string; display_name: string }[]
+      startedAt?: number
     }) => recordGameSession(params),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['user-stats'] })

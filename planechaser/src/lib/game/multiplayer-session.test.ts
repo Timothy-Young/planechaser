@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { generateSessionCode, isValidSessionCode } from '../src/lib/game/session-code'
-import { gameReducer } from '../src/lib/game/engine'
-import type { GameState } from '../src/lib/game/types'
+import { generateSessionCode, isValidSessionCode } from './session-code'
+import { gameReducer } from './engine'
+import type { GameState } from './types'
 
 describe('Multiplayer session flow', () => {
   it('generates valid session codes', () => {
@@ -16,6 +16,7 @@ describe('Multiplayer session flow', () => {
       config: { playerCount: 3, deckSize: 10 },
       deck: [],
       currentPlaneIndex: 0,
+      secondPlaneIndex: null,
       dieState: 'idle',
       lastDieResult: null,
       rollCountThisTurn: 1,
@@ -33,6 +34,7 @@ describe('Multiplayer session flow', () => {
       turnStartPlaneIndex: 0,
       turnHistory: [],
       stateHistory: [],
+      eliminatedPlayerIds: [],
       showChaosOverlay: false,
       revealState: null,
       phenomenonActive: false,
@@ -57,6 +59,7 @@ describe('Multiplayer session flow', () => {
       config: { playerCount: 2, deckSize: 10 },
       deck: [],
       currentPlaneIndex: 0,
+      secondPlaneIndex: null,
       dieState: 'idle',
       lastDieResult: null,
       rollCountThisTurn: 0,
@@ -73,6 +76,7 @@ describe('Multiplayer session flow', () => {
       turnStartPlaneIndex: 0,
       turnHistory: [],
       stateHistory: [],
+      eliminatedPlayerIds: [],
       showChaosOverlay: false,
       revealState: null,
       phenomenonActive: false,

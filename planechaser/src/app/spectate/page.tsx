@@ -8,6 +8,7 @@ import { Eye } from 'lucide-react'
 import { PlayerList } from '@/components/player-list'
 import { TurnIndicator } from '@/components/turn-indicator'
 import { useSessionPlayers, useSessionSubscription } from '@/hooks/useGameSession'
+import { fromWireState } from '@/lib/game/wire-state'
 import { useAppStore } from '@/store/app-store'
 import type { GameSession } from '@/lib/game/session-types'
 import type { GameState } from '@/lib/game/types'
@@ -23,12 +24,10 @@ export default function SpectatePage() {
   const handleSessionUpdate = useCallback((session: GameSession) => {
     setSessionStatus(session.status)
     if (session.game_state) {
-      const gs = session.game_state as unknown as GameState
-      setGameState({
-        ...gs,
-        revealState: gs.revealState ?? null,
-        phenomenonActive: gs.phenomenonActive ?? false,
-      })
+      // fromWireState rebuilds a renderable GameState from the slim payload,
+      // and still accepts the legacy full-GameState shape.
+      const gs = fromWireState(session.game_state)
+      if (gs) setGameState(gs)
     }
   }, [])
 

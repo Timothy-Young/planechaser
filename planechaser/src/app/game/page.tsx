@@ -21,9 +21,8 @@ import { ChaosOverlay } from '@/components/chaos-overlay'
 import { CardZoomModal } from '@/components/card-zoom-modal'
 import { GameControlsToolbar } from '@/components/game-controls-toolbar'
 import { PlayerListModal } from '@/components/player-list-modal'
-import { useRecordGameSession, useUserStats } from '@/hooks/usePods'
-import { useUserAchievements, useGrantAchievements } from '@/hooks/useAchievements'
-import { evaluateAchievements } from '@/lib/achievements/evaluator'
+import { useRecordGameSession } from '@/hooks/usePods'
+import { useGrantSessionAchievements } from '@/hooks/useAchievements'
 import { AchievementToast } from '@/components/achievement-toast'
 import { audioManager } from '@/lib/audio/audio-manager'
 import { getPlaneEnvironment, AMBIENT_URLS } from '@/lib/game/plane-environments'
@@ -55,9 +54,7 @@ export default function GamePage() {
   const [sfxOn, setSfxOn] = useState(true)
   const [ambientOn, setAmbientOn] = useState(true)
   const recordSession = useRecordGameSession()
-  const grantAchievements = useGrantAchievements()
-  const { data: userStats } = useUserStats()
-  const { data: earnedAchievements } = useUserAchievements()
+  const grantAchievements = useGrantSessionAchievements()
   const user = useAppStore((s) => s.user)
   const activePodId = useAppStore((s) => s.activePodId)
   const theme = useAppStore((s) => s.theme)
@@ -74,6 +71,19 @@ export default function GamePage() {
     setSfxOn(audioManager.sfxEnabled)
     setAmbientOn(audioManager.ambientEnabled)
   }, [])
+
+  // After the last game the badge toast owns navigation (see handleEndGame).
+  // This is the safety net: if the toast is interrupted and never calls
+  // onDone, the player would be stranded on an already-cleared game screen.
+  // AchievementToast shows each badge for 2.5s plus a 400ms exit.
+  useEffect(() => {
+    if (newBadges.length === 0) return
+    const timer = setTimeout(
+      () => router.push('/setup'),
+      newBadges.length * 2900 + 2000,
+    )
+    return () => clearTimeout(timer)
+  }, [newBadges, router])
 
   useEffect(() => {
     const saved = loadGameState()
@@ -309,7 +319,8 @@ export default function GamePage() {
     })
   }, [])
 
-  const handleEndGame = useCallback(() => {
+  const handleEndGame = useCallback(async () => {
+    let earnedBadges = false
     if (state && user) {
       const visitedPlanes = state.deck
         .slice(0, state.planesVisited)
@@ -340,42 +351,30 @@ export default function GamePage() {
         })
       }
 
-      recordSession.mutate({
-        hostUserId: user.id,
-        planesVisited: visitedPlanes,
-        dieRollHistory: state.dieRollHistory,
-        isArchenemy: !!state.archenemy,
-        podId: activePodId ?? undefined,
-        turnLog: finalTurnLog,
-        players: state.players,
-      })
-
-      if (userStats && earnedAchievements) {
-        const updatedStats = {
-          ...userStats,
-          games_played: userStats.games_played + 1,
-          total_rolls: userStats.total_rolls + state.dieRollHistory.length,
-          planeswalk_rolls: userStats.planeswalk_rolls + state.dieRollHistory.filter((r) => r.result === 'planeswalk').length,
-          total_planes_visited: userStats.total_planes_visited + state.planesVisited,
-          archenemy_games: userStats.archenemy_games + (state.archenemy ? 1 : 0),
-        }
-
-        const alreadyEarned = new Set(earnedAchievements.map((a) => a.achievement_key))
-        const sessionContext = {
-          planesVisited: state.planesVisited,
-          dieRolls: state.dieRollHistory.length,
-          chaosRolls: state.dieRollHistory.filter((r) => r.result === 'chaos').length,
-          planeswalkRolls: state.dieRollHistory.filter((r) => r.result === 'planeswalk').length,
-          playerCount: state.config.playerCount,
+      // Record the game, then ask the server which badges that earned. The
+      // client no longer evaluates criteria or names keys — see
+      // supabase/migrations/025_server_side_achievements.sql.
+      try {
+        const sessionId = await recordSession.mutateAsync({
+          hostUserId: user.id,
+          planesVisited: visitedPlanes,
+          dieRollHistory: state.dieRollHistory,
           isArchenemy: !!state.archenemy,
-        }
+          podId: activePodId ?? undefined,
+          turnLog: finalTurnLog,
+          players: state.players,
+          startedAt: state.startedAt,
+        })
 
-        const newlyEarned = evaluateAchievements(updatedStats, sessionContext, alreadyEarned)
+        const newlyEarned = await grantAchievements.mutateAsync(sessionId)
         if (newlyEarned.length > 0) {
-          grantAchievements.mutate({ userId: user.id, keys: newlyEarned })
           setNewBadges(newlyEarned)
           audioManager.playSFX('achievement')
+          earnedBadges = true
         }
+      } catch (err) {
+        // A failed write must not strand the player on a finished game.
+        console.error('[PlaneChaser] Failed to record game or grant achievements:', err)
       }
     }
     audioManager.stopAll()
@@ -384,8 +383,14 @@ export default function GamePage() {
       setActiveSessionId(null)
     }
     clearGameState()
-    router.push('/setup')
-  }, [router, state, user, activePodId, activeSessionId, isHost, recordSession, userStats, earnedAchievements, grantAchievements, endSessionMutation, setActiveSessionId])
+
+    // When badges were earned, stay put so AchievementToast can actually play;
+    // it calls onDone after cycling through them, which navigates. Previously
+    // this pushed immediately and unmounted the toast before it was ever seen.
+    if (!earnedBadges) {
+      router.push('/setup')
+    }
+  }, [router, state, user, activePodId, activeSessionId, isHost, recordSession, grantAchievements, endSessionMutation, setActiveSessionId])
 
   const handleDrawScheme = useCallback(() => {
     setState((prev) => {
@@ -476,7 +481,13 @@ export default function GamePage() {
 
       {/* Achievement toast */}
       {newBadges.length > 0 && (
-        <AchievementToast achievementKeys={newBadges} onDone={() => setNewBadges([])} />
+        <AchievementToast
+          achievementKeys={newBadges}
+          onDone={() => {
+            setNewBadges([])
+            router.push('/setup')
+          }}
+        />
       )}
 
       {/* Chaos overlay - tap to dismiss */}

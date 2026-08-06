@@ -1,5 +1,19 @@
 # Roadmap: PlaneChaser
 
+> **⚠️ SUPERSEDED — this is the v1 roadmap.**
+>
+> The phase list and the "Not started" progress table below describe the
+> original five-phase v1 plan. They have been stale since 2026-05-16 and do not
+> reflect what is built: Phases 1–5 as described here all shipped long ago.
+>
+> **The authoritative scope is
+> `docs/superpowers/specs/2026-05-16-v2-campaign-mode-design.md`** (v2 Campaign
+> Mode, Phases 1–10), which explicitly supersedes Phases 2–5 below.
+>
+> For current status see `.planning/STATE.md`; for outstanding work see
+> `.planning/todos/pending/`. Kept for historical context only — do not plan
+> against this file.
+
 ## Overview
 
 PlaneChaser ships in five vertical slices, each delivering a complete user-facing capability. Phase 1 establishes the working Planechase game loop — the minimum viable product a group can sit down and play. Phase 2 adds the conquest meta-game and pods, making every Commander win matter. Phase 3 unlocks Archenemy mode, the climactic event that conquest triggers. Phase 4 gives players a persistent identity: their conquered territory gallery and lifetime stats. Phase 5 closes the loop with achievements that reward exploration, conquest, and Archenemy moments across all prior systems.

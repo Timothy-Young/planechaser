@@ -23,22 +23,20 @@ export async function getUserAchievements(userId: string): Promise<UserAchieveme
   return (data ?? []) as UserAchievement[]
 }
 
-export async function grantAchievements(
-  userId: string,
-  keys: string[],
-): Promise<UserAchievement[]> {
-  if (keys.length === 0) return []
-
-  const rows = keys.map((key) => ({
-    user_id: userId,
-    achievement_key: key,
-  }))
-
-  const { data, error } = await supabase()
-    .from('user_achievements')
-    .upsert(rows, { onConflict: 'user_id,achievement_key', ignoreDuplicates: true })
-    .select()
+/**
+ * Ask the server to evaluate achievements for a finished game.
+ *
+ * The client deliberately cannot name a badge: migration 025 dropped the
+ * INSERT policy on user_achievements, and this RPC re-derives every criterion
+ * from game_sessions + conquered_planes (see
+ * supabase/migrations/025_server_side_achievements.sql). It returns only the
+ * keys that were newly earned, so the caller can celebrate exactly those.
+ */
+export async function grantSessionAchievements(sessionId: string): Promise<string[]> {
+  const { data, error } = await supabase().rpc('grant_session_achievements', {
+    p_session_id: sessionId,
+  })
 
   if (error) throw error
-  return (data ?? []) as UserAchievement[]
+  return ((data ?? []) as { granted_key: string }[]).map((row) => row.granted_key)
 }

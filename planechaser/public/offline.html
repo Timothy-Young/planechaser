@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Offline | PlaneChaser</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0a0813;
+        color: #f2f0f7;
+        font-family: system-ui, -apple-system, sans-serif;
+        padding: 24px;
+        text-align: center;
+      }
+      h1 {
+        font-size: 22px;
+        color: #b18aff;
+        margin: 0 0 12px;
+      }
+      p {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #b8b3cc;
+        margin: 0 0 24px;
+        max-width: 380px;
+      }
+      button {
+        background: #b18aff;
+        color: #0a0813;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <h1>No connection</h1>
+      <p>
+        PlaneChaser can't reach the multiverse right now. A game already in
+        progress keeps running on this device — reconnect to sync it back to
+        your pod.
+      </p>
+      <button onclick="location.reload()">Retry</button>
+    </div>
+  </body>
+</html>

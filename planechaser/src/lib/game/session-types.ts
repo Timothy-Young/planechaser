@@ -1,4 +1,4 @@
-import type { GameState } from './types'
+import type { WireGameState } from './wire-state'
 
 export type SessionStatus = 'lobby' | 'active' | 'ended'
 export type GameType = 'planechase' | 'archenemy'
@@ -10,7 +10,12 @@ export interface GameSession {
   session_code: string
   status: SessionStatus
   game_type: GameType
-  game_state: GameState | null
+  /**
+   * Slimmed projection of GameState — see wire-state.ts. Read it through
+   * `fromWireState`, which also tolerates the pre-2026-07-31 full-GameState
+   * payload left behind by games that were already in flight.
+   */
+  game_state: WireGameState | null
   turn_order: string[]
   current_turn_user_id: string | null
   created_at: string

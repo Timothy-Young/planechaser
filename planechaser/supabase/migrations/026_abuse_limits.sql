@@ -194,5 +194,8 @@ CREATE INDEX IF NOT EXISTS idx_custom_planes_user
 REVOKE EXECUTE ON FUNCTION public.enforce_feedback_rate_limit() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.enforce_custom_plane_limit() FROM PUBLIC, anon, authenticated;
 
-REVOKE EXECUTE ON FUNCTION public.get_app_limit(TEXT, INT) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.get_app_limit(TEXT, INT) TO authenticated;
+-- get_app_limit is only ever called from inside the SECURITY DEFINER triggers
+-- above, where permission checks run as the function owner. Clients read the
+-- numbers through the app_limits SELECT policy instead, so no role needs
+-- EXECUTE — leaving it granted would expose a needless /rest/v1/rpc endpoint.
+REVOKE EXECUTE ON FUNCTION public.get_app_limit(TEXT, INT) FROM PUBLIC, anon, authenticated;

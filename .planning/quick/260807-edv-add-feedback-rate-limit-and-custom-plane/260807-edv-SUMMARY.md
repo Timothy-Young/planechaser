@@ -67,21 +67,43 @@ cap twice around midnight; a rolling window doesn't.
 
 ## Verification
 
+**Static**
 - `npx tsc --noEmit` — clean
 - `npx eslint` on all changed files — clean
 - `npm run build` — succeeds
 - Dev server: `/feedback` and `/custom-planes` render, no console errors, and
-  the client falls back to `DEFAULT_LIMITS` correctly with `app_limits` absent
-  from the DB
+  the client falls back to `DEFAULT_LIMITS` correctly when `app_limits` is absent
 
-**Not verified:** trigger behavior against a live database. Migration 026 has
-not been applied — that's the user's call, and it needs an authenticated session
-to exercise (`auth.uid()` is null in direct SQL, which the triggers skip by
-design).
+**Live database** — applied to project `obuwoovwqwyhmbycavkx` as migrations
+`026_abuse_limits` and `026a_revoke_get_app_limit_execute`. Trigger behavior was
+exercised with `DO` blocks that simulate a JWT via `set_config('request.jwt.claims', …)`
+and end in a `RAISE` so the whole transaction rolls back — verified afterwards
+that zero rows persisted.
+
+| Case | Result |
+|---|---|
+| First feedback insert | OK |
+| Second insert, same second | blocked `PC001` — "Please wait 120 more second(s)…" |
+| 21st insert in 24 h | blocked `PC002` — "Daily feedback limit reached (20 per 24 hours)" |
+| 26th custom plane | blocked `PC003` — "Custom plane limit reached (25 of 25)" |
+| Staff: 3 rapid feedback inserts | allowed (exempt) |
+| Staff: 30 custom planes | allowed (exempt) |
+| `get_app_limit` fallback for a missing key | returns the passed default |
+
+**Advisors** — `get_app_limit` initially tripped
+`authenticated_security_definer_function_executable`. Fixed in `026a` by
+revoking EXECUTE from all roles: the triggers call it as definer, and clients
+read `app_limits` through its SELECT policy, so no role needs the RPC. Re-ran
+the cap checks after the revoke — still blocking. Remaining advisor warnings
+(`get_my_role`, `get_user_session_ids`, leaked-password protection) predate this
+task.
 
 ## Follow-ups
 
-- Apply `026_abuse_limits.sql` to the hosted Supabase project.
+- **`025_server_side_achievements.sql` is in the repo but not applied to the
+  hosted database.** It arrived with PR #44; the applied-migration list jumps
+  from `security_hardening_prelaunch` (024) straight to 026. Unrelated to this
+  task but worth resolving before launch.
 - After payment tiers land, add a `tier` column to `app_limits` and key lookups
   by `(tier, key)`; the trigger's `get_app_limit` call is the only touch point.
 - Consider an admin-dashboard editor for `app_limits` (RLS already permits

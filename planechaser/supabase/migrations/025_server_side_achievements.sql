@@ -106,10 +106,17 @@ BEGIN
           @> jsonb_build_array(jsonb_build_object('id', v_user::text))
   ),
   my_rolls AS (
+    -- The array guard has to live inside the LATERAL argument, not in a WHERE:
+    -- the set-returning function is evaluated per row before a WHERE can filter
+    -- it, so a single session with a non-array die_roll_history would raise
+    -- "cannot extract elements from an object" and fail the whole grant.
     SELECT r->>'result' AS result
     FROM mine
-    CROSS JOIN LATERAL jsonb_array_elements(mine.die_roll_history) AS r
-    WHERE jsonb_typeof(mine.die_roll_history) = 'array'
+    CROSS JOIN LATERAL jsonb_array_elements(
+      CASE WHEN jsonb_typeof(mine.die_roll_history) = 'array'
+           THEN mine.die_roll_history
+           ELSE '[]'::jsonb END
+    ) AS r
   )
   SELECT
     (SELECT count(*) FROM mine),

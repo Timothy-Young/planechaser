@@ -6,11 +6,13 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, Plus, Pencil, Trash2, Wand2, Globe, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCustomPlanes, useDeleteCustomPlane } from '@/hooks/useCustomPlanes'
+import { useCustomPlaneLimit } from '@/hooks/useLimits'
 import { getImageUrl } from '@/lib/custom-planes/storage'
 
 export default function CustomPlanesPage() {
   const router = useRouter()
   const { data: planes, isLoading } = useCustomPlanes()
+  const limit = useCustomPlaneLimit()
   const deleteMutation = useDeleteCustomPlane()
 
   function handleDelete(id: string, imagePath: string | null, name: string) {
@@ -48,7 +50,9 @@ export default function CustomPlanesPage() {
           </div>
           <Button
             onClick={() => router.push('/custom-planes/new')}
-            className="h-8 px-3 bg-[var(--color-accent-deep)] text-white text-[12px] gap-1"
+            disabled={limit.atLimit}
+            title={limit.atLimit ? `Limit reached (${limit.max} planes)` : undefined}
+            className="h-8 px-3 bg-[var(--color-accent-deep)] text-white text-[12px] gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             <Plus size={14} />
@@ -60,6 +64,46 @@ export default function CustomPlanesPage() {
       {/* Content */}
       <div className="relative z-10 flex-1 px-4 py-6">
         <div className="max-w-[420px] mx-auto">
+          {/* Usage counter — hidden for staff, who have no cap */}
+          {!limit.exempt && !limit.isLoading && (
+            <div className="mb-4 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <p
+                  className="text-[12px] text-[var(--color-text-muted)]"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  <span className="text-[var(--color-text)] font-semibold">{limit.count}</span> of{' '}
+                  {limit.max} planes used
+                </p>
+                {limit.atLimit && (
+                  <p
+                    className="text-[11px] font-semibold text-[var(--color-cta)]"
+                    style={{ fontFamily: 'var(--font-heading)' }}
+                  >
+                    Limit reached
+                  </p>
+                )}
+              </div>
+              <div className="h-1 rounded-full bg-[var(--color-border)] overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${Math.min(100, (limit.count / limit.max) * 100)}%`,
+                    background: limit.atLimit ? 'var(--color-cta)' : 'var(--color-accent)',
+                  }}
+                />
+              </div>
+              {limit.atLimit && (
+                <p
+                  className="text-[11px] text-[var(--color-text-muted)]"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  Delete a plane to make room for a new one.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Loading state */}
           {isLoading && (
             <div className="flex items-center justify-center gap-2 py-16">

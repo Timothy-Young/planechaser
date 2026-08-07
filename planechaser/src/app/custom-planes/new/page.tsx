@@ -2,8 +2,9 @@
 
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Save, Upload } from 'lucide-react'
+import { ArrowLeft, Save, Upload, Lock } from 'lucide-react'
 import { useCreateCustomPlane, useUploadPlaneImage } from '@/hooks/useCustomPlanes'
+import { useCustomPlaneLimit } from '@/hooks/useLimits'
 import { CustomPlanePreview } from '@/components/custom-plane-preview'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -14,6 +15,7 @@ export default function CreateCustomPlanePage() {
   const router = useRouter()
   const createMutation = useCreateCustomPlane()
   const uploadMutation = useUploadPlaneImage()
+  const limit = useCustomPlaneLimit()
 
   const [name, setName] = useState('')
   const [typeLine, setTypeLine] = useState(DEFAULT_TYPE_LINE)
@@ -52,6 +54,14 @@ export default function CreateCustomPlanePage() {
     setFormError(null)
     if (!name.trim()) {
       setFormError('Name is required.')
+      return
+    }
+    // Checked before the upload below so hitting the cap never leaves an
+    // orphaned image in storage.
+    if (limit.atLimit) {
+      setFormError(
+        `You've reached the limit of ${limit.max} custom planes. Delete one to make room.`,
+      )
       return
     }
 
@@ -112,6 +122,27 @@ export default function CreateCustomPlanePage() {
         <div className="flex flex-col md:flex-row gap-6">
           {/* Form (left on desktop) */}
           <div className="flex-1 space-y-5">
+
+            {/* At-limit banner */}
+            {limit.atLimit && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-[var(--color-cta)]/30 bg-[var(--color-cta)]/8 px-4 py-3">
+                <Lock size={16} className="text-[var(--color-cta)] shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p
+                    className="text-[12px] font-semibold text-[var(--color-cta)]"
+                    style={{ fontFamily: 'var(--font-heading)' }}
+                  >
+                    Custom plane limit reached ({limit.count} of {limit.max})
+                  </p>
+                  <p
+                    className="text-[11px] text-[var(--color-text-muted)]"
+                    style={{ fontFamily: 'var(--font-body)' }}
+                  >
+                    Delete an existing plane before creating a new one.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Name */}
             <div className="space-y-1.5">
@@ -326,7 +357,7 @@ export default function CreateCustomPlanePage() {
             {/* Save button */}
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || limit.atLimit}
               className="flex items-center justify-center gap-2 w-full bg-[var(--color-accent)] text-white rounded-xl py-3 text-[14px] font-semibold transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
               style={{ fontFamily: 'var(--font-heading)' }}
             >

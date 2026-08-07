@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, MessageSquare, Send, CheckCircle } from 'lucide-react'
+import { ArrowLeft, MessageSquare, Send, CheckCircle, Clock } from 'lucide-react'
 import { submitFeedback } from '@/lib/feedback/queries'
+import { useFeedbackLimit } from '@/hooks/useLimits'
 import { useAppStore } from '@/store/app-store'
 import { Footer } from '@/components/footer'
 
@@ -18,9 +19,18 @@ const CATEGORIES = [
 const MAX_CHARS = 1000
 const MIN_CHARS = 10
 
+/** 95 -> "1:35", 20 -> "20s" */
+function formatCountdown(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${String(secs).padStart(2, '0')}`
+}
+
 export default function FeedbackPage() {
   const router = useRouter()
   const user = useAppStore((s) => s.user)
+  const limit = useFeedbackLimit()
 
   const [category, setCategory] = useState<'bug' | 'feature' | 'general' | 'other' | null>(null)
   const [message, setMessage] = useState('')
@@ -30,13 +40,14 @@ export default function FeedbackPage() {
 
   const charCount = message.length
   const isValid = category !== null && charCount >= MIN_CHARS
+  const canSubmit = isValid && !!user && !limit.blocked
 
   async function handleSubmit() {
     if (!user) {
       setError('You must be signed in to submit feedback.')
       return
     }
-    if (!isValid) return
+    if (!isValid || limit.blocked) return
 
     setLoading(true)
     setError(null)
@@ -47,6 +58,9 @@ export default function FeedbackPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
     } finally {
+      // Refresh usage either way — a rejected insert still tells us where we
+      // stand, and a successful one starts the next cooldown.
+      limit.refetch()
       setLoading(false)
     }
   }
@@ -184,6 +198,21 @@ export default function FeedbackPage() {
                 </div>
               )}
 
+              {/* Rate-limit notice — advisory; the database is the real gate */}
+              {user && limit.blocked && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-[var(--color-cta)]/30 bg-[var(--color-cta)]/8 px-4 py-3">
+                  <Clock className="w-4 h-4 text-[var(--color-cta)] shrink-0 mt-0.5" />
+                  <p
+                    className="text-[12px] text-[var(--color-cta)] leading-relaxed"
+                    style={{ fontFamily: 'var(--font-body)' }}
+                  >
+                    {limit.atDailyLimit
+                      ? `You've reached the daily limit of ${limit.limits.feedbackDailyMax} submissions. Please try again later.`
+                      : `To keep feedback readable, there's a short wait between submissions. You can send again in ${formatCountdown(limit.cooldownRemaining)}.`}
+                  </p>
+                </div>
+              )}
+
               {/* Category selector */}
               <div className="space-y-2">
                 <p
@@ -286,15 +315,15 @@ export default function FeedbackPage() {
               {/* Submit */}
               <button
                 onClick={handleSubmit}
-                disabled={!isValid || loading || !user}
+                disabled={!canSubmit || loading}
                 className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl text-[13px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
                   fontFamily: 'var(--font-heading)',
-                  background: isValid && user ? 'var(--color-accent)' : undefined,
+                  background: canSubmit ? 'var(--color-accent)' : undefined,
                   borderWidth: 1,
                   borderStyle: 'solid',
-                  borderColor: isValid && user ? 'var(--color-accent)' : 'var(--color-border)',
-                  color: isValid && user ? 'white' : 'var(--color-text-muted)',
+                  borderColor: canSubmit ? 'var(--color-accent)' : 'var(--color-border)',
+                  color: canSubmit ? 'white' : 'var(--color-text-muted)',
                 }}
               >
                 {loading ? (
@@ -303,6 +332,11 @@ export default function FeedbackPage() {
                       className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
                     />
                     Sending…
+                  </>
+                ) : limit.cooldownRemaining > 0 ? (
+                  <>
+                    <Clock className="w-4 h-4" />
+                    Wait {formatCountdown(limit.cooldownRemaining)}
                   </>
                 ) : (
                   <>

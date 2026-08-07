@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { toLimitError } from '@/lib/limits/errors'
 
 export interface FeedbackSubmission {
   category: 'bug' | 'feature' | 'general' | 'other'
@@ -18,5 +19,7 @@ export async function submitFeedback(
       message: submission.message,
     })
 
-  if (error) throw new Error(`Failed to submit feedback: ${error.message}`)
+  // Rate-limit violations (PC001/PC002) come back as LimitError so callers can
+  // branch on the code instead of parsing the message.
+  if (error) throw toLimitError(error, 'Failed to submit feedback')
 }

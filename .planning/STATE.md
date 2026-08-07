@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-05-13)
 
 Phase: 2-13 complete (per docs/superpowers/specs/2026-05-16-v2-campaign-mode-design.md + admin dashboard), only Phase 12 (Eternities Map Variant) not started. This "Phase: 7a complete, 8 next" line was stale — see memory/project_v2_status.md for the authoritative per-phase breakdown, not this file.
 Status: Pre-launch hardening. A full app review on 2026-07-31 produced a three-part hardening PR (error boundaries + PWA + CI, server-side achievements, slimmed sync payload) and four follow-up todos. Conquest/Dominion game-design layer still intentionally deferred per user decision.
-Last activity: 2026-07-31 — App review + hardening PR (branch `claude/app-review-roadmap-cqdb1d`)
+Last activity: 2026-08-07 — Completed quick task 260807-edv: abuse limits (feedback rate limit + custom plane cap) on branch `feat/abuse-limits`
 
 Progress: Phases 2-7a COMPLETE, 7b deferred, 8-9 NOT STARTED
 
@@ -186,6 +186,7 @@ Recent decisions affecting current work:
 | 260701-dok | Bump border/input contrast the rest of the way to ~3.2:1 WCAG (260701-d85 undershot at ~2.2:1) | 2026-07-01 | 46c2dbc | [260701-dok-bump-border-input-contrast-to-3-1-in-all](./quick/260701-dok-bump-border-input-contrast-to-3-1-in-all/) |
 | 260701-jyz | Split /rules into hub + dedicated /rules/planechase + /rules/archenemy pages (CP-03/CP-04), fixed achievement-name bug | 2026-07-01 | cdc4cca | [260701-jyz-split-rules-into-a-hub-plus-dedicated-ru](./quick/260701-jyz-split-rules-into-a-hub-plus-dedicated-ru/) |
 | 260702-xa8 | Pre-launch Supabase security hardening: dropped 7 foreign tiktok-dashboard tables, scoped conquered_planes writes to pod membership, security_invoker on admin_user_stats, locked card_cache writes, pinned function search_paths, revoked anon EXECUTE on SECURITY DEFINER fns, removed bucket-listing policy | 2026-07-03 | 6f520b8 | [260702-xa8-supabase-security-hardening](./quick/260702-xa8-supabase-security-hardening/) |
+| 260807-edv | Abuse limits: feedback 120s cooldown + 20/rolling-24h cap, custom planes capped at 25 (owner/admin/mod exempt), enforced by BEFORE INSERT triggers with tunable app_limits table; client preflight, countdown, and usage meter | 2026-08-07 | 912438c | [260807-edv-add-feedback-rate-limit-and-custom-plane](./quick/260807-edv-add-feedback-rate-limit-and-custom-plane/) |
 
 ## Deferred Items
 

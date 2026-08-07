@@ -45,6 +45,7 @@ export function useCreateCustomPlane() {
       createCustomPlane(user!.id, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['custom-planes'] })
+      qc.invalidateQueries({ queryKey: ['custom-plane-count'] })
       qc.invalidateQueries({ queryKey: ['full-plane-corpus'] })
     },
   })
@@ -74,6 +75,7 @@ export function useDeleteCustomPlane() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['custom-planes'] })
+      qc.invalidateQueries({ queryKey: ['custom-plane-count'] })
       qc.invalidateQueries({ queryKey: ['full-plane-corpus'] })
     },
   })

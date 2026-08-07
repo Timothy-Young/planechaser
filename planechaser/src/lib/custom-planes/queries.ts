@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { toLimitError } from '@/lib/limits/errors'
 import type { CustomPlane, CustomPlaneInput } from './types'
 
 function supabase() {
@@ -58,7 +59,8 @@ export async function createCustomPlane(
     .select()
     .single()
 
-  if (error) throw error
+  // The plane cap (PC003) surfaces as LimitError.
+  if (error) throw toLimitError(error, 'Failed to create custom plane')
   return data as CustomPlane
 }
 

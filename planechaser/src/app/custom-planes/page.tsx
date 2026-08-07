@@ -64,8 +64,8 @@ export default function CustomPlanesPage() {
       {/* Content */}
       <div className="relative z-10 flex-1 px-4 py-6">
         <div className="max-w-[420px] mx-auto">
-          {/* Usage counter — hidden for staff, who have no cap */}
-          {!limit.exempt && !limit.isLoading && (
+          {/* Usage counter — hidden when signed out and for staff, who have no cap */}
+          {limit.showUsage && (
             <div className="mb-4 space-y-1.5">
               <div className="flex items-center justify-between">
                 <p

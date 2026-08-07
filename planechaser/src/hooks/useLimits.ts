@@ -106,6 +106,8 @@ export interface CustomPlaneLimitStatus {
   atLimit: boolean
   exempt: boolean
   isLoading: boolean
+  /** False when signed out or exempt — nothing meaningful to display. */
+  showUsage: boolean
 }
 
 /** Client-side preflight for the custom plane cap. Advisory only. */
@@ -130,5 +132,6 @@ export function useCustomPlaneLimit(): CustomPlaneLimitStatus {
     atLimit: !exempt && count !== undefined && owned >= max,
     exempt,
     isLoading: limitsLoading || countLoading,
+    showUsage: !!user && !exempt && count !== undefined,
   }
 }

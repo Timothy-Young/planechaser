@@ -27,6 +27,7 @@ const PENDING_BUCKET = 'custom-plane-images-pending'
 const PUBLIC_BUCKET = 'custom-plane-images'
 const DEFAULT_TYPE_LINE = 'Plane — Custom'
 const DEFAULT_PLANE_MAX = 25
+/** Exempt from the plane cap only. Moderation applies to all of them. */
 const STAFF_ROLES = ['owner', 'admin', 'mod']
 
 function fail(status: number, body: PlaneErrorResponse) {
@@ -61,7 +62,7 @@ async function loadState(
   userId: string,
   countsAgainstLimit: boolean,
   limits: Record<string, number>,
-): Promise<{ state: ModeratorState; isStaff: boolean } | null> {
+): Promise<{ state: ModeratorState; isStaff: boolean; isOwner: boolean } | null> {
   const { data: profile, error } = await admin
     .from('profiles')
     .select('role, is_banned, nsfw_ack_required, custom_plane_cooldown_until')
@@ -71,6 +72,7 @@ async function loadState(
   if (error || !profile) return null
 
   const isStaff = STAFF_ROLES.includes(profile.role as string)
+  const isOwner = profile.role === 'owner'
 
   let planeCount = 0
   if (countsAgainstLimit && !isStaff) {
@@ -83,10 +85,17 @@ async function loadState(
 
   return {
     isStaff,
+    isOwner,
     state: {
-      isBanned: Boolean(profile.is_banned),
+      // The owner is never gated by a moderation penalty, even if one somehow
+      // landed on their row. BannedGuard swaps out the entire app for a banned
+      // user, so a self-inflicted ban would cost the owner the admin dashboard
+      // and the ability to undo it.
+      isBanned: isOwner ? false : Boolean(profile.is_banned),
       ackRequired: Boolean(profile.nsfw_ack_required),
-      cooldownUntil: (profile.custom_plane_cooldown_until as string | null) ?? null,
+      cooldownUntil: isOwner
+        ? null
+        : ((profile.custom_plane_cooldown_until as string | null) ?? null),
       planeCount,
       planeMax: isStaff
         ? Number.POSITIVE_INFINITY
@@ -159,7 +168,7 @@ async function handle(request: Request, mode: 'create' | 'update') {
     await discardPending(admin, pendingPath)
     return fail(500, { error: 'server_error', message: 'Could not load your profile.' })
   }
-  const { state } = loaded
+  const { state, isOwner } = loaded
 
   const input = {
     acknowledged: body.acknowledged === true,
@@ -262,6 +271,15 @@ async function handle(request: Request, mode: 'create' | 'update') {
 
   if (outcome.kind === 'violation') {
     await discardPending(admin, pendingPath)
+
+    // Owner: detection still runs and the plane is still refused, so the scan
+    // and every message can be exercised, but nothing is written to the
+    // penalty ledger. Admins and mods are deliberately not exempt — an admin
+    // who trips this can be unbanned from the dashboard, whereas a banned
+    // owner loses the dashboard itself.
+    if (isOwner) {
+      return rejection('violation', verdict, { simulated: true })
+    }
 
     const detail = [
       verdict.imageFlagged ? 'image' : null,

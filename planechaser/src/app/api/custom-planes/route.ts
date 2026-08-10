@@ -295,7 +295,18 @@ async function handle(request: Request, mode: 'create' | 'update') {
 
   if (outcome.kind === 'warn') {
     await discardPending(admin, pendingPath)
-    await admin.from('profiles').update({ nsfw_ack_required: true }).eq('id', user.id)
+
+    // Must go through the RPC, not a direct UPDATE. protect_role_changes
+    // guards nsfw_ack_required and silently reverts writes whose caller has no
+    // JWT — which is every service-role write. A plain UPDATE here looked like
+    // it worked, never persisted, and left the whole penalty ladder inert.
+    const { error: ackError } = await admin.rpc('set_nsfw_ack_required', {
+      p_user_id: user.id,
+    })
+    if (ackError) {
+      console.error('[custom-planes] failed to persist nsfw_ack_required', ackError)
+    }
+
     return rejection('warning', verdict)
   }
 

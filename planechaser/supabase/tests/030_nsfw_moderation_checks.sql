@@ -93,6 +93,52 @@ BEGIN
   RAISE NOTICE 'record_nsfw_violation: all assertions passed';
 END $$;
 
+-- ── Sticky acknowledgment flag (regression, migration 032) ──────────────────
+--
+-- The original bug: the route set nsfw_ack_required with a plain service-role
+-- UPDATE. protect_role_changes guards that column and silently reverts writes
+-- from a caller with no JWT, which is every service-role write. Nothing raised,
+-- the flag never persisted, every submission stayed a "first offence", and the
+-- violation rung was unreachable — the entire penalty ladder was inert.
+--
+-- This block asserts both halves: the RPC persists, and the direct UPDATE the
+-- route must never go back to does not.
+DO $$
+DECLARE
+  test_user   UUID;
+  after_rpc   BOOLEAN;
+  after_direct BOOLEAN;
+BEGIN
+  INSERT INTO auth.users (id, instance_id, aud, role, email)
+  VALUES (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated',
+          'authenticated', 'nsfw-ack-test-' || gen_random_uuid() || '@example.test')
+  RETURNING id INTO test_user;
+
+  INSERT INTO public.profiles (id, display_name)
+  VALUES (test_user, 'NSFW Ack Test')
+  ON CONFLICT (id) DO NOTHING;
+
+  -- A direct service-role UPDATE must NOT persist. If this ever starts
+  -- persisting, the trigger's protection of the column has been weakened and
+  -- users can clear their own penalty again.
+  UPDATE public.profiles SET nsfw_ack_required = true WHERE id = test_user;
+  SELECT nsfw_ack_required INTO after_direct FROM public.profiles WHERE id = test_user;
+
+  IF COALESCE(after_direct, false) THEN
+    RAISE EXCEPTION 'A direct service-role UPDATE of nsfw_ack_required persisted — the column is no longer protected';
+  END IF;
+
+  -- The RPC must persist.
+  PERFORM public.set_nsfw_ack_required(test_user);
+  SELECT nsfw_ack_required INTO after_rpc FROM public.profiles WHERE id = test_user;
+
+  IF NOT COALESCE(after_rpc, false) THEN
+    RAISE EXCEPTION 'set_nsfw_ack_required did not persist — the penalty ladder is inert';
+  END IF;
+
+  RAISE NOTICE 'set_nsfw_ack_required: all assertions passed';
+END $$;
+
 -- ── 6. Grants: no client-reachable role may write planes or call the RPC ────
 DO $$
 BEGIN

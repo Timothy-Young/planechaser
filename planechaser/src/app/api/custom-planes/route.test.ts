@@ -301,8 +301,13 @@ describe('POST /api/custom-planes — moderation outcomes', () => {
     expect(calls.inserted).toHaveLength(0)
     expect(calls.publicUploads).toHaveLength(0)
     expect(calls.removedPending).toContain('user-1/art.png')
-    expect(calls.profileUpdates).toEqual([{ nsfw_ack_required: true }])
-    expect(calls.rpc).toHaveLength(0)
+    // Must be the RPC, never a direct UPDATE: protect_role_changes silently
+    // reverts a service-role write to nsfw_ack_required, which left the ladder
+    // inert in production.
+    expect(calls.rpc).toEqual([
+      { name: 'set_nsfw_ack_required', args: { p_user_id: 'user-1' } },
+    ])
+    expect(calls.profileUpdates).toHaveLength(0)
   })
 
   it('escalates to a violation once acknowledgment is on file', async () => {
@@ -397,7 +402,9 @@ describe('POST /api/custom-planes — owner exemption', () => {
     const body = await (await post(VALID)).json()
 
     expect(body.stage).toBe('warning')
-    expect(calls.profileUpdates).toEqual([{ nsfw_ack_required: true }])
+    expect(calls.rpc).toEqual([
+      { name: 'set_nsfw_ack_required', args: { p_user_id: 'user-1' } },
+    ])
   })
 
   it('ignores a stale ban or cooldown on the owner rather than locking them out', async () => {

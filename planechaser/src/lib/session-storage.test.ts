@@ -4,7 +4,7 @@ import type { GameState } from './game/types'
 
 const mockState: GameState = {
   id: 'test-123',
-  config: { playerCount: 4, deckSize: 10 },
+  config: { playerCount: 4, deckSize: 10, mode: 'planechase' },
   deck: [],
   currentPlaneIndex: 0,
   secondPlaneIndex: null,

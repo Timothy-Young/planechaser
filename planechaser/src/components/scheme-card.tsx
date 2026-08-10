@@ -8,11 +8,19 @@ import type { SchemeCard as SchemeCardType } from '@/lib/game/types'
 
 interface SchemeCardProps {
   card: SchemeCardType
-  onAbandon?: () => void
+  /**
+   * Clears the scheme off the board and returns it to the bottom of the scheme
+   * deck. Offered for one-shot schemes too — they persist until the table says
+   * the trigger has finished resolving.
+   */
+  onDismiss?: () => void
 }
 
-export function SchemeCard({ card, onAbandon }: SchemeCardProps) {
+export function SchemeCard({ card, onDismiss }: SchemeCardProps) {
   const [zoomed, setZoomed] = useState(false)
+  // The rules use two words for one transition: an ongoing scheme is abandoned,
+  // a one-shot is simply done resolving.
+  const dismissLabel = card.isOngoing ? 'Abandon scheme' : 'Resolve scheme'
 
   return (
     <>
@@ -35,17 +43,22 @@ export function SchemeCard({ card, onAbandon }: SchemeCardProps) {
               sizes="(max-width: 480px) 100vw, 300px"
             />
           </div>
-          {card.isOngoing && onAbandon && (
+          {onDismiss && (
             <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/60 backdrop-blur-sm flex items-center justify-between">
-              <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wide" style={{ fontFamily: 'var(--font-body)' }}>
-                Ongoing
+              <span
+                className={`text-[10px] uppercase tracking-wide ${
+                  card.isOngoing ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'
+                }`}
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                {card.isOngoing ? 'Ongoing' : 'In motion'}
               </span>
               <button
-                onClick={(e) => { e.stopPropagation(); onAbandon() }}
+                onClick={(e) => { e.stopPropagation(); onDismiss() }}
                 className="text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-cta)] transition-colors cursor-pointer"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
-                Abandon scheme
+                {dismissLabel}
               </button>
             </div>
           )}

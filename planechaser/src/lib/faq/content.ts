@@ -65,6 +65,14 @@ export const FAQ_SECTIONS: FAQSection[] = [
         question: 'What happens when someone becomes the Archenemy?',
         answer: 'When a player reaches the pod\'s archenemy threshold, the next game becomes an Archenemy showdown. The archenemy plays against the rest of the pod with a scheme deck, creating an asymmetric game experience.',
       },
+      {
+        question: 'Can I play Archenemy without Planechase?',
+        answer: 'Yes. Choose "Archenemy" as the game type at setup and the game runs with schemes alone — no planar deck, no planar die, no planeswalking. A standalone game needs no pod either: nothing is conquered and no planes change hands, only the winning side is recorded.',
+      },
+      {
+        question: 'How do schemes work in the app?',
+        answer: 'Every scheme set in motion stays on the board and stacks, so you can have as many ongoing schemes running as the game produces. You clear each one yourself — "Resolve" for a one-shot once its trigger has finished, "Abandon" for an ongoing scheme. Either way the card goes to the bottom of the scheme deck, exactly as the printed rules say, so the deck refills itself.',
+      },
     ],
   },
   {

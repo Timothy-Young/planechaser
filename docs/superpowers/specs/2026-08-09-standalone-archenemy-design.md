@@ -220,10 +220,16 @@ plane-only and is unchanged.
 
 **Plane-action guards** — `PLANESWALK`, `PLANESWALK_NO_LEAVE`,
 `RESOLVE_SPATIAL_MERGE`, `RESOLVE_PHENOMENON`, `SHUFFLE_REMAINING`,
-`REORDER_TOP`, `REORDER_BOTTOM`, and `END_TURN`'s plane lookups return state
-unchanged when `deck.length === 0`. In practice these fire only in `archenemy`
-mode, where the deck is empty by construction; in `planechase` and `both` the deck
-is non-empty and behaviour is exactly as it is today.
+`REORDER_TOP` and `REORDER_BOTTOM` return state unchanged when
+`deck.length === 0`. In practice these fire only in `archenemy` mode, where the
+deck is empty by construction; in `planechase` and `both` the deck is non-empty
+and behaviour is exactly as it is today.
+
+`END_TURN` guards differently: on `config.mode === 'archenemy'` and on an empty
+`turnOrder`. Its plane lookups are already optional-chained and degrade safely,
+so the genuine hazard there is `% turnOrder.length` yielding `NaN` — and an
+empty deck is not the right signal, since existing tests legitimately drive
+`END_TURN` against a stub state with no deck.
 
 ## 5. UI
 

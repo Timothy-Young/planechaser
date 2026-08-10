@@ -1,3 +1,4 @@
+import { migrateArchenemyState, migrateGameConfig } from './legacy'
 import type { GameState } from './types'
 
 const STORAGE_KEY = 'planechaser_active_game'
@@ -20,6 +21,11 @@ export function loadGameState(): GameState | null {
     if (saved.revealState === undefined) saved.revealState = null
     if (saved.phenomenonActive === undefined) saved.phenomenonActive = false
     if (!saved.eliminatedPlayerIds) saved.eliminatedPlayerIds = []
+    // A game saved before standalone Archenemy has no `config.mode` and stores
+    // schemes as `activeSchemes`. Translate rather than drop it — the tab may
+    // be resuming a game that is mid-session at a table.
+    saved.config = migrateGameConfig(saved.config)
+    saved.archenemy = migrateArchenemyState(saved.archenemy)
     return saved
   } catch {
     return null

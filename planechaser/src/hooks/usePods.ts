@@ -220,6 +220,7 @@ export function useRecordGameSession() {
       turnLog?: TurnRecord[]
       players?: { id: string; display_name: string }[]
       startedAt?: number
+      winnerSide?: 'archenemy' | 'team'
     }) => recordGameSession(params),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['user-stats'] })

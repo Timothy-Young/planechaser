@@ -292,6 +292,12 @@ export async function recordGameSession(params: {
   players?: { id: string; display_name: string }[]
   /** Epoch ms the game actually began (GameState.startedAt). */
   startedAt?: number
+  /**
+   * Which side won a standalone Archenemy game. Kept off `win_condition`,
+   * which migration 025's achievement guard reads as "was this an Archenemy
+   * game" — see migration 027.
+   */
+  winnerSide?: 'archenemy' | 'team'
 }): Promise<string> {
   const { data, error } = await supabase()
     .from('game_sessions')
@@ -300,6 +306,7 @@ export async function recordGameSession(params: {
       planes_visited: params.planesVisited,
       die_roll_history: params.dieRollHistory,
       win_condition: params.isArchenemy ? 'archenemy' : 'normal',
+      winner_side: params.winnerSide ?? null,
       pod_id: params.podId ?? null,
       turn_log: params.turnLog ?? [],
       players_snapshot: params.players ?? [],

@@ -50,18 +50,42 @@ export interface SchemeCard {
   isOngoing: boolean
 }
 
+/**
+ * A scheme that has been set in motion and is still face up.
+ *
+ * `instanceId` rather than the card id identifies a board position: a scheme
+ * deck may legally hold two copies of the same card, and both can be in motion
+ * at once.
+ */
+export interface InMotionScheme {
+  instanceId: string
+  card: SchemeCard
+  setInMotionAt: number
+}
+
 export interface ArchenemyState {
   archenemyId: string
   archenemyName: string
+  /** Ordered draw pile. Index 0 is the top; cleared schemes return to the end. */
   schemeDeck: SchemeCard[]
-  currentSchemeIndex: number
-  activeSchemes: SchemeCard[]
+  /** Every face-up scheme, ongoing and one-shot alike, newest first. */
+  schemesInMotion: InMotionScheme[]
   schemesPlayed: number
+  /** Whose turn it is. The archenemy always takes the first turn. */
+  side: ArchenemySide
+  /** Increments at the start of each archenemy turn. Starts at 1. */
+  turnNumber: number
 }
+
+export type ArchenemySide = 'archenemy' | 'team'
+
+export type GameMode = 'planechase' | 'archenemy' | 'both'
 
 export interface GameConfig {
   playerCount: number
   deckSize: number
+  mode: GameMode
+  /** @deprecated Read `mode`. Retained so archived sessions still parse. */
   isArchenemy?: boolean
 }
 
@@ -96,6 +120,8 @@ export interface GameState {
   revealState: RevealState | null
   phenomenonActive: boolean
   eliminatedPlayerIds: string[]
+  /** Life by player id. Seeded whenever `archenemy` is present. */
+  life?: Record<string, number>
 }
 
 export type GameAction =
@@ -104,8 +130,11 @@ export type GameAction =
   | { type: 'PLANESWALK' }
   | { type: 'END_TURN' }
   | { type: 'RESET_TURN' }
-  | { type: 'DRAW_SCHEME' }
-  | { type: 'ABANDON_SCHEME'; schemeId: string }
+  | { type: 'SET_SCHEME_IN_MOTION' }
+  | { type: 'DISMISS_SCHEME'; instanceId: string }
+  | { type: 'END_ARCHENEMY_TURN' }
+  | { type: 'ADJUST_LIFE'; playerId: string; delta: number }
+  | { type: 'SET_LIFE'; playerId: string; value: number }
   | { type: 'UNDO' }
   | { type: 'SHUFFLE_REMAINING' }
   | { type: 'RESET_ROLL_COUNT' }

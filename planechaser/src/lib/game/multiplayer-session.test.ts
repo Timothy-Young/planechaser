@@ -13,7 +13,7 @@ describe('Multiplayer session flow', () => {
   it('END_TURN cycles through players correctly', () => {
     const state: GameState = {
       id: 'test',
-      config: { playerCount: 3, deckSize: 10 },
+      config: { playerCount: 3, deckSize: 10, mode: 'planechase' },
       deck: [],
       currentPlaneIndex: 0,
       secondPlaneIndex: null,
@@ -56,7 +56,7 @@ describe('Multiplayer session flow', () => {
   it('ROLL_DIE tracks per-turn rolls', () => {
     const state: GameState = {
       id: 'test',
-      config: { playerCount: 2, deckSize: 10 },
+      config: { playerCount: 2, deckSize: 10, mode: 'planechase' },
       deck: [],
       currentPlaneIndex: 0,
       secondPlaneIndex: null,

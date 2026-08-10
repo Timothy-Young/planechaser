@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { ArchenemyPicker } from '@/components/archenemy-picker'
+import { GameModeSelector } from '@/components/game/game-mode-selector'
+import { ArchenemyRoster } from '@/components/game/archenemy-roster'
 import { useFullPlaneCorpus, useSchemeCorpus } from '@/hooks/useCardCorpus'
 import { useUserPods, usePodLeaderboard, useUserConquests, usePodMembers } from '@/hooks/usePods'
 import { useUserSchemeDecks } from '@/hooks/useSchemeDecks'
@@ -13,7 +15,18 @@ import { useCreateSession, useStartSession, useSessionPlayers } from '@/hooks/us
 import { useUserDecks, useCreateDefaultDeck } from '@/hooks/useDecks'
 import { shuffleDeck } from '@/lib/game/shuffle'
 import { saveGameState, hasActiveGame } from '@/lib/game/session-storage'
-import type { GameState, SchemeCard, ArchenemyState, PlaneCard } from '@/lib/game/types'
+import type {
+  GameState,
+  SchemeCard,
+  ArchenemyState,
+  PlaneCard,
+  GameMode,
+  Player,
+} from '@/lib/game/types'
+
+/** Official Archenemy life totals. */
+const ARCHENEMY_LIFE = 40
+const HERO_LIFE = 20
 
 const PLAYER_OPTIONS = [2, 3, 4, 5, 6]
 
@@ -65,14 +78,52 @@ function SetupPageInner() {
   const [deckMode, setDeckMode] = useState<DeckMode>('random')
   const [randomSize, setRandomSize] = useState(40)
   const [deckError, setDeckError] = useState<string | null>(null)
-  const [archenemyMode, setArchenemyMode] = useState(false)
+  const [mode, setMode] = useState<GameMode>('planechase')
   const [designatedArchenemyId, setDesignatedArchenemyId] = useState<string | null>(null)
   const [showArchenemyPicker, setShowArchenemyPicker] = useState(false)
   const [selectedSchemeDeckId, setSelectedSchemeDeckId] = useState<string | null>(null)
+  const [localPlayerNames, setLocalPlayerNames] = useState<Record<string, string>>({})
   const [playerOrder, setPlayerOrder] = useState<string[]>([])
   const [hasCustomOrder, setHasCustomOrder] = useState(false)
   const { data: schemeDecks } = useUserSchemeDecks()
   const SNAP_POINTS = [10, 20, 30, 40]
+
+  const archenemyMode = mode === 'archenemy' || mode === 'both'
+  const isStandaloneArchenemy = mode === 'archenemy'
+
+  /**
+   * The table, however it is known.
+   *
+   * A pod or a multiplayer lobby names the players. Without either, Archenemy
+   * still needs a roster — life is tracked per player — so one is synthesised
+   * from the player count with editable names.
+   */
+  const localPlayers: Player[] = useMemo(
+    () =>
+      Array.from({ length: playerCount }, (_, i) => {
+        const id = `local-${i + 1}`
+        return { id, display_name: localPlayerNames[id] || `Player ${i + 1}` }
+      }),
+    [playerCount, localPlayerNames],
+  )
+
+  const hasNamedRoster =
+    (podStartMode && (podMembers?.length ?? 0) > 0) || (sessionPlayers?.length ?? 0) > 0
+
+  const archenemyRoster: Player[] = useMemo(() => {
+    if (podStartMode && podMembers && podMembers.length > 0) {
+      return podMembers
+        .filter((m) => selectedPodPlayerIds.has(m.user_id))
+        .map((m) => ({ id: m.user_id, display_name: m.profile?.display_name ?? 'Player' }))
+    }
+    if (sessionPlayers && sessionPlayers.length > 0) {
+      return sessionPlayers.map((sp) => ({
+        id: sp.user_id,
+        display_name: sp.profile?.display_name ?? 'Player',
+      }))
+    }
+    return localPlayers
+  }, [podStartMode, podMembers, selectedPodPlayerIds, sessionPlayers, localPlayers])
 
   const selectedDeck = decks?.find((d) => d.id === selectedDeckId) ?? decks?.[0]
 
@@ -133,28 +184,34 @@ function SetupPageInner() {
     setDeckError(null)
   }, [selectedDeckId, deckMode])
 
-  function startGame(archenemyMode = false) {
-    let cardsToUse: PlaneCard[]
-    if (deckMode === 'random') {
-      let allPlanes = (corpus ?? []).filter((c) => c.card_type === 'plane')
-      if (!includeGoldBorder) allPlanes = allPlanes.filter((c) => c.border_color !== 'gold')
-      const size = randomSize >= allPlanes.length ? allPlanes.length : randomSize
-      cardsToUse = shuffleDeck(allPlanes).slice(0, size)
-    } else {
-      let cards = deckCards ?? corpus ?? []
-      if (!includeGoldBorder) cards = cards.filter((c) => c.border_color !== 'gold')
-      cardsToUse = cards
+  function startGame() {
+    // A standalone Archenemy game has no planar deck at all — no planeswalking,
+    // so nothing to draw from and nothing to exclude.
+    let deck: PlaneCard[] = []
+
+    if (!isStandaloneArchenemy) {
+      let cardsToUse: PlaneCard[]
+      if (deckMode === 'random') {
+        let allPlanes = (corpus ?? []).filter((c) => c.card_type === 'plane')
+        if (!includeGoldBorder) allPlanes = allPlanes.filter((c) => c.border_color !== 'gold')
+        const size = randomSize >= allPlanes.length ? allPlanes.length : randomSize
+        cardsToUse = shuffleDeck(allPlanes).slice(0, size)
+      } else {
+        let cards = deckCards ?? corpus ?? []
+        if (!includeGoldBorder) cards = cards.filter((c) => c.border_color !== 'gold')
+        cardsToUse = cards
+      }
+      if (cardsToUse.length === 0) return
+
+      const playableCards = cardsToUse.filter((card) => !conqueredPlaneIds.has(card.id))
+
+      if (playableCards.length === 0) {
+        setDeckError('You have conquered every plane in this deck! Build a new deck or add more planes to keep exploring the multiverse.')
+        return
+      }
+
+      deck = shuffleDeck(playableCards)
     }
-    if (cardsToUse.length === 0) return
-
-    const playableCards = cardsToUse.filter((card) => !conqueredPlaneIds.has(card.id))
-
-    if (playableCards.length === 0) {
-      setDeckError('You have conquered every plane in this deck! Build a new deck or add more planes to keep exploring the multiverse.')
-      return
-    }
-
-    const deck = shuffleDeck(playableCards)
 
     const basePlayers = podStartMode && podMembers && podMembers.length > 0
       ? podMembers
@@ -166,7 +223,12 @@ function SetupPageInner() {
       : sessionPlayers?.map((sp) => ({
           id: sp.user_id,
           display_name: sp.profile?.display_name ?? 'Player',
-        })) ?? [{ id: user?.id ?? 'host', display_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player' }]
+        }))
+        // Archenemy tracks life per player, so it needs the whole table named
+        // even solo. Planechase keeps its single-host fallback.
+        ?? (archenemyMode
+          ? localPlayers
+          : [{ id: user?.id ?? 'host', display_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player' }])
 
     // Apply custom player order if set
     const players = playerOrder.length > 0
@@ -198,17 +260,34 @@ function SetupPageInner() {
         archenemyId: designatedArchenemyId,
         archenemyName: designatedPlayer?.display_name ?? 'Archenemy',
         schemeDeck,
-        currentSchemeIndex: 0,
-        activeSchemes: [],
+        schemesInMotion: [],
         schemesPlayed: 0,
+        // The archenemy always takes the first turn.
+        side: 'archenemy',
+        turnNumber: 1,
       }
     }
 
+    if (archenemyMode && !archenemyState) return
+
     const turnOrder = players.map((p) => p.id)
+
+    const life = archenemyState
+      ? Object.fromEntries(
+          players.map((p) => [
+            p.id,
+            p.id === archenemyState.archenemyId ? ARCHENEMY_LIFE : HERO_LIFE,
+          ]),
+        )
+      : undefined
 
     const state: GameState = {
       id: crypto.randomUUID(),
-      config: { playerCount: podStartMode ? selectedPodPlayerIds.size : playerCount, deckSize: deck.length, isArchenemy: archenemyMode },
+      config: {
+        playerCount: podStartMode ? selectedPodPlayerIds.size : playerCount,
+        deckSize: deck.length,
+        mode,
+      },
       deck,
       currentPlaneIndex: 0,
       secondPlaneIndex: null,
@@ -216,7 +295,7 @@ function SetupPageInner() {
       lastDieResult: null,
       rollCountThisTurn: 0,
       dieRollHistory: [],
-      planesVisited: 1,
+      planesVisited: isStandaloneArchenemy ? 0 : 1,
       startedAt: Date.now(),
       archenemy: archenemyState,
       players,
@@ -230,6 +309,7 @@ function SetupPageInner() {
       revealState: null,
       phenomenonActive: false,
       eliminatedPlayerIds: [],
+      life,
     }
 
     saveGameState(state)
@@ -286,7 +366,11 @@ function SetupPageInner() {
               PlaneChaser
             </h1>
             <p className="text-[17px] text-[var(--color-text-secondary)] tracking-wide font-medium" style={{ fontFamily: 'var(--font-heading)' }}>
-              New Planechase Session
+              {mode === 'archenemy'
+                ? 'New Archenemy Session'
+                : mode === 'both'
+                  ? 'New Planechase + Archenemy Session'
+                  : 'New Planechase Session'}
             </p>
           </div>
 
@@ -358,22 +442,42 @@ function SetupPageInner() {
             </motion.button>
           )}
 
+          {/* Game type */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm p-5"
+          >
+            <GameModeSelector
+              value={mode}
+              onChange={(next) => {
+                setMode(next)
+                if (next === 'planechase') {
+                  setDesignatedArchenemyId(null)
+                  setShowArchenemyPicker(false)
+                  setSelectedSchemeDeckId(null)
+                }
+              }}
+            />
+          </motion.div>
+
           {/* Archenemy section */}
-          {activePod && (
+          {archenemyMode && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
               className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm p-5 space-y-4"
             >
-              {/* Auto-detect banner */}
-              {archenemy && !archenemyMode && (
+              {/* Auto-detect banner — only meaningful inside a pod, where the
+                  conquest threshold is what nominates an archenemy. */}
+              {activePod && archenemy && !designatedArchenemyId && (
                 <motion.button
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => {
-                    setArchenemyMode(true)
                     const eligible = leaderboard?.filter((e) => e.is_archenemy) ?? []
                     if (eligible.length === 1 && eligible[0].user_id !== activePod.last_archenemy_user_id) {
                       setDesignatedArchenemyId(eligible[0].user_id)
@@ -392,49 +496,9 @@ function SetupPageInner() {
                 </motion.button>
               )}
 
-              {/* Manual toggle */}
-              <div className="flex items-center justify-between">
-                <label
-                  className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium"
-                  style={{ fontFamily: 'var(--font-heading)' }}
-                >
-                  Archenemy Mode
-                </label>
-                <button
-                  onClick={() => {
-                    const next = !archenemyMode
-                    setArchenemyMode(next)
-                    if (!next) {
-                      setDesignatedArchenemyId(null)
-                      setShowArchenemyPicker(false)
-                      setSelectedSchemeDeckId(null)
-                    } else {
-                      const eligible = archenemy
-                        ? (leaderboard?.filter((e) => e.is_archenemy) ?? [])
-                        : (leaderboard ?? [])
-                      if (eligible.length === 1 && eligible[0].user_id !== activePod.last_archenemy_user_id) {
-                        setDesignatedArchenemyId(eligible[0].user_id)
-                      } else if (eligible.length > 0) {
-                        setShowArchenemyPicker(true)
-                      }
-                    }
-                  }}
-                  className={`relative w-12 h-7 rounded-full transition-colors ${
-                    archenemyMode
-                      ? 'bg-[var(--color-cta)]'
-                      : 'bg-[var(--color-border)]'
-                  }`}
-                >
-                  <motion.div
-                    animate={{ x: archenemyMode ? 20 : 2 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    className="absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow-sm"
-                  />
-                </button>
-              </div>
-
-              {/* Archenemy Picker */}
-              {archenemyMode && showArchenemyPicker && !designatedArchenemyId && (
+              {/* Pod path: the conquest leaderboard nominates, with the
+                  back-to-back warning. */}
+              {activePod && showArchenemyPicker && !designatedArchenemyId && (
                 <ArchenemyPicker
                   eligiblePlayers={
                     (archenemy
@@ -447,67 +511,56 @@ function SetupPageInner() {
                     setDesignatedArchenemyId(playerId)
                     setShowArchenemyPicker(false)
                   }}
-                  onCancel={() => {
-                    setArchenemyMode(false)
-                    setShowArchenemyPicker(false)
-                  }}
+                  onCancel={() => setShowArchenemyPicker(false)}
                 />
               )}
 
-              {/* Designated archenemy display + scheme deck selector */}
-              {archenemyMode && designatedArchenemyId && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between rounded-xl border border-[var(--color-cta)]/30 bg-[var(--color-cta)]/8 px-4 py-3">
-                    <div>
-                      <p className="text-[13px] font-bold text-[var(--color-cta)]" style={{ fontFamily: 'var(--font-heading)' }}>
-                        Archenemy: {
-                          leaderboard?.find((e) => e.user_id === designatedArchenemyId)?.display_name ?? 'Unknown'
-                        }
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setDesignatedArchenemyId(null)
-                        setShowArchenemyPicker(true)
-                      }}
-                      className="text-[12px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] underline"
-                      style={{ fontFamily: 'var(--font-body)' }}
-                    >
-                      Change
-                    </button>
-                  </div>
-
-                  {/* Scheme deck selector */}
-                  <div className="space-y-2">
-                    <label
-                      className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium"
-                      style={{ fontFamily: 'var(--font-heading)' }}
-                    >
-                      Scheme Deck
-                    </label>
-                    <select
-                      value={selectedSchemeDeckId ?? ''}
-                      onChange={(e) => setSelectedSchemeDeckId(e.target.value || null)}
-                      className="w-full h-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] text-[13px] px-3 transition-colors focus:border-[var(--color-cta)]/50 focus:outline-none"
-                      style={{ fontFamily: 'var(--font-body)' }}
-                    >
-                      <option value="">All Schemes (default)</option>
-                      {schemeDecks?.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name} ({d.scheme_ids.length} schemes)
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => router.push('/scheme-decks')}
-                      className="text-[12px] text-[var(--color-accent)] hover:underline"
-                      style={{ fontFamily: 'var(--font-body)' }}
-                    >
-                      Manage scheme decks
-                    </button>
-                  </div>
-                </div>
+              {/* No pod, or a pod game where nobody has been designated yet:
+                  pick straight off the roster. Standalone games have no
+                  conquest threshold to nominate anyone. */}
+              {!(activePod && showArchenemyPicker && !designatedArchenemyId) && (
+                <ArchenemyRoster
+                  players={archenemyRoster}
+                  designatedArchenemyId={designatedArchenemyId}
+                  onDesignate={setDesignatedArchenemyId}
+                  onRename={
+                    hasNamedRoster
+                      ? undefined
+                      : (playerId, name) =>
+                          setLocalPlayerNames((prev) => ({ ...prev, [playerId]: name }))
+                  }
+                />
               )}
+
+              {/* Scheme deck selector */}
+              <div className="space-y-2">
+                <label
+                  className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium"
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                >
+                  Scheme Deck
+                </label>
+                <select
+                  value={selectedSchemeDeckId ?? ''}
+                  onChange={(e) => setSelectedSchemeDeckId(e.target.value || null)}
+                  className="w-full h-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] text-[13px] px-3 transition-colors focus:border-[var(--color-cta)]/50 focus:outline-none"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  <option value="">All Schemes (default)</option>
+                  {schemeDecks?.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} ({d.scheme_ids.length} schemes)
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => router.push('/scheme-decks')}
+                  className="text-[12px] text-[var(--color-accent)] hover:underline"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  Manage scheme decks
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -697,7 +750,7 @@ function SetupPageInner() {
             )}
 
             {/* Deck mode toggle */}
-            <div className="space-y-3">
+            <div className={`space-y-3 ${isStandaloneArchenemy ? 'hidden' : ''}`}>
               <label className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium" style={{ fontFamily: 'var(--font-heading)' }}>
                 Planar Deck
               </label>
@@ -728,7 +781,7 @@ function SetupPageInner() {
             </div>
 
             {/* Saved deck mode */}
-            {deckMode === 'saved' && (
+            {!isStandaloneArchenemy && deckMode === 'saved' && (
               <div className="space-y-2">
                 {decksLoading ? (
                   <div className="flex items-center gap-2 py-2">
@@ -771,7 +824,7 @@ function SetupPageInner() {
             )}
 
             {/* Random mode */}
-            {deckMode === 'random' && (
+            {!isStandaloneArchenemy && deckMode === 'random' && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
@@ -809,7 +862,7 @@ function SetupPageInner() {
             )}
 
             {/* Gold border toggle */}
-            <div className="flex items-center justify-between">
+            <div className={`flex items-center justify-between ${isStandaloneArchenemy ? 'hidden' : ''}`}>
               <label
                 className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium"
                 style={{ fontFamily: 'var(--font-heading)' }}
@@ -832,8 +885,20 @@ function SetupPageInner() {
               </button>
             </div>
 
+            {/* Archenemy prerequisites */}
+            {archenemyMode && !designatedArchenemyId && (
+              <p className="text-[12px] text-[var(--color-text-muted)] text-center" style={{ fontFamily: 'var(--font-body)' }}>
+                Designate an archenemy above to start.
+              </p>
+            )}
+            {archenemyMode && designatedArchenemyId && schemes && schemes.length === 0 && (
+              <p className="text-[12px] text-[var(--color-destructive)] text-center" style={{ fontFamily: 'var(--font-body)' }}>
+                No scheme cards are available. An Archenemy game needs a scheme deck.
+              </p>
+            )}
+
             {/* Status */}
-            {isLoading && (
+            {!isStandaloneArchenemy && isLoading && (
               <div className="flex items-center justify-center gap-2 py-2">
                 <div className="w-4 h-4 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
                 <p className="text-[12px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
@@ -841,7 +906,7 @@ function SetupPageInner() {
                 </p>
               </div>
             )}
-            {error && (
+            {!isStandaloneArchenemy && error && (
               <p className="text-[12px] text-[var(--color-destructive)] text-center" style={{ fontFamily: 'var(--font-body)' }}>
                 Failed to load planes. Check connection and refresh.
               </p>
@@ -861,8 +926,19 @@ function SetupPageInner() {
 
             {/* Start button */}
             <Button
-              onClick={() => startGame(archenemyMode)}
-              disabled={isLoading || (podStartMode && selectedPodPlayerIds.size < 2) || (deckMode === 'saved' ? (!deckCards || deckCards.length === 0) : (!corpus || corpus.length === 0))}
+              onClick={startGame}
+              disabled={
+                (podStartMode && selectedPodPlayerIds.size < 2)
+                || (archenemyMode && (!designatedArchenemyId || !schemes || schemes.length === 0))
+                // A standalone game needs no planes, so the plane corpus never
+                // gates it.
+                || (!isStandaloneArchenemy && (
+                  isLoading
+                  || (deckMode === 'saved'
+                    ? (!deckCards || deckCards.length === 0)
+                    : (!corpus || corpus.length === 0))
+                ))
+              }
               className="w-full h-14 text-[17px] bg-gradient-to-r from-[var(--color-accent-deep)] to-[var(--color-accent)] hover:opacity-90 text-white transition-all"
               style={{ fontFamily: 'var(--font-heading)', boxShadow: '0 4px 30px rgba(124, 58, 237, 0.4)' }}
             >

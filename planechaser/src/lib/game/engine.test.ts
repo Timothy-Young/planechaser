@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { gameReducer, rollPlanarDie, chaosCost } from './engine'
-import type { GameState } from './types'
+import type { ArchenemyState, GameAction, GameState, SchemeCard } from './types'
 
 function makeState(overrides: Partial<GameState> = {}): GameState {
   return {
     id: 'test-game',
-    config: { playerCount: 4, deckSize: 10 },
+    config: { playerCount: 4, deckSize: 10, mode: 'planechase' },
     deck: Array.from({ length: 10 }, (_, i) => ({
       id: `plane-${i}`,
       name: `Plane ${i}`,
@@ -390,4 +390,265 @@ describe('reveal chaos actions', () => {
     expect(result.deck[deckLength - 2].id).toBe('plane-1')
     expect(result.deck[deckLength - 1].id).toBe('plane-2')
   })
+})
+
+function makeScheme(id: string, isOngoing = false): SchemeCard {
+  return {
+    id,
+    name: `Scheme ${id}`,
+    type_line: 'Scheme',
+    oracle_text: isOngoing ? 'Ongoing test text' : 'One-shot test text',
+    image_uris: {
+      normal: `https://example.com/${id}.jpg`,
+      large: `https://example.com/${id}.jpg`,
+      art_crop: `https://example.com/${id}.jpg`,
+      border_crop: `https://example.com/${id}.jpg`,
+      small: `https://example.com/${id}.jpg`,
+      png: `https://example.com/${id}.png`,
+    },
+    set_name: 'Test Set',
+    set: 'tst',
+    isOngoing,
+  }
+}
+
+function makeArchenemy(overrides: Partial<ArchenemyState> = {}): ArchenemyState {
+  return {
+    archenemyId: 'p1',
+    archenemyName: 'Alice',
+    schemeDeck: [makeScheme('s-0'), makeScheme('s-1', true), makeScheme('s-2')],
+    schemesInMotion: [],
+    schemesPlayed: 0,
+    side: 'archenemy',
+    turnNumber: 1,
+    ...overrides,
+  }
+}
+
+/** A standalone Archenemy game: no planar deck, no die, no planeswalking. */
+function makeArchenemyState(
+  archenemyOverrides: Partial<ArchenemyState> = {},
+  stateOverrides: Partial<GameState> = {},
+): GameState {
+  return makeState({
+    config: { playerCount: 4, deckSize: 0, mode: 'archenemy' },
+    deck: [],
+    planesVisited: 0,
+    players: [
+      { id: 'p1', display_name: 'Alice' },
+      { id: 'p2', display_name: 'Bob' },
+      { id: 'p3', display_name: 'Charlie' },
+    ],
+    archenemy: makeArchenemy(archenemyOverrides),
+    life: { p1: 40, p2: 20, p3: 20 },
+    ...stateOverrides,
+  })
+}
+
+describe('SET_SCHEME_IN_MOTION', () => {
+  it('moves the top card of the scheme deck onto the board', () => {
+    const state = makeArchenemyState()
+    const next = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' })
+
+    expect(next.archenemy!.schemesInMotion).toHaveLength(1)
+    expect(next.archenemy!.schemesInMotion[0].card.id).toBe('s-0')
+    expect(next.archenemy!.schemeDeck.map((s) => s.id)).toEqual(['s-1', 's-2'])
+    expect(next.archenemy!.schemesPlayed).toBe(1)
+  })
+
+  it('keeps one-shot schemes on the board alongside ongoing ones', () => {
+    let state = makeArchenemyState()
+    state = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' }) // s-0, one-shot
+    state = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' }) // s-1, ongoing
+
+    expect(state.archenemy!.schemesInMotion.map((s) => s.card.id)).toEqual(['s-1', 's-0'])
+  })
+
+  it('gives every scheme in motion a distinct instanceId', () => {
+    let state = makeArchenemyState()
+    state = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' })
+    state = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' })
+
+    const ids = state.archenemy!.schemesInMotion.map((s) => s.instanceId)
+    expect(new Set(ids).size).toBe(2)
+  })
+
+  it('is a no-op when every scheme is already in motion', () => {
+    let state = makeArchenemyState()
+    for (let i = 0; i < 3; i++) {
+      state = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' })
+    }
+    expect(state.archenemy!.schemeDeck).toHaveLength(0)
+
+    const next = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' })
+    expect(next.archenemy!.schemesInMotion).toHaveLength(3)
+    expect(next.archenemy!.schemesPlayed).toBe(3)
+  })
+
+  it('is a no-op without an archenemy slice', () => {
+    const state = makeState()
+    expect(gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' }).archenemy).toBeUndefined()
+  })
+})
+
+describe('DISMISS_SCHEME', () => {
+  it('sends a resolved one-shot scheme to the bottom of the deck', () => {
+    let state = makeArchenemyState()
+    state = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' })
+    const { instanceId } = state.archenemy!.schemesInMotion[0]
+
+    const next = gameReducer(state, { type: 'DISMISS_SCHEME', instanceId })
+    expect(next.archenemy!.schemesInMotion).toHaveLength(0)
+    expect(next.archenemy!.schemeDeck.map((s) => s.id)).toEqual(['s-1', 's-2', 's-0'])
+  })
+
+  it('sends an abandoned ongoing scheme to the bottom of the deck', () => {
+    let state = makeArchenemyState()
+    state = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' }) // s-0
+    state = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' }) // s-1, ongoing
+    const ongoing = state.archenemy!.schemesInMotion.find((s) => s.card.isOngoing)!
+
+    const next = gameReducer(state, { type: 'DISMISS_SCHEME', instanceId: ongoing.instanceId })
+    expect(next.archenemy!.schemesInMotion.map((s) => s.card.id)).toEqual(['s-0'])
+    expect(next.archenemy!.schemeDeck.map((s) => s.id)).toEqual(['s-2', 's-1'])
+  })
+
+  it('clears out of order without disturbing the rest of the board', () => {
+    // The case index-modulo cycling got wrong: three schemes out, clear the
+    // middle one, and both the board and the deck must stay honest.
+    let state = makeArchenemyState()
+    for (let i = 0; i < 3; i++) {
+      state = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' })
+    }
+    const middle = state.archenemy!.schemesInMotion[1]
+
+    const next = gameReducer(state, { type: 'DISMISS_SCHEME', instanceId: middle.instanceId })
+    expect(next.archenemy!.schemesInMotion.map((s) => s.card.id)).toEqual(['s-2', 's-0'])
+    expect(next.archenemy!.schemeDeck.map((s) => s.id)).toEqual(['s-1'])
+  })
+
+  it('refills the deck so play continues after exhaustion', () => {
+    let state = makeArchenemyState()
+    for (let i = 0; i < 3; i++) {
+      state = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' })
+    }
+    const first = state.archenemy!.schemesInMotion[2]
+    state = gameReducer(state, { type: 'DISMISS_SCHEME', instanceId: first.instanceId })
+
+    const next = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' })
+    expect(next.archenemy!.schemesInMotion[0].card.id).toBe('s-0')
+    expect(next.archenemy!.schemeDeck).toHaveLength(0)
+  })
+
+  it('clears two copies of the same scheme independently', () => {
+    let state = makeArchenemyState({
+      schemeDeck: [makeScheme('dup', true), makeScheme('dup', true)],
+    })
+    state = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' })
+    state = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' })
+    expect(state.archenemy!.schemesInMotion).toHaveLength(2)
+
+    const target = state.archenemy!.schemesInMotion[0].instanceId
+    const next = gameReducer(state, { type: 'DISMISS_SCHEME', instanceId: target })
+    expect(next.archenemy!.schemesInMotion).toHaveLength(1)
+    expect(next.archenemy!.schemeDeck.map((s) => s.id)).toEqual(['dup'])
+  })
+
+  it('is a no-op for an unknown instanceId', () => {
+    let state = makeArchenemyState()
+    state = gameReducer(state, { type: 'SET_SCHEME_IN_MOTION' })
+
+    const next = gameReducer(state, { type: 'DISMISS_SCHEME', instanceId: 'nope' })
+    expect(next.archenemy!.schemesInMotion).toHaveLength(1)
+    expect(next.archenemy!.schemeDeck).toHaveLength(2)
+  })
+})
+
+describe('END_ARCHENEMY_TURN', () => {
+  it('passing to the team only flips the side', () => {
+    const state = makeArchenemyState({ side: 'archenemy', turnNumber: 1 })
+    const next = gameReducer(state, { type: 'END_ARCHENEMY_TURN' })
+
+    expect(next.archenemy!.side).toBe('team')
+    expect(next.archenemy!.turnNumber).toBe(1)
+    expect(next.archenemy!.schemesInMotion).toHaveLength(0)
+  })
+
+  it('passing back to the archenemy sets a scheme in motion and counts the turn', () => {
+    const state = makeArchenemyState({ side: 'team', turnNumber: 1 })
+    const next = gameReducer(state, { type: 'END_ARCHENEMY_TURN' })
+
+    expect(next.archenemy!.side).toBe('archenemy')
+    expect(next.archenemy!.turnNumber).toBe(2)
+    expect(next.archenemy!.schemesInMotion).toHaveLength(1)
+    expect(next.archenemy!.schemesInMotion[0].card.id).toBe('s-0')
+  })
+
+  it('a single undo reverts both the turn flip and the scheme', () => {
+    const state = makeArchenemyState({ side: 'team', turnNumber: 1 })
+    const played = gameReducer(state, { type: 'END_ARCHENEMY_TURN' })
+    const undone = gameReducer(played, { type: 'UNDO' })
+
+    expect(undone.archenemy!.side).toBe('team')
+    expect(undone.archenemy!.turnNumber).toBe(1)
+    expect(undone.archenemy!.schemesInMotion).toHaveLength(0)
+    expect(undone.archenemy!.schemeDeck).toHaveLength(3)
+  })
+})
+
+describe('life tracking', () => {
+  it('ADJUST_LIFE applies a delta to one player only', () => {
+    const state = makeArchenemyState()
+    const next = gameReducer(state, { type: 'ADJUST_LIFE', playerId: 'p2', delta: -3 })
+
+    expect(next.life).toEqual({ p1: 40, p2: 17, p3: 20 })
+  })
+
+  it('ADJUST_LIFE allows totals below zero', () => {
+    const state = makeArchenemyState()
+    const next = gameReducer(state, { type: 'ADJUST_LIFE', playerId: 'p2', delta: -25 })
+
+    expect(next.life!.p2).toBe(-5)
+  })
+
+  it('SET_LIFE writes an absolute value', () => {
+    const state = makeArchenemyState()
+    const next = gameReducer(state, { type: 'SET_LIFE', playerId: 'p1', value: 12 })
+
+    expect(next.life!.p1).toBe(12)
+  })
+
+  it('is a no-op for an unknown player', () => {
+    const state = makeArchenemyState()
+    const next = gameReducer(state, { type: 'ADJUST_LIFE', playerId: 'nobody', delta: -1 })
+
+    expect(next.life).toEqual({ p1: 40, p2: 20, p3: 20 })
+  })
+})
+
+describe('plane actions with no planar deck', () => {
+  const planeActions: GameAction[] = [
+    { type: 'PLANESWALK' },
+    { type: 'PLANESWALK_NO_LEAVE' },
+    { type: 'RESOLVE_SPATIAL_MERGE' },
+    { type: 'RESOLVE_PHENOMENON' },
+    { type: 'SHUFFLE_REMAINING' },
+    { type: 'END_TURN' },
+    { type: 'REORDER_TOP', cardIds: [] },
+    { type: 'REORDER_BOTTOM', cardIds: [] },
+  ]
+
+  it.each(planeActions.map((a) => [a.type, a] as const))(
+    '%s leaves a standalone Archenemy game untouched',
+    (_label, action) => {
+      const state = makeArchenemyState()
+      const next = gameReducer(state, action)
+
+      expect(next.deck).toHaveLength(0)
+      expect(next.currentPlaneIndex).toBe(0)
+      expect(next.planesVisited).toBe(0)
+      expect(next.turnHistory).toHaveLength(0)
+      expect(next.archenemy).toEqual(state.archenemy)
+    },
+  )
 })

@@ -5,13 +5,26 @@ import {
   getUserCustomPlanes,
   getPublicCustomPlanes,
   getCustomPlane,
-  createCustomPlane,
-  updateCustomPlane,
   deleteCustomPlane,
 } from '@/lib/custom-planes/queries'
-import { uploadPlaneImage, deletePlaneImage } from '@/lib/custom-planes/storage'
-import type { CustomPlaneInput } from '@/lib/custom-planes/types'
+import { deletePlaneImage } from '@/lib/custom-planes/storage'
+import {
+  submitNewPlane,
+  submitPlaneUpdate,
+  uploadPendingImage,
+} from '@/lib/custom-planes/submit'
+import type { CreatePlaneRequest, UpdatePlaneRequest } from '@/lib/moderation/contract'
 import { useAppStore } from '@/store/app-store'
+
+/**
+ * Writes go through /api/custom-planes, never straight to PostgREST. The route
+ * is where the NSFW scan and the penalty ladder live, and migration 031 revokes
+ * the client's direct INSERT and UPDATE so this is the only path that works.
+ */
+export interface PlaneSubmission {
+  file: File | null
+  fields: Omit<CreatePlaneRequest, 'pending_image_path'>
+}
 
 export function useCustomPlanes() {
   const user = useAppStore((s) => s.user)
@@ -41,25 +54,38 @@ export function useCreateCustomPlane() {
   const user = useAppStore((s) => s.user)
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (input: CustomPlaneInput) =>
-      createCustomPlane(user!.id, input),
+    mutationFn: async ({ file, fields }: PlaneSubmission) => {
+      const pending = file ? await uploadPendingImage(user!.id, file) : null
+      return submitNewPlane({ ...fields, pending_image_path: pending })
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['custom-planes'] })
       qc.invalidateQueries({ queryKey: ['custom-plane-count'] })
       qc.invalidateQueries({ queryKey: ['full-plane-corpus'] })
+      qc.invalidateQueries({ queryKey: ['moderation-status'] })
     },
   })
 }
 
 export function useUpdateCustomPlane() {
+  const user = useAppStore((s) => s.user)
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { id: string; input: Partial<CustomPlaneInput> }) =>
-      updateCustomPlane(params.id, params.input),
-    onSuccess: (data, vars) => {
+    mutationFn: async ({
+      file,
+      fields,
+    }: {
+      file: File | null
+      fields: Omit<UpdatePlaneRequest, 'pending_image_path'>
+    }) => {
+      const pending = file ? await uploadPendingImage(user!.id, file) : null
+      return submitPlaneUpdate({ ...fields, pending_image_path: pending })
+    },
+    onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['custom-planes'] })
-      qc.invalidateQueries({ queryKey: ['custom-plane', vars.id] })
+      qc.invalidateQueries({ queryKey: ['custom-plane', vars.fields.id] })
       qc.invalidateQueries({ queryKey: ['full-plane-corpus'] })
+      qc.invalidateQueries({ queryKey: ['moderation-status'] })
     },
   })
 }
@@ -81,9 +107,3 @@ export function useDeleteCustomPlane() {
   })
 }
 
-export function useUploadPlaneImage() {
-  const user = useAppStore((s) => s.user)
-  return useMutation({
-    mutationFn: (file: File) => uploadPlaneImage(user!.id, file),
-  })
-}

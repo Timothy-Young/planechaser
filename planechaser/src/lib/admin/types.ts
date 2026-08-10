@@ -165,7 +165,9 @@ export interface SendMessageResult {
 export interface UserStrike {
   id: string
   user_id: string
-  admin_id: string
+  /** Null for automatic strikes, which have no issuing admin. */
+  admin_id: string | null
+  source: 'admin' | 'auto_nsfw'
   reason: string
   created_at: string
   revoked_at: string | null

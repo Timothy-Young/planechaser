@@ -3,9 +3,15 @@
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, Upload, Lock } from 'lucide-react'
-import { useCreateCustomPlane, useUploadPlaneImage } from '@/hooks/useCustomPlanes'
+import { useCreateCustomPlane } from '@/hooks/useCustomPlanes'
 import { useCustomPlaneLimit } from '@/hooks/useLimits'
+import { useModerationStatus } from '@/hooks/useModerationStatus'
 import { CustomPlanePreview } from '@/components/custom-plane-preview'
+import { ModerationNotice } from '@/components/moderation-notice'
+import { NsfwAcknowledgment } from '@/components/nsfw-acknowledgment'
+import { ModerationError, PlaneRequestError } from '@/lib/custom-planes/submit'
+import type { ModerationRejection } from '@/lib/moderation/contract'
+import type { TextField } from '@/lib/moderation/types'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -14,8 +20,8 @@ const DEFAULT_TYPE_LINE = 'Plane — Custom'
 export default function CreateCustomPlanePage() {
   const router = useRouter()
   const createMutation = useCreateCustomPlane()
-  const uploadMutation = useUploadPlaneImage()
   const limit = useCustomPlaneLimit()
+  const moderation = useModerationStatus()
 
   const [name, setName] = useState('')
   const [typeLine, setTypeLine] = useState(DEFAULT_TYPE_LINE)
@@ -28,8 +34,36 @@ export default function CreateCustomPlanePage() {
   const [imageError, setImageError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [rejection, setRejection] = useState<ModerationRejection | null>(null)
+  const [acknowledged, setAcknowledged] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // The flag is sticky server-side; a rejection in this session turns it on
+  // immediately so the checkbox appears without waiting for a refetch.
+  const ackRequired = moderation.ackRequired || rejection !== null
+
+  function clearImage() {
+    setImageFile(null)
+    setImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  /**
+   * Clears only the fields the server named, not the whole form. One flagged
+   * word in flavor text should not cost someone a fully composed card — the
+   * penalty ladder is what handles deliberate abuse.
+   */
+  function clearFlaggedFields(fields: TextField[]) {
+    const setters: Record<TextField, (value: string) => void> = {
+      name: setName,
+      type_line: () => setTypeLine(DEFAULT_TYPE_LINE),
+      oracle_text: setOracleText,
+      chaos_text: setChaosText,
+      flavor_text: setFlavorText,
+    }
+    for (const field of fields) setters[field]('')
+  }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -52,43 +86,60 @@ export default function CreateCustomPlanePage() {
 
   async function handleSave() {
     setFormError(null)
+    setRejection(null)
+
     if (!name.trim()) {
       setFormError('Name is required.')
       return
     }
-    // Checked before the upload below so hitting the cap never leaves an
-    // orphaned image in storage.
     if (limit.atLimit) {
       setFormError(
         `You've reached the limit of ${limit.max} custom planes. Delete one to make room.`,
       )
       return
     }
+    if (ackRequired && !acknowledged) {
+      setFormError('Please confirm this plane is safe for work.')
+      return
+    }
 
     setSaving(true)
     try {
-      let imagePath: string | null = null
-      if (imageFile) {
-        imagePath = await uploadMutation.mutateAsync(imageFile)
-      }
-
       await createMutation.mutateAsync({
-        name: name.trim(),
-        type_line: typeLine.trim() || DEFAULT_TYPE_LINE,
-        oracle_text: oracleText.trim(),
-        chaos_text: chaosText.trim(),
-        flavor_text: flavorText.trim() || undefined,
-        image_path: imagePath,
-        is_public: isPublic,
+        file: imageFile,
+        fields: {
+          name: name.trim(),
+          type_line: typeLine.trim() || DEFAULT_TYPE_LINE,
+          oracle_text: oracleText.trim(),
+          chaos_text: chaosText.trim(),
+          flavor_text: flavorText.trim() || undefined,
+          is_public: isPublic,
+          acknowledged,
+        },
       })
 
       router.push('/custom-planes')
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Something went wrong.')
+      if (err instanceof ModerationError) {
+        setRejection(err.rejection)
+        if (err.rejection.image_flagged) clearImage()
+        clearFlaggedFields(err.rejection.text_fields)
+        setAcknowledged(false)
+        moderation.refetch()
+      } else if (err instanceof PlaneRequestError) {
+        setFormError(err.message)
+        if (err.response.error === 'cooldown' || err.response.error === 'banned') {
+          moderation.refetch()
+        }
+      } else {
+        setFormError(err instanceof Error ? err.message : 'Something went wrong.')
+      }
     } finally {
       setSaving(false)
     }
   }
+
+  const blocked = limit.atLimit || moderation.cooldownActive
 
   return (
     <main
@@ -122,6 +173,27 @@ export default function CreateCustomPlanePage() {
         <div className="flex flex-col md:flex-row gap-6">
           {/* Form (left on desktop) */}
           <div className="flex-1 space-y-5">
+
+            {/* Cooldown banner — mirrors the at-limit banner below */}
+            {moderation.cooldownActive && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-[var(--color-cta)]/30 bg-[var(--color-cta)]/8 px-4 py-3">
+                <Lock size={16} className="text-[var(--color-cta)] shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p
+                    className="text-[12px] font-semibold text-[var(--color-cta)]"
+                    style={{ fontFamily: 'var(--font-heading)' }}
+                  >
+                    Plane creation paused — {moderation.cooldownLabel} remaining
+                  </p>
+                  <p
+                    className="text-[11px] text-[var(--color-text-muted)]"
+                    style={{ fontFamily: 'var(--font-body)' }}
+                  >
+                    This plane was paused after a content violation.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* At-limit banner */}
             {limit.atLimit && (
@@ -320,10 +392,8 @@ export default function CreateCustomPlanePage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setImageFile(null)
-                    setImagePreview(null)
+                    clearImage()
                     setImageError(null)
-                    if (fileInputRef.current) fileInputRef.current.value = ''
                   }}
                   className="text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
                   style={{ fontFamily: 'var(--font-body)' }}
@@ -342,6 +412,14 @@ export default function CreateCustomPlanePage() {
               )}
             </div>
 
+            {/* Moderation warning / violation */}
+            {rejection && <ModerationNotice rejection={rejection} />}
+
+            {/* Sticky acknowledgment, shown for the life of the account */}
+            {ackRequired && (
+              <NsfwAcknowledgment checked={acknowledged} onChange={setAcknowledged} />
+            )}
+
             {/* Form error */}
             {formError && (
               <div className="rounded-xl border border-red-500/30 bg-red-500/8 px-4 py-3">
@@ -357,14 +435,14 @@ export default function CreateCustomPlanePage() {
             {/* Save button */}
             <button
               onClick={handleSave}
-              disabled={saving || limit.atLimit}
+              disabled={saving || blocked}
               className="flex items-center justify-center gap-2 w-full bg-[var(--color-accent)] text-white rounded-xl py-3 text-[14px] font-semibold transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
               style={{ fontFamily: 'var(--font-heading)' }}
             >
               {saving ? (
                 <>
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Saving…
+                  Checking content…
                 </>
               ) : (
                 <>

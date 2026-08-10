@@ -1,10 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Pencil, Trash2, Wand2, Globe, Lock } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Trash2, Wand2, Globe, Lock, Maximize2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ImagePreviewModal } from '@/components/image-preview-modal'
 import { useCustomPlanes, useDeleteCustomPlane } from '@/hooks/useCustomPlanes'
 import { useCustomPlaneLimit } from '@/hooks/useLimits'
 import { getImageUrl } from '@/lib/custom-planes/storage'
@@ -14,6 +16,7 @@ export default function CustomPlanesPage() {
   const { data: planes, isLoading } = useCustomPlanes()
   const limit = useCustomPlaneLimit()
   const deleteMutation = useDeleteCustomPlane()
+  const [preview, setPreview] = useState<{ url: string; name: string } | null>(null)
 
   function handleDelete(id: string, imagePath: string | null, name: string) {
     if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return
@@ -167,13 +170,23 @@ export default function CustomPlanesPage() {
                     {/* Thumbnail with overlay buttons */}
                     <div className="relative aspect-[16/9] bg-[var(--color-surface)]">
                       {imageUrl ? (
-                        <Image
-                          src={imageUrl}
-                          alt={custom.name}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 420px) 50vw, 210px"
-                        />
+                        <button
+                          type="button"
+                          onClick={() => setPreview({ url: imageUrl, name: custom.name })}
+                          className="absolute inset-0 cursor-zoom-in group"
+                          aria-label={`View ${custom.name} image`}
+                        >
+                          <Image
+                            src={imageUrl}
+                            alt={custom.name}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 420px) 50vw, 210px"
+                          />
+                          <span className="absolute bottom-1.5 right-1.5 p-1.5 rounded-lg bg-black/60 text-white backdrop-blur-sm opacity-80 group-hover:opacity-100 transition-opacity">
+                            <Maximize2 size={12} />
+                          </span>
+                        </button>
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-3xl text-[var(--color-text-muted)]">
                           🖼️
@@ -229,6 +242,14 @@ export default function CustomPlanesPage() {
           )}
         </div>
       </div>
+
+      {preview && (
+        <ImagePreviewModal
+          url={preview.url}
+          name={preview.name}
+          onClose={() => setPreview(null)}
+        />
+      )}
     </main>
   )
 }

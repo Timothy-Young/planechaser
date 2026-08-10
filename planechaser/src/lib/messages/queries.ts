@@ -33,7 +33,7 @@ export async function getMyMessages(userId: string): Promise<InboxMessage[]> {
       read_at,
       admin_messages!inner (
         id, subject, body, kind, source_id, created_at,
-        profiles ( display_name )
+        profiles!admin_messages_created_by_fkey ( display_name )
       )
     `)
     .eq('user_id', userId)

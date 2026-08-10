@@ -42,7 +42,7 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
   const deck = Array.from({ length: 30 }, (_, i) => makeCard(`card-${i}`, `Plane ${i}`))
   const base: GameState = {
     id: 'game-1',
-    config: { playerCount: 4, deckSize: 30 },
+    config: { playerCount: 4, deckSize: 30, mode: 'planechase' },
     deck,
     currentPlaneIndex: 3,
     secondPlaneIndex: null,
@@ -143,26 +143,99 @@ describe('wire state projection', () => {
     expect(wire.deckIds[3]).toBe('card-3')
   })
 
-  it('slims the scheme deck but keeps ongoing schemes inline', () => {
+  it('slims the scheme deck but keeps schemes in motion inline', () => {
     const ongoing = { ...makeScheme('s-ongoing'), isOngoing: true }
     const state = makeState({
       archenemy: {
         archenemyId: 'p1',
         archenemyName: 'Alice',
         schemeDeck: Array.from({ length: 20 }, (_, i) => makeScheme(`s-${i}`)),
-        currentSchemeIndex: 3,
-        activeSchemes: [ongoing],
+        schemesInMotion: [
+          { instanceId: 'i-1', card: ongoing, setInMotionAt: 5000 },
+          { instanceId: 'i-2', card: makeScheme('s-oneshot'), setInMotionAt: 6000 },
+        ],
         schemesPlayed: 3,
+        side: 'archenemy',
+        turnNumber: 2,
       },
     })
 
     const wire = toWireState(state)
     expect(wire.archenemy!.schemeDeckIds).toHaveLength(20)
-    expect(wire.archenemy!.activeSchemes).toHaveLength(1)
+    expect(wire.archenemy!.schemesInMotion).toHaveLength(2)
 
     const restored = fromWireState(wire)!
-    expect(restored.archenemy!.activeSchemes[0].id).toBe('s-ongoing')
+    // A one-shot scheme is on the board too, not just ongoing ones.
+    expect(restored.archenemy!.schemesInMotion.map((s) => s.card.id)).toEqual([
+      's-ongoing',
+      's-oneshot',
+    ])
     expect(restored.archenemy!.archenemyName).toBe('Alice')
+    expect(restored.archenemy!.schemesPlayed).toBe(3)
+    expect(restored.archenemy!.side).toBe('archenemy')
+    expect(restored.archenemy!.turnNumber).toBe(2)
+  })
+
+  it('round-trips a standalone Archenemy game with no planar deck', () => {
+    const state = makeState({
+      config: { playerCount: 4, deckSize: 0, mode: 'archenemy' },
+      deck: [],
+      currentPlaneIndex: 0,
+      secondPlaneIndex: null,
+      planesVisited: 0,
+      life: { p1: 40, p2: 20 },
+      archenemy: {
+        archenemyId: 'p1',
+        archenemyName: 'Alice',
+        schemeDeck: Array.from({ length: 18 }, (_, i) => makeScheme(`s-${i}`)),
+        schemesInMotion: [
+          { instanceId: 'i-1', card: makeScheme('s-live'), setInMotionAt: 7000 },
+        ],
+        schemesPlayed: 2,
+        side: 'team',
+        turnNumber: 3,
+      },
+    })
+
+    const wire = toWireState(state)
+    expect(wire.deckIds).toEqual([])
+    expect(wire.deckCount).toBe(0)
+    expect(wire.visibleCards).toEqual([])
+
+    const restored = fromWireState(wire)!
+    expect(restored.deck).toEqual([])
+    expect(restored.config.mode).toBe('archenemy')
+    expect(restored.life).toEqual({ p1: 40, p2: 20 })
+    expect(restored.archenemy!.schemesInMotion[0].card.id).toBe('s-live')
+    expect(restored.archenemy!.side).toBe('team')
+    expect(restored.archenemy!.turnNumber).toBe(3)
+  })
+
+  it('translates a pre-standalone archenemy payload forward', () => {
+    // The shape written before schemes persisted: an index walked the deck and
+    // only ongoing schemes were tracked, still sitting in `schemeDeck` too.
+    const ongoing = { ...makeScheme('s-2'), isOngoing: true }
+    const legacyWire = {
+      ...toWireState(makeState()),
+      config: { playerCount: 4, deckSize: 30, isArchenemy: true },
+      archenemy: {
+        archenemyId: 'p1',
+        archenemyName: 'Alice',
+        schemeDeckIds: ['s-0', 's-1', 's-2'],
+        currentSchemeIndex: 3,
+        activeSchemes: [ongoing],
+        schemesPlayed: 3,
+      },
+    }
+
+    const restored = fromWireState(JSON.parse(JSON.stringify(legacyWire)))!
+
+    expect(restored.config.mode).toBe('both')
+    expect(restored.archenemy!.schemesInMotion).toHaveLength(1)
+    expect(restored.archenemy!.schemesInMotion[0].card.id).toBe('s-2')
+    expect(restored.archenemy!.schemesInMotion[0].instanceId).toBeTruthy()
+    expect(restored.archenemy!.side).toBe('archenemy')
+    expect(restored.archenemy!.turnNumber).toBe(1)
     expect(restored.archenemy!.schemesPlayed).toBe(3)
   })
 

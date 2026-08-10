@@ -1,4 +1,5 @@
-import type { GameState, PlaneCard, SchemeCard } from './types'
+import { migrateArchenemyState, migrateGameConfig } from './legacy'
+import type { ArchenemySide, GameState, InMotionScheme, PlaneCard } from './types'
 
 /**
  * The shape written to `active_game_sessions.game_state`.
@@ -46,10 +47,15 @@ export interface WireArchenemyState {
   archenemyName: string
   /** Scheme deck as ids; the full cards are not needed off-device. */
   schemeDeckIds: string[]
-  currentSchemeIndex: number
-  /** Ongoing schemes stay inline — there are rarely more than a few. */
-  activeSchemes: SchemeCard[]
+  /**
+   * Face-up schemes stay inline. A spectator has to be able to read every
+   * scheme currently in motion, and the board is small even when a long game
+   * has stacked up several ongoing ones.
+   */
+  schemesInMotion: InMotionScheme[]
   schemesPlayed: number
+  side: ArchenemySide
+  turnNumber: number
 }
 
 /** True when a stored `game_state` predates the wire format. */
@@ -91,9 +97,10 @@ export function toWireState(state: GameState): WireGameState {
           archenemyId: archenemy.archenemyId,
           archenemyName: archenemy.archenemyName,
           schemeDeckIds: archenemy.schemeDeck.map((scheme) => scheme.id),
-          currentSchemeIndex: archenemy.currentSchemeIndex,
-          activeSchemes: archenemy.activeSchemes,
+          schemesInMotion: archenemy.schemesInMotion,
           schemesPlayed: archenemy.schemesPlayed,
+          side: archenemy.side,
+          turnNumber: archenemy.turnNumber,
         }
       : undefined,
   }
@@ -117,10 +124,12 @@ export function fromWireState(value: unknown): GameState | null {
     const legacy = value as GameState
     return {
       ...legacy,
+      config: migrateGameConfig(legacy.config),
       stateHistory: [],
       secondPlaneIndex: legacy.secondPlaneIndex ?? null,
       revealState: legacy.revealState ?? null,
       phenomenonActive: legacy.phenomenonActive ?? false,
+      archenemy: migrateArchenemyState(legacy.archenemy),
     }
   }
 
@@ -137,6 +146,7 @@ export function fromWireState(value: unknown): GameState | null {
 
   return {
     ...rest,
+    config: migrateGameConfig(wire.config),
     deck: visibleCards,
     currentPlaneIndex: 0,
     secondPlaneIndex: visibleCards.length > 1 ? 1 : null,
@@ -144,18 +154,8 @@ export function fromWireState(value: unknown): GameState | null {
     stateHistory: [],
     revealState: wire.revealState ?? null,
     phenomenonActive: wire.phenomenonActive ?? false,
-    archenemy: archenemy
-      ? {
-          archenemyId: archenemy.archenemyId,
-          archenemyName: archenemy.archenemyName,
-          // Spectators don't render the undrawn scheme deck; the ids are kept
-          // on the wire for future use but there are no card objects to
-          // reconstruct here.
-          schemeDeck: [],
-          currentSchemeIndex: archenemy.currentSchemeIndex,
-          activeSchemes: archenemy.activeSchemes ?? [],
-          schemesPlayed: archenemy.schemesPlayed,
-        }
-      : undefined,
+    // Spectators don't render the undrawn scheme deck; the ids are kept on the
+    // wire for future use but there are no card objects to reconstruct here.
+    archenemy: migrateArchenemyState(archenemy, []),
   }
 }

@@ -7,19 +7,17 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Volume2, VolumeX, Music, Home, Sun, Moon, Trees } from 'lucide-react'
 import { gameReducer } from '@/lib/game/engine'
 import { loadGameState, saveGameState, clearGameState } from '@/lib/game/session-storage'
-import { PlaneCard } from '@/components/plane-card'
-import { DualPlaneDisplay } from '@/components/dual-plane-display'
 import { RevealCardsModal } from '@/components/reveal-cards-modal'
-import { DieRoller } from '@/components/die-roller'
 import { EndGameDialog } from '@/components/end-game-dialog'
 import { ArchenemyEndDialog } from '@/components/archenemy-end-dialog'
-import { SchemeCard } from '@/components/scheme-card'
+import { StandaloneArchenemyEndDialog } from '@/components/game/standalone-archenemy-end-dialog'
+import { ArchenemyBoard } from '@/components/game/archenemy-board'
+import { PlanechaseBoard } from '@/components/game/planechase-board'
+import { SchemeSheet } from '@/components/game/scheme-sheet'
 import { Button } from '@/components/ui/button'
 import { useSyncGameState, useEndSession } from '@/hooks/useGameSession'
-import { TurnIndicator } from '@/components/turn-indicator'
 import { ChaosOverlay } from '@/components/chaos-overlay'
 import { CardZoomModal } from '@/components/card-zoom-modal'
-import { GameControlsToolbar } from '@/components/game-controls-toolbar'
 import { PlayerListModal } from '@/components/player-list-modal'
 import { useRecordGameSession } from '@/hooks/usePods'
 import { useGrantSessionAchievements } from '@/hooks/useAchievements'
@@ -27,7 +25,12 @@ import { AchievementToast } from '@/components/achievement-toast'
 import { audioManager } from '@/lib/audio/audio-manager'
 import { getPlaneEnvironment, AMBIENT_URLS } from '@/lib/game/plane-environments'
 import { useAppStore } from '@/store/app-store'
-import type { GameState, DieResult, PlaneCard as PlaneCardType, TurnRecord } from '@/lib/game/types'
+import type {
+  GameState,
+  DieResult,
+  PlaneCard as PlaneCardType,
+  ArchenemySide,
+} from '@/lib/game/types'
 
 function planeswalkAndCheckPhenomenon(prev: GameState): GameState {
   const next = gameReducer(prev, { type: 'PLANESWALK' })
@@ -44,7 +47,6 @@ export default function GamePage() {
   const [loaded, setLoaded] = useState(false)
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('right')
   const [showEndGame, setShowEndGame] = useState(false)
-  const [lastDrawnScheme, setLastDrawnScheme] = useState<string | null>(null)
   const [newBadges, setNewBadges] = useState<string[]>([])
   const [breadcrumbPreview, setBreadcrumbPreview] = useState<{ src: string; name: string } | null>(null)
   const [pendingSecondChaos, setPendingSecondChaos] = useState(false)
@@ -319,7 +321,7 @@ export default function GamePage() {
     })
   }, [])
 
-  const handleEndGame = useCallback(async () => {
+  const handleEndGame = useCallback(async (winnerSide?: ArchenemySide) => {
     let earnedBadges = false
     if (state && user) {
       const visitedPlanes = state.deck
@@ -364,6 +366,7 @@ export default function GamePage() {
           turnLog: finalTurnLog,
           players: state.players,
           startedAt: state.startedAt,
+          winnerSide,
         })
 
         const newlyEarned = await grantAchievements.mutateAsync(sessionId)
@@ -392,22 +395,24 @@ export default function GamePage() {
     }
   }, [router, state, user, activePodId, activeSessionId, isHost, recordSession, grantAchievements, endSessionMutation, setActiveSessionId])
 
-  const handleDrawScheme = useCallback(() => {
-    setState((prev) => {
-      if (!prev?.archenemy) return prev
-      const next = gameReducer(prev, { type: 'DRAW_SCHEME' })
-      const drawn = next.archenemy!.schemeDeck[prev.archenemy.currentSchemeIndex % prev.archenemy.schemeDeck.length]
-      setLastDrawnScheme(drawn.id)
-      setTimeout(() => setLastDrawnScheme(null), 3000)
-      return next
-    })
+  const handleSetSchemeInMotion = useCallback(() => {
+    setState((prev) => (prev ? gameReducer(prev, { type: 'SET_SCHEME_IN_MOTION' }) : prev))
   }, [])
 
-  const handleAbandonScheme = useCallback((schemeId: string) => {
-    setState((prev) => {
-      if (!prev) return prev
-      return gameReducer(prev, { type: 'ABANDON_SCHEME', schemeId })
-    })
+  const handleDismissScheme = useCallback((instanceId: string) => {
+    setState((prev) => (prev ? gameReducer(prev, { type: 'DISMISS_SCHEME', instanceId }) : prev))
+  }, [])
+
+  const handleEndArchenemyTurn = useCallback(() => {
+    setState((prev) => (prev ? gameReducer(prev, { type: 'END_ARCHENEMY_TURN' }) : prev))
+  }, [])
+
+  const handleAdjustLife = useCallback((playerId: string, delta: number) => {
+    setState((prev) => (prev ? gameReducer(prev, { type: 'ADJUST_LIFE', playerId, delta }) : prev))
+  }, [])
+
+  const handleSetLife = useCallback((playerId: string, value: number) => {
+    setState((prev) => (prev ? gameReducer(prev, { type: 'SET_LIFE', playerId, value }) : prev))
   }, [])
 
   const toggleMusic = useCallback(() => {
@@ -455,12 +460,11 @@ export default function GamePage() {
   }
 
   const currentPlane = state.deck[state.currentPlaneIndex]
-  const secondPlane = state.secondPlaneIndex !== null ? state.deck[state.secondPlaneIndex] : null
-  const isDualPlane = secondPlane !== null
-  const isArchenemy = !!state.archenemy
-  const lastScheme = lastDrawnScheme && state.archenemy
-    ? state.archenemy.schemeDeck.find((s) => s.id === lastDrawnScheme)
-    : null
+  const archenemy = state.archenemy
+  const isArchenemy = !!archenemy
+  // A standalone Archenemy game has no planar deck, so nothing on the
+  // Planechase board has anything to render.
+  const isStandaloneArchenemy = state.config.mode === 'archenemy'
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden">
@@ -534,24 +538,37 @@ export default function GamePage() {
         )}
       </AnimatePresence>
 
-      {/* End game dialog */}
-      {showEndGame && currentPlane && !isArchenemy && (
+      {/* End game dialog.
+          A standalone game records a winning side and nothing else — there is
+          no plane to conquer and no pod involved. A combined game keeps the
+          conquest dialog, but only when a pod is actually active; without one
+          it falls back to the plain dialog rather than rendering nothing. */}
+      {showEndGame && isStandaloneArchenemy && archenemy && (
+        <StandaloneArchenemyEndDialog
+          archenemyName={archenemy.archenemyName}
+          turnNumber={archenemy.turnNumber}
+          onClose={() => setShowEndGame(false)}
+          onConfirm={(winner) => handleEndGame(winner)}
+        />
+      )}
+
+      {showEndGame && !isStandaloneArchenemy && currentPlane && isArchenemy && archenemy && activePodId && (
+        <ArchenemyEndDialog
+          archenemyId={archenemy.archenemyId}
+          archenemyName={archenemy.archenemyName}
+          players={state.players}
+          podId={activePodId}
+          onClose={() => setShowEndGame(false)}
+          onConfirm={() => handleEndGame()}
+        />
+      )}
+
+      {showEndGame && !isStandaloneArchenemy && currentPlane && !(isArchenemy && activePodId) && (
         <EndGameDialog
           currentPlane={currentPlane}
           players={state.players}
           onClose={() => setShowEndGame(false)}
-          onConfirm={handleEndGame}
-        />
-      )}
-
-      {showEndGame && currentPlane && isArchenemy && state.archenemy && activePodId && (
-        <ArchenemyEndDialog
-          archenemyId={state.archenemy.archenemyId}
-          archenemyName={state.archenemy.archenemyName}
-          players={state.players}
-          podId={activePodId}
-          onClose={() => setShowEndGame(false)}
-          onConfirm={handleEndGame}
+          onConfirm={() => handleEndGame()}
         />
       )}
 
@@ -572,8 +589,17 @@ export default function GamePage() {
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-3 text-[11px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-            <span>{state.planesVisited}/{state.deck.length}</span>
-            <span>{state.dieRollHistory.length} rolls</span>
+            {isStandaloneArchenemy && archenemy ? (
+              <>
+                <span>{archenemy.schemesInMotion.length} in motion</span>
+                <span>{archenemy.schemesPlayed} played</span>
+              </>
+            ) : (
+              <>
+                <span>{state.planesVisited}/{state.deck.length}</span>
+                <span>{state.dieRollHistory.length} rolls</span>
+              </>
+            )}
           </div>
           <button onClick={toggleSfx} className="p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
             {sfxOn ? <Volume2 size={16} className="text-[var(--color-text-muted)]" /> : <VolumeX size={16} className="text-[var(--color-text-muted)] opacity-40" />}
@@ -590,127 +616,60 @@ export default function GamePage() {
         </div>
       </header>
 
-      {/* Visited planes breadcrumb */}
-      {visitedBreadcrumb.length > 1 && (
-        <div className="relative z-10 px-4 py-2 overflow-x-auto">
-          <div className="flex items-center gap-1 text-[10px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-            {visitedBreadcrumb.map((name, i) => (
-              <span key={i} className="flex items-center whitespace-nowrap">
-                {i > 0 && <span className="mx-1 opacity-60">←</span>}
-                <button
-                  onClick={() => {
-                    const card = state.deck.find((c) => c.name === name)
-                    if (card) {
-                      setBreadcrumbPreview({
-                        src: card.image_uris.border_crop,
-                        name: card.name,
-                      })
-                    }
-                  }}
-                  className={`hover:text-[var(--color-accent)] active:text-[var(--color-accent)] transition-colors underline decoration-dotted underline-offset-2 ${
-                    i === 0 ? 'text-[var(--color-accent)] font-semibold' : 'opacity-60'
-                  }`}
-                >
-                  {name}
-                </button>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Game content */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-between py-4 px-4 gap-3 overflow-hidden">
-        {/* Archenemy: active schemes bar */}
-        {isArchenemy && state.archenemy && state.archenemy.activeSchemes.length > 0 && (
-          <div className="w-full max-w-[440px] space-y-2">
-            <p className="text-[10px] text-[var(--color-cta)] uppercase tracking-widest font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
-              Active Schemes
-            </p>
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {state.archenemy.activeSchemes.map((s) => (
-                <div key={s.id} className="w-[140px] flex-shrink-0">
-                  <SchemeCard card={s} onAbandon={() => handleAbandonScheme(s.id)} />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Last drawn scheme flash */}
-        {lastScheme && (
-          <div className="w-full max-w-[300px]">
-            <SchemeCard card={lastScheme} />
-          </div>
-        )}
-
-        {/* Turn indicator */}
-        {state.players && state.players.length > 1 && (
-          <TurnIndicator
-            playerName={
-              state.players.find((p) => p.id === state.turnOrder[state.currentTurnIndex])?.display_name ?? 'Player'
-            }
-            onNextTurn={handleEndTurn}
-            showNextTurn={!state.showChaosOverlay && !state.revealState && !state.phenomenonActive}
-            eliminatedCount={(state.eliminatedPlayerIds ?? []).length}
-          />
-        )}
-
-        {/* Plane card */}
-        <div className={`flex-1 flex items-center justify-center w-full max-w-[440px] ${isArchenemy && state.archenemy?.activeSchemes.length ? 'max-h-[300px]' : ''}`}>
-          {currentPlane && isDualPlane && secondPlane ? (
-            <DualPlaneDisplay primaryPlane={currentPlane} secondaryPlane={secondPlane} direction={slideDirection} />
-          ) : currentPlane ? (
-            <PlaneCard card={currentPlane} direction={slideDirection} />
-          ) : null}
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center gap-4 pb-2">
-          {isArchenemy && (
-            <Button
-              onClick={handleDrawScheme}
-              className="h-12 px-5 bg-[var(--color-cta)] hover:bg-[var(--color-cta-hover)] text-white glow-red"
-              style={{ fontFamily: 'var(--font-heading)', fontSize: '13px' }}
-            >
-              Draw Scheme
-            </Button>
-          )}
-          <DieRoller
-            rollCount={state.rollCountThisTurn}
-            currentTurnRolls={state.currentTurnRolls}
-            playerName={state.players.find((p) => p.id === state.turnOrder[state.currentTurnIndex])?.display_name ?? 'Player'}
-            onRoll={handleRoll}
-            disabled={state.lastDieResult === 'planeswalk' || state.showChaosOverlay}
-          />
-        </div>
-
-        {/* Game controls toolbar */}
-        <GameControlsToolbar
+      {/* Board — one mode's worth of UI, never a stack of conditionals */}
+      {isStandaloneArchenemy && archenemy ? (
+        <ArchenemyBoard
+          archenemy={archenemy}
+          players={state.players}
+          life={state.life ?? {}}
+          eliminatedPlayerIds={state.eliminatedPlayerIds ?? []}
+          onSetSchemeInMotion={handleSetSchemeInMotion}
+          onDismissScheme={handleDismissScheme}
+          onEndArchenemyTurn={handleEndArchenemyTurn}
+          onAdjustLife={handleAdjustLife}
+          onSetLife={handleSetLife}
+          onEliminatePlayer={handleEliminatePlayer}
+          onRestorePlayer={handleRestorePlayer}
+        />
+      ) : (
+        <PlanechaseBoard
+          state={state}
+          slideDirection={slideDirection}
+          visitedBreadcrumb={visitedBreadcrumb}
+          onRoll={handleRoll}
+          onEndTurn={handleEndTurn}
           onUndo={handleUndo}
           onShuffle={handleShuffle}
           onResetRolls={handleResetRolls}
           onAddRoll={handleAddRoll}
           onRemoveRoll={handleRemoveRoll}
-          onPlaneswalk={handleManualPlaneswalk}
-          onChaos={handleManualChaos}
+          onManualPlaneswalk={handleManualPlaneswalk}
+          onManualChaos={handleManualChaos}
           onShowPlayers={state.players.length > 1 ? () => setShowPlayerList(true) : undefined}
-          canUndo={(state?.stateHistory?.length ?? 0) > 0}
-          rollCount={state?.rollCountThisTurn ?? 0}
-          eliminatedCount={(state?.eliminatedPlayerIds ?? []).length}
-          disabled={state?.showChaosOverlay || !!state?.revealState || state?.phenomenonActive}
+          onPreviewPlane={(card) =>
+            setBreadcrumbPreview({ src: card.image_uris.border_crop, name: card.name })
+          }
+          schemeSlot={
+            archenemy ? (
+              <SchemeSheet
+                archenemy={archenemy}
+                onSetSchemeInMotion={handleSetSchemeInMotion}
+                onDismissScheme={handleDismissScheme}
+              />
+            ) : undefined
+          }
         />
+      )}
 
-        <div className="flex gap-3 w-full max-w-[440px] pb-4">
-          <Button
-            onClick={() => setShowEndGame(true)}
-            variant="outline"
-            className="flex-1 h-12 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10"
-            style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}
-          >
-            End Game
-          </Button>
-        </div>
+      <div className="relative z-10 flex gap-3 w-full max-w-[440px] mx-auto px-4 pb-4">
+        <Button
+          onClick={() => setShowEndGame(true)}
+          variant="outline"
+          className="flex-1 h-12 border-[var(--color-border)] bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10"
+          style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}
+        >
+          End Game
+        </Button>
       </div>
 
       {/* Player list modal */}

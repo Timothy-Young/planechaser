@@ -1,4 +1,12 @@
-import type { GameState, GameAction, DieResult, TurnRecord, PlaneCard } from './types'
+import type {
+  GameState,
+  GameAction,
+  DieResult,
+  TurnRecord,
+  PlaneCard,
+  ArchenemyState,
+  InMotionScheme,
+} from './types'
 
 export function rollPlanarDie(): DieResult {
   const roll = Math.random()
@@ -21,6 +29,48 @@ function stripHistory(state: GameState): Omit<GameState, 'stateHistory'> {
   return rest
 }
 
+/**
+ * A standalone Archenemy game has no planar deck, so every plane action is a
+ * no-op there. Guarding on the deck rather than on `config.mode` also closes a
+ * latent bug: `(index + 1) % 0` is `NaN`, which indexes the deck to `undefined`.
+ */
+function hasPlanarDeck(state: GameState): boolean {
+  return state.deck.length > 0
+}
+
+export function newSchemeInstanceId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `scheme-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+/**
+ * Move the top scheme off the deck and onto the board.
+ *
+ * Ongoing and one-shot schemes take the same path — the rules differ only in
+ * when a scheme leaves the board, never in where it came from. Returns the
+ * archenemy slice unchanged when the deck is empty, which happens only when
+ * every scheme is already in motion.
+ */
+function setSchemeInMotion(archenemy: ArchenemyState): ArchenemyState {
+  if (archenemy.schemeDeck.length === 0) return archenemy
+
+  const [top, ...rest] = archenemy.schemeDeck
+  const inMotion: InMotionScheme = {
+    instanceId: newSchemeInstanceId(),
+    card: top,
+    setInMotionAt: Date.now(),
+  }
+
+  return {
+    ...archenemy,
+    schemeDeck: rest,
+    schemesInMotion: [inMotion, ...archenemy.schemesInMotion],
+    schemesPlayed: archenemy.schemesPlayed + 1,
+  }
+}
+
 function applyAction(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'ROLL_DIE': {
@@ -40,6 +90,7 @@ function applyAction(state: GameState, action: GameAction): GameState {
       return { ...state, dieState: 'idle' }
 
     case 'PLANESWALK': {
+      if (!hasPlanarDeck(state)) return state
       // When on two planes, planeswalking leaves both — advance past the
       // furthest-forward occupied plane, never onto a plane already occupied.
       const base = state.secondPlaneIndex !== null
@@ -62,6 +113,7 @@ function applyAction(state: GameState, action: GameAction): GameState {
       // bottom. The app caps at two simultaneous planes: a newly revealed
       // plane becomes the second plane, replacing any prior second plane
       // (which stays behind in the visited pile).
+      if (!hasPlanarDeck(state)) return state
       const anchor = state.secondPlaneIndex !== null
         ? Math.max(state.currentPlaneIndex, state.secondPlaneIndex)
         : state.currentPlaneIndex
@@ -98,6 +150,7 @@ function applyAction(state: GameState, action: GameAction): GameState {
       // phenomenon. The deck is treated linearly (same assumption as
       // SHUFFLE_REMAINING / REORDER_TOP): cards before currentPlaneIndex are
       // the visited pile.
+      if (!hasPlanarDeck(state)) return state
       const before = state.deck.slice(0, state.currentPlaneIndex + 1)
       const ahead = state.deck.slice(state.currentPlaneIndex + 1)
 
@@ -139,6 +192,11 @@ function applyAction(state: GameState, action: GameAction): GameState {
     }
 
     case 'END_TURN': {
+      // Per-player turns belong to the Planechase loop; a standalone Archenemy
+      // game uses END_ARCHENEMY_TURN instead. The turn-order check is the real
+      // hazard here — the plane lookups below already tolerate a missing card,
+      // but `% turnOrder.length` on an empty order is `NaN`.
+      if (state.config.mode === 'archenemy' || state.turnOrder.length === 0) return state
       const currentPlayerId = state.turnOrder[state.currentTurnIndex]
       const currentPlayer = state.players.find((p) => p.id === currentPlayerId)
 
@@ -230,41 +288,73 @@ function applyAction(state: GameState, action: GameAction): GameState {
         dieState: 'idle',
       }
 
-    case 'DRAW_SCHEME': {
+    case 'SET_SCHEME_IN_MOTION': {
       if (!state.archenemy) return state
-      const { schemeDeck, currentSchemeIndex, activeSchemes, schemesPlayed } = state.archenemy
-      if (schemeDeck.length === 0) return state
+      return { ...state, archenemy: setSchemeInMotion(state.archenemy) }
+    }
 
-      const scheme = schemeDeck[currentSchemeIndex % schemeDeck.length]
-      const nextActive = scheme.isOngoing
-        ? [...activeSchemes, scheme]
-        : activeSchemes
+    case 'DISMISS_SCHEME': {
+      // Resolving a one-shot and abandoning an ongoing are the same transition:
+      // the card leaves the board and goes to the bottom of the scheme deck.
+      // Only the button label differs, so they share an action and undo alike.
+      if (!state.archenemy) return state
+
+      const dismissed = state.archenemy.schemesInMotion.find(
+        (s) => s.instanceId === action.instanceId
+      )
+      if (!dismissed) return state
 
       return {
         ...state,
         archenemy: {
           ...state.archenemy,
-          currentSchemeIndex: currentSchemeIndex + 1,
-          activeSchemes: nextActive,
-          schemesPlayed: schemesPlayed + 1,
+          schemesInMotion: state.archenemy.schemesInMotion.filter(
+            (s) => s.instanceId !== action.instanceId
+          ),
+          schemeDeck: [...state.archenemy.schemeDeck, dismissed.card],
         },
       }
     }
 
-    case 'ABANDON_SCHEME': {
+    case 'END_ARCHENEMY_TURN': {
       if (!state.archenemy) return state
+
+      // Passing to the team only flips the side. Passing back to the archenemy
+      // starts their turn, and a scheme is set in motion as that turn's first
+      // main phase begins — in the same step, so one tap is one undo.
+      if (state.archenemy.side === 'archenemy') {
+        return { ...state, archenemy: { ...state.archenemy, side: 'team' } }
+      }
+
       return {
         ...state,
-        archenemy: {
+        archenemy: setSchemeInMotion({
           ...state.archenemy,
-          activeSchemes: state.archenemy.activeSchemes.filter(
-            (s) => s.id !== action.schemeId
-          ),
-        },
+          side: 'archenemy',
+          turnNumber: state.archenemy.turnNumber + 1,
+        }),
       }
+    }
+
+    case 'ADJUST_LIFE': {
+      const life = state.life ?? {}
+      if (!(action.playerId in life)) return state
+      // Deliberately unclamped: effects can take a player below zero, and
+      // hiding that from the table would be wrong.
+      return {
+        ...state,
+        life: { ...life, [action.playerId]: life[action.playerId] + action.delta },
+      }
+    }
+
+    case 'SET_LIFE': {
+      const life = state.life ?? {}
+      if (!(action.playerId in life)) return state
+      return { ...state, life: { ...life, [action.playerId]: action.value } }
     }
 
     case 'RESOLVE_PHENOMENON': {
+      if (!hasPlanarDeck(state)) return state
       const nextIndex = (state.currentPlaneIndex + 1) % state.deck.length
       return {
         ...state,
@@ -295,6 +385,7 @@ function applyAction(state: GameState, action: GameAction): GameState {
     }
 
     case 'REORDER_BOTTOM': {
+      if (!hasPlanarDeck(state)) return state
       const reorderedIds = new Set(action.cardIds)
       const remainingDeck = state.deck.filter((c) => !reorderedIds.has(c.id))
       const reorderedCards = action.cardIds
@@ -309,6 +400,7 @@ function applyAction(state: GameState, action: GameAction): GameState {
     }
 
     case 'REORDER_TOP': {
+      if (!hasPlanarDeck(state)) return state
       const topReorderedIds = new Set(action.cardIds)
       const currentIdx = state.currentPlaneIndex
       const deckBefore = state.deck.slice(0, currentIdx + 1)
@@ -325,6 +417,7 @@ function applyAction(state: GameState, action: GameAction): GameState {
     }
 
     case 'SHUFFLE_REMAINING': {
+      if (!hasPlanarDeck(state)) return state
       const before = state.deck.slice(0, state.currentPlaneIndex + 1)
       const after = state.deck.slice(state.currentPlaneIndex + 1)
       for (let i = after.length - 1; i > 0; i--) {

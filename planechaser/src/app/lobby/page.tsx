@@ -55,7 +55,7 @@ export default function LobbyPage() {
 
     const state: GameState = {
       id: crypto.randomUUID(),
-      config: { playerCount: players.length, deckSize: deck.length },
+      config: { playerCount: players.length, deckSize: deck.length, mode: 'planechase' },
       deck,
       currentPlaneIndex: 0,
       secondPlaneIndex: null,

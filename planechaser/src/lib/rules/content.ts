@@ -104,6 +104,20 @@ export const ARCHENEMY_SECTIONS: RulesSection[] = [
     ],
   },
   {
+    title: 'Archenemy in PlaneChaser',
+    icon: '📱',
+    intro: 'How the app runs an Archenemy game, whether or not you are also planeswalking.',
+    steps: [
+      { text: 'Pick a game type at setup: Planechase, Archenemy, or both. Archenemy on its own needs no planar deck and no planar die.' },
+      { text: 'A standalone Archenemy game needs no pod. Nothing is conquered and no planes change hands — only the winning side is recorded.' },
+      { text: 'Turns alternate between the Archenemy and the team as one side, matching the simultaneous team turn. Starting an Archenemy turn sets the top scheme in motion automatically.' },
+      { text: 'Every scheme set in motion stays on the board and stacks with the others — as many ongoing schemes at once as the game produces.' },
+      { text: 'Clear a scheme yourself when it is done: "Resolve" for a one-shot, "Abandon" for an ongoing one. Either way the card goes to the bottom of the scheme deck, so the deck never runs dry.' },
+      { text: 'Life is tracked at 40 for the Archenemy and 20 per hero. Hitting 0 offers to eliminate a player but never does it for you, and elimination can be undone.' },
+      { text: 'In a combined Planechase + Archenemy game the plane card keeps the screen, and the scheme board opens from the "Schemes" button.' },
+    ],
+  },
+  {
     title: 'Supervillain Rumble Variant',
     icon: '🦹',
     intro: 'A free-for-all variant where every player is their own Archenemy.',

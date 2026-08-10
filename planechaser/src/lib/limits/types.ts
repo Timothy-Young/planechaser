@@ -1,14 +1,18 @@
-/** Keys in the `app_limits` table (migration 026). */
+/** Keys in the `app_limits` table (migrations 026, 029). */
 export const LIMIT_KEYS = {
   feedbackCooldownSeconds: 'feedback_cooldown_seconds',
   feedbackDailyMax: 'feedback_daily_max',
   customPlanesMax: 'custom_planes_max',
+  adminMessageRecipientMax: 'admin_message_recipient_max',
+  adminMessageBodyMax: 'admin_message_body_max',
 } as const
 
 export interface AppLimits {
   feedbackCooldownSeconds: number
   feedbackDailyMax: number
   customPlanesMax: number
+  adminMessageRecipientMax: number
+  adminMessageBodyMax: number
 }
 
 /**
@@ -20,6 +24,8 @@ export const DEFAULT_LIMITS: AppLimits = {
   feedbackCooldownSeconds: 120,
   feedbackDailyMax: 20,
   customPlanesMax: 25,
+  adminMessageRecipientMax: 100,
+  adminMessageBodyMax: 2000,
 }
 
 /** Roles exempt from all limits — matches the trigger checks in migration 026. */

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Swords, Users, User, Heart, UserPlus, Layers, Globe, Shield, Loader2 } from 'lucide-react'
 import { useAppStore } from '@/store/app-store'
 import { useUserProfile } from '@/hooks/usePods'
+import { useUnreadMessageCount } from '@/hooks/useMessages'
 import { isMod } from '@/lib/admin/guards'
 import type { UserRole } from '@/lib/admin/types'
 
@@ -26,6 +27,7 @@ export function BottomNav() {
   const { data: profile } = useUserProfile()
   const userRole = useAppStore((s) => s.userRole)
   const setUserRole = useAppStore((s) => s.setUserRole)
+  const unreadMessages = useUnreadMessageCount()
   const [pendingPath, setPendingPath] = useState<string | null>(null)
 
   // Sync role from profile into store
@@ -66,6 +68,10 @@ export function BottomNav() {
           const isActive = pathname.startsWith(path)
           const isAdmin = path === '/admin'
           const isPending = pendingPath === path && !isActive
+          // The inbox lives under Profile rather than taking its own nav slot —
+          // the strip already scrolls at 375px, and an eighth item would push
+          // Support (and Admin) out of view.
+          const showUnread = path === '/profile' && unreadMessages > 0
           return (
             <button
               key={path}
@@ -91,6 +97,15 @@ export function BottomNav() {
               <span className="text-[10px] font-medium" style={{ fontFamily: 'var(--font-body)' }}>
                 {label}
               </span>
+              {showUnread && (
+                <span
+                  className="absolute top-0 right-1.5 min-w-[16px] h-[16px] px-1 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
+                  style={{ background: 'var(--color-cta)', fontFamily: 'var(--font-body)' }}
+                  aria-label={`${unreadMessages} unread ${unreadMessages === 1 ? 'message' : 'messages'}`}
+                >
+                  {unreadMessages > 9 ? '9+' : unreadMessages}
+                </span>
+              )}
               {isActive && (
                 <div
                   className="absolute bottom-0 w-8 h-0.5 rounded-full"

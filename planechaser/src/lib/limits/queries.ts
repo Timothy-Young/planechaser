@@ -23,6 +23,10 @@ export async function getAppLimits(): Promise<AppLimits> {
       byKey.get(LIMIT_KEYS.feedbackDailyMax) ?? DEFAULT_LIMITS.feedbackDailyMax,
     customPlanesMax:
       byKey.get(LIMIT_KEYS.customPlanesMax) ?? DEFAULT_LIMITS.customPlanesMax,
+    adminMessageRecipientMax:
+      byKey.get(LIMIT_KEYS.adminMessageRecipientMax) ?? DEFAULT_LIMITS.adminMessageRecipientMax,
+    adminMessageBodyMax:
+      byKey.get(LIMIT_KEYS.adminMessageBodyMax) ?? DEFAULT_LIMITS.adminMessageBodyMax,
   }
 }
 

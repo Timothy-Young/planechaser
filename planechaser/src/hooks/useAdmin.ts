@@ -26,8 +26,12 @@ import {
   getAdminNotes,
   addAdminNote,
   deleteAdminNote,
+  getAdminPods,
+  getAdminMessages,
+  sendAdminMessage,
+  deleteAdminMessage,
 } from '@/lib/admin/queries'
-import type { UserRole, AnnouncementType } from '@/lib/admin/types'
+import type { UserRole, AnnouncementType, MessageAudience } from '@/lib/admin/types'
 
 const ADMIN_STALE = 30_000
 
@@ -209,6 +213,57 @@ export function useDeleteAnnouncement() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'announcements'] })
       qc.invalidateQueries({ queryKey: ['announcements', 'active'] })
+    },
+  })
+}
+
+// ─── Targeted Messages ───────────────────────────────────────────────────────
+
+/** Pods with member counts, for the pod audience picker. */
+export function useAdminPods() {
+  return useQuery({
+    queryKey: ['admin', 'pods'],
+    queryFn: getAdminPods,
+    staleTime: ADMIN_STALE,
+  })
+}
+
+export function useAdminMessages() {
+  return useQuery({
+    queryKey: ['admin', 'messages'],
+    queryFn: () => getAdminMessages(),
+    staleTime: ADMIN_STALE,
+  })
+}
+
+export function useSendAdminMessage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: {
+      adminId: string
+      subject?: string | null
+      body: string
+      audience: MessageAudience
+      userIds?: string[]
+      podId?: string | null
+    }) => sendAdminMessage(params),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'messages'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'audit'] })
+      // The sender may be one of the recipients.
+      qc.invalidateQueries({ queryKey: ['messages', 'list'] })
+    },
+  })
+}
+
+export function useDeleteAdminMessage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { adminId: string; messageId: string }) =>
+      deleteAdminMessage(params.adminId, params.messageId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'messages'] })
+      qc.invalidateQueries({ queryKey: ['messages', 'list'] })
     },
   })
 }

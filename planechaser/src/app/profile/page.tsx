@@ -3,9 +3,10 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { LogOut, Trophy, History, Swords, Dice5, MapPin, Crown, Pencil, Check, X, Sun, Moon, HelpCircle, Shield } from 'lucide-react'
+import { LogOut, Trophy, History, Swords, Dice5, MapPin, Crown, Pencil, Check, X, Sun, Moon, HelpCircle, Shield, Mail } from 'lucide-react'
 import { useAppStore } from '@/store/app-store'
 import { useUserStats, useUserConquests, useUserPods, usePlaneVisitHistory, useUserProfile, useUpdateProfile } from '@/hooks/usePods'
+import { useUnreadMessageCount } from '@/hooks/useMessages'
 import { useUserAchievements } from '@/hooks/useAchievements'
 import { getRoleLabel, getRoleColor, isMod } from '@/lib/admin/guards'
 import type { UserRole } from '@/lib/admin/types'
@@ -41,6 +42,7 @@ export default function ProfilePage() {
   const { data: visitHistory } = usePlaneVisitHistory()
   const { data: achievements } = useUserAchievements()
   const { data: profile } = useUserProfile()
+  const unreadMessages = useUnreadMessageCount()
   const updateProfile = useUpdateProfile()
   const [tab, setTab] = useState<ProfileTab>('conquests')
   const { data: corpus } = usePlaneCorpus()
@@ -338,6 +340,26 @@ export default function ProfilePage() {
               </span>
             </button>
           )}
+          <button
+            onClick={() => router.push('/messages')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/50 hover:bg-white/5 transition-colors w-full"
+          >
+            <Mail className="w-4 h-4 text-[var(--color-accent)]" />
+            <span
+              className="text-[13px] text-[var(--color-text)]"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              Messages
+            </span>
+            {unreadMessages > 0 && (
+              <span
+                className="ml-auto min-w-[20px] h-[20px] px-1.5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                style={{ background: 'var(--color-cta)', fontFamily: 'var(--font-body)' }}
+              >
+                {unreadMessages}
+              </span>
+            )}
+          </button>
           <button
             onClick={() => router.push('/faq')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/50 hover:bg-white/5 transition-colors w-full"

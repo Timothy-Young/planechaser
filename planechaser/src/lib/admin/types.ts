@@ -1,3 +1,7 @@
+// Message kinds and audiences are shared with the recipient-facing inbox.
+import type { AdminMessageKind, MessageAudience } from '@/lib/messages/types'
+export type { AdminMessageKind, MessageAudience }
+
 export type UserRole = 'owner' | 'admin' | 'mod' | 'user'
 
 export interface AdminUser {
@@ -133,6 +137,31 @@ export interface SystemAnnouncement {
   expires_at: string | null
 }
 
+/** A targeted message as an admin sees it (migration 029). */
+export interface AdminMessage {
+  id: string
+  subject: string | null
+  body: string
+  kind: AdminMessageKind
+  source_type: 'feedback' | null
+  source_id: string | null
+  audience: MessageAudience
+  pod_id: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+  // Joined
+  profiles: { display_name: string } | null
+  pods: { name: string } | null
+  admin_message_recipients: { user_id: string; read_at: string | null }[]
+}
+
+export interface SendMessageResult {
+  message_id: string
+  recipient_count: number
+}
+
 export interface UserStrike {
   id: string
   user_id: string
@@ -158,6 +187,8 @@ export type AuditAction =
   | 'announcement_created'
   | 'announcement_updated'
   | 'announcement_deleted'
+  | 'message_sent'
+  | 'message_deleted'
   | 'note_added'
   | 'note_deleted'
 
@@ -165,7 +196,7 @@ export interface AuditLogEntry {
   id: string
   admin_id: string
   action: AuditAction
-  target_type: 'user' | 'custom_plane' | 'feedback' | 'strike' | 'announcement'
+  target_type: 'user' | 'custom_plane' | 'feedback' | 'strike' | 'announcement' | 'message'
   target_id: string
   details: Record<string, unknown>
   created_at: string

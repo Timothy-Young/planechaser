@@ -26,6 +26,7 @@ interface FakeState {
   planeCount: number
   limits: Record<string, number>
   existingPlane: Record<string, unknown> | null
+  rpcResult: Record<string, unknown>
 }
 
 const calls = {
@@ -50,6 +51,11 @@ function resetFake() {
     planeCount: 3,
     limits: { custom_planes_max: 25 },
     existingPlane: null,
+    rpcResult: {
+      active_count: 2,
+      banned: false,
+      cooldown_until: '2026-08-10T17:00:00.000Z',
+    },
   }
   calls.removedPending = []
   calls.inserted = []
@@ -131,13 +137,7 @@ function adminStub() {
     },
     rpc: (name: string, args: Record<string, unknown>) => {
       calls.rpc.push({ name, args })
-      return Promise.resolve({
-        data: {
-          active_count: 2,
-          banned: false,
-          cooldown_until: '2026-08-10T17:00:00.000Z',
-        },
-      })
+      return Promise.resolve({ data: fake.rpcResult })
     },
   }
 }
@@ -303,5 +303,75 @@ describe('POST /api/custom-planes — moderation outcomes', () => {
     const res = await post({ ...VALID, acknowledged: true })
     expect(res.status).toBe(201)
     expect(calls.rpc).toHaveLength(0)
+  })
+})
+
+describe('POST /api/custom-planes — owner exemption', () => {
+  beforeEach(() => {
+    moderateMock.mockResolvedValue({ imageFlagged: true, textFields: ['name'], scores: {} })
+  })
+
+  it('still refuses the owner a flagged plane, so detection stays testable', async () => {
+    fake.profile.role = 'owner'
+    fake.profile.nsfw_ack_required = true
+
+    const res = await post({ ...VALID, acknowledged: true })
+
+    expect(res.status).toBe(422)
+    expect(calls.inserted).toHaveLength(0)
+    expect(calls.publicUploads).toHaveLength(0)
+  })
+
+  it('records no strike, cooldown, or ban for the owner', async () => {
+    fake.profile.role = 'owner'
+    fake.profile.nsfw_ack_required = true
+
+    const body = await (await post({ ...VALID, acknowledged: true })).json()
+
+    expect(body).toMatchObject({ stage: 'violation', simulated: true })
+    expect(body.strikes).toBeUndefined()
+    expect(body.cooldown_until).toBeUndefined()
+    expect(calls.rpc).toHaveLength(0)
+  })
+
+  it('still sets the sticky flag for the owner, so the second rung is testable', async () => {
+    fake.profile.role = 'owner'
+
+    const body = await (await post(VALID)).json()
+
+    expect(body.stage).toBe('warning')
+    expect(calls.profileUpdates).toEqual([{ nsfw_ack_required: true }])
+  })
+
+  it('ignores a stale ban or cooldown on the owner rather than locking them out', async () => {
+    fake.profile.role = 'owner'
+    fake.profile.is_banned = true
+    fake.profile.custom_plane_cooldown_until = '2999-01-01T00:00:00.000Z'
+    moderateMock.mockResolvedValue({ imageFlagged: false, textFields: [], scores: null })
+
+    const res = await post(VALID)
+
+    expect(res.status).toBe(201)
+  })
+
+  it.each(['admin', 'mod'])('does NOT exempt %s — they take the full penalty', async (role) => {
+    fake.profile.role = role
+    fake.profile.nsfw_ack_required = true
+
+    const body = await (await post({ ...VALID, acknowledged: true })).json()
+
+    expect(body.simulated).toBeUndefined()
+    expect(body.strikes).toEqual({ active: 2, max: 3 })
+    expect(calls.rpc).toHaveLength(1)
+  })
+
+  it.each(['admin', 'mod'])('still bans %s at three strikes', async (role) => {
+    fake.profile.role = role
+    fake.profile.nsfw_ack_required = true
+    fake.rpcResult = { active_count: 3, banned: true, cooldown_until: '2026-08-10T17:00:00.000Z' }
+
+    const body = await (await post({ ...VALID, acknowledged: true })).json()
+
+    expect(body.banned).toBe(true)
   })
 })

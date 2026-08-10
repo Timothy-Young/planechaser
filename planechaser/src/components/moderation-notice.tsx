@@ -62,7 +62,13 @@ export function ModerationNotice({ rejection }: { rejection: ModerationRejection
 
           {violation ? (
             <>
-              {rejection.banned ? (
+              {rejection.simulated ? (
+                <p>
+                  Detection ran and the plane was refused, but{' '}
+                  <strong>no strike, cooldown, or ban was recorded</strong> — owner accounts are
+                  exempt from the penalty ladder so it can be tested safely.
+                </p>
+              ) : rejection.banned ? (
                 <p>That was your third strike. Your account has been suspended.</p>
               ) : (
                 <p>
@@ -82,13 +88,15 @@ export function ModerationNotice({ rejection }: { rejection: ModerationRejection
                   )}
                 </p>
               )}
-              <p>
-                Think this is wrong?{' '}
-                <Link href="/feedback" className="underline hover:text-[var(--color-text)]">
-                  Send feedback
-                </Link>
-                .
-              </p>
+              {!rejection.simulated && (
+                <p>
+                  Think this is wrong?{' '}
+                  <Link href="/feedback" className="underline hover:text-[var(--color-text)]">
+                    Send feedback
+                  </Link>
+                  .
+                </p>
+              )}
             </>
           ) : (
             <p>

@@ -39,6 +39,15 @@ export interface ModerationRejection {
   cooldown_until?: string
   strikes?: { active: number; max: number }
   banned?: boolean
+  /**
+   * True when detection ran and blocked the plane but no penalty was recorded
+   * because the caller is the owner. Owner-only, so that moderation can be
+   * tested without self-inflicting a lockout: BannedGuard replaces the whole
+   * app for a banned user, including the admin dashboard, so an owner who
+   * auto-banned themselves could not unban without direct SQL access.
+   * Admins and mods are deliberately NOT exempt.
+   */
+  simulated?: boolean
 }
 
 export type PlaneErrorCode =

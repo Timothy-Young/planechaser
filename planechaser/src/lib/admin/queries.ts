@@ -793,7 +793,7 @@ export async function getAdminMessages(limit = 100): Promise<AdminMessage[]> {
     .from('admin_messages')
     .select(`
       *,
-      profiles ( display_name ),
+      profiles!admin_messages_created_by_fkey ( display_name ),
       pods ( name ),
       admin_message_recipients ( user_id, read_at )
     `)

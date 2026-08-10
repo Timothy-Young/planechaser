@@ -28,9 +28,11 @@ import {
   Undo2,
   Eye,
   X,
+  Send,
   Image as ImageIcon,
 } from 'lucide-react'
 import { useAppStore } from '@/store/app-store'
+import { MessagesTab } from '@/components/admin/messages-tab'
 import {
   useAppStats,
   useExtendedStats,
@@ -61,7 +63,7 @@ import { getImageUrl } from '@/lib/custom-planes/storage'
 import type { UserRole, AdminUser, AdminFeedback, AdminCustomPlane, UserStrike, AuditLogEntry, SystemAnnouncement, AnnouncementType } from '@/lib/admin/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type AdminTab = 'stats' | 'users' | 'planes' | 'feedback' | 'announce' | 'audit'
+type AdminTab = 'stats' | 'users' | 'planes' | 'feedback' | 'announce' | 'messages' | 'audit'
 
 const FEEDBACK_CATEGORY_EMOJI: Record<string, string> = {
   bug: '🐛',
@@ -93,6 +95,8 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   announcement_created: 'Created Announcement',
   announcement_updated: 'Updated Announcement',
   announcement_deleted: 'Deleted Announcement',
+  message_sent: 'Sent Message',
+  message_deleted: 'Deleted Message',
 }
 
 const AUDIT_ACTION_COLORS: Record<string, string> = {
@@ -109,6 +113,8 @@ const AUDIT_ACTION_COLORS: Record<string, string> = {
   announcement_created: 'var(--color-accent)',
   announcement_updated: 'var(--color-text-muted)',
   announcement_deleted: 'var(--color-cta)',
+  message_sent: 'var(--color-accent)',
+  message_deleted: 'var(--color-cta)',
 }
 
 // ─── CSV Export ───────────────────────────────────────────────────────────────
@@ -2234,6 +2240,7 @@ export default function AdminPage() {
       badge: stats?.new_feedback && stats.new_feedback > 0 ? stats.new_feedback : undefined,
     },
     { key: 'announce', label: 'Announce', icon: <Megaphone size={14} /> },
+    { key: 'messages', label: 'Messages', icon: <Send size={14} /> },
     { key: 'audit', label: 'Log', icon: <ClipboardList size={14} /> },
   ]
 
@@ -2306,6 +2313,7 @@ export default function AdminPage() {
         {tab === 'planes' && <PlanesTab />}
         {tab === 'feedback' && <FeedbackTab />}
         {tab === 'announce' && <AnnouncementsTab />}
+        {tab === 'messages' && <MessagesTab />}
         {tab === 'audit' && <AuditTab />}
       </div>
     </main>

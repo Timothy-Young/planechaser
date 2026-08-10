@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase/client'
+import { sanitizeMultiline } from '@/lib/messages/inbox'
 import type {
   AdminUser, AdminFeedback, AdminCustomPlane, AppStats,
   UserRole, AuditLogEntry, AuditAction, UserStrike,
   SystemAnnouncement, AnnouncementType,
   ExtendedStats, TopPlane, TopConqueror, DailyGameCount,
   AchievementStat, PodActivity, GameAnalytics, AdminNote,
+  AdminMessage, SendMessageResult, MessageAudience,
 } from './types'
 
 function supabase() {
@@ -29,7 +31,7 @@ function validateRequired(input: string, fieldName: string): string {
 async function logAuditAction(
   adminId: string,
   action: AuditAction,
-  targetType: 'user' | 'custom_plane' | 'feedback' | 'announcement' | 'strike',
+  targetType: 'user' | 'custom_plane' | 'feedback' | 'announcement' | 'strike' | 'message',
   targetId: string,
   details: Record<string, unknown> = {},
 ): Promise<void> {
@@ -553,6 +555,14 @@ export async function replyToFeedback(
   const cleanReply = validateRequired(sanitizeText(reply, 2000), 'Reply')
 
   const sb = supabase()
+  const { data: feedbackRow, error: readError } = await sb
+    .from('feedback')
+    .select('user_id')
+    .eq('id', feedbackId)
+    .single()
+
+  if (readError) throw readError
+
   const { error } = await sb
     .from('feedback')
     .update({
@@ -564,6 +574,23 @@ export async function replyToFeedback(
     .eq('id', feedbackId)
 
   if (error) throw error
+
+  // Deliver the reply to the author's inbox. `feedback.user_id` is nullable
+  // (ON DELETE SET NULL), so a reply to feedback from a deleted account is
+  // stored but has nobody to deliver to.
+  const authorId = feedbackRow?.user_id as string | null
+  if (authorId) {
+    await sendAdminMessage({
+      adminId: adminUserId,
+      subject: 'Reply to your feedback',
+      body: cleanReply,
+      audience: 'users',
+      userIds: [authorId],
+      kind: 'feedback_reply',
+      sourceId: feedbackId,
+    })
+  }
+
   await logAuditAction(adminUserId, 'feedback_replied', 'feedback', feedbackId, { reply_length: reply.length })
 }
 
@@ -682,4 +709,114 @@ export async function deleteAnnouncement(adminId: string, announcementId: string
 
   if (error) throw error
   await logAuditAction(adminId, 'announcement_deleted', 'announcement', announcementId, {})
+}
+
+// ─── Targeted Messages ───────────────────────────────────────────────────────
+
+export interface AdminPodOption {
+  id: string
+  name: string
+  memberCount: number
+}
+
+/** Every pod with its current member count, for the pod audience picker. */
+export async function getAdminPods(): Promise<AdminPodOption[]> {
+  const sb = supabase()
+  const { data, error } = await sb
+    .from('pods')
+    .select('id, name, pod_members(user_id)')
+    .order('name')
+
+  if (error) throw error
+
+  return (data ?? []).map((row) => {
+    const pod = row as unknown as { id: string; name: string; pod_members: { user_id: string }[] }
+    return {
+      id: pod.id,
+      name: pod.name,
+      memberCount: pod.pod_members?.length ?? 0,
+    }
+  })
+}
+
+/**
+ * Sends a targeted message. All validation and the fan-out live in the
+ * `send_admin_message` function (migration 029) so the write is atomic and a
+ * client bypassing this wrapper still hits the same rules.
+ */
+export async function sendAdminMessage(params: {
+  adminId: string
+  subject?: string | null
+  body: string
+  audience: MessageAudience
+  userIds?: string[]
+  podId?: string | null
+  kind?: 'admin_message' | 'feedback_reply'
+  sourceId?: string | null
+}): Promise<SendMessageResult> {
+  const cleanBody = validateRequired(sanitizeMultiline(params.body, 2000), 'Message body')
+  const cleanSubject = params.subject ? sanitizeText(params.subject, 120) : null
+  const kind = params.kind ?? 'admin_message'
+
+  const sb = supabase()
+  const { data, error } = await sb.rpc('send_admin_message', {
+    p_subject: cleanSubject,
+    p_body: cleanBody,
+    p_audience: params.audience,
+    p_user_ids: params.userIds ?? null,
+    p_pod_id: params.podId ?? null,
+    p_kind: kind,
+    p_source_id: params.sourceId ?? null,
+  })
+
+  if (error) throw error
+  const result = data as unknown as SendMessageResult
+
+  // A feedback reply is already audited by replyToFeedback against the feedback
+  // id — logging it again here would double-count it.
+  if (kind === 'admin_message') {
+    await logAuditAction(params.adminId, 'message_sent', 'message', result.message_id, {
+      audience: params.audience,
+      recipient_count: result.recipient_count,
+      pod_id: params.podId ?? null,
+      message_preview: cleanBody.slice(0, 50),
+    })
+  }
+
+  return result
+}
+
+/** Sent messages with their receipts, for the admin list. */
+export async function getAdminMessages(limit = 100): Promise<AdminMessage[]> {
+  const sb = supabase()
+  const { data, error } = await sb
+    .from('admin_messages')
+    .select(`
+      *,
+      profiles ( display_name ),
+      pods ( name ),
+      admin_message_recipients ( user_id, read_at )
+    `)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+  return (data ?? []) as unknown as AdminMessage[]
+}
+
+/**
+ * Soft-deletes a message. Receipts stay so read history survives, and the
+ * recipient read policy hides anything with `deleted_at` set.
+ */
+export async function deleteAdminMessage(adminId: string, messageId: string): Promise<void> {
+  const sb = supabase()
+  const now = new Date().toISOString()
+  const { error } = await sb
+    .from('admin_messages')
+    .update({ deleted_at: now, updated_at: now })
+    .eq('id', messageId)
+
+  if (error) throw error
+  await logAuditAction(adminId, 'message_deleted', 'message', messageId, {})
 }

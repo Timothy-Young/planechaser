@@ -721,7 +721,12 @@ function StrikeHistory({ userId, currentUserId, canModify }: { userId: string; c
     <div className="space-y-2">
       {strikes.map((s) => {
         const isActive = !s.revoked_at
-        const adminName = (s.admin_profile as { display_name: string } | null)?.display_name ?? 'Unknown'
+        // Automatic NSFW strikes have a null admin_id, so the profile join is
+        // null by design rather than by data loss.
+        const adminName =
+          s.source === 'auto_nsfw'
+            ? 'System'
+            : ((s.admin_profile as { display_name: string } | null)?.display_name ?? 'Unknown')
         const revokerName = (s.revoker_profile as { display_name: string } | null)?.display_name
         return (
           <div

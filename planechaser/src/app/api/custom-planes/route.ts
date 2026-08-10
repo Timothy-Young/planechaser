@@ -15,7 +15,7 @@ import type {
   PlaneErrorResponse,
   UpdatePlaneRequest,
 } from '@/lib/moderation/contract'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { AdminClientNotConfiguredError, createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 
 // TensorFlow and sharp both need Node; neither runs on the edge runtime.
@@ -142,7 +142,26 @@ async function handle(request: Request, mode: 'create' | 'update') {
     return fail(401, { error: 'unauthenticated', message: 'You must be signed in.' })
   }
 
-  const admin = createAdminClient()
+  let admin: SupabaseClient
+  try {
+    admin = createAdminClient()
+  } catch (error) {
+    if (error instanceof AdminClientNotConfiguredError) {
+      // Log the specific variable, return a generic message. A misconfigured
+      // deploy should be obvious in the logs without broadcasting internals to
+      // every authenticated caller.
+      console.error(`[custom-planes] ${error.message}`)
+      return fail(503, {
+        error: 'not_configured',
+        message:
+          'Custom plane creation is temporarily unavailable — the server is missing ' +
+          'its moderation credentials. This is a deployment problem, not a problem ' +
+          'with your plane.',
+      })
+    }
+    throw error
+  }
+
   const pendingPath =
     typeof body.pending_image_path === 'string' && body.pending_image_path
       ? body.pending_image_path
@@ -250,14 +269,25 @@ async function handle(request: Request, mode: 'create' | 'update') {
       thresholds: thresholdsFromLimits(limits),
     })
     verdict = { imageFlagged: result.imageFlagged, textFields: result.textFields }
-  } catch {
-    // A decode failure says nothing about content. Rejecting it as an invalid
-    // upload rather than a violation keeps a truncated file from costing a
-    // strike.
+  } catch (error) {
     await discardPending(admin, pendingPath)
-    return fail(400, {
-      error: 'invalid_image',
-      message: 'That image could not be processed. Try a different file.',
+
+    // A decode failure says nothing about content, so it is an invalid upload
+    // rather than a violation — that keeps a truncated file from costing a
+    // strike. But only blame the image if there actually was one; a text-only
+    // submission that fails here is a server fault and must not be reported as
+    // a bad image.
+    if (imageBytes) {
+      return fail(400, {
+        error: 'invalid_image',
+        message: 'That image could not be processed. Try a different file.',
+      })
+    }
+
+    console.error('[custom-planes] text scan failed', error)
+    return fail(500, {
+      error: 'server_error',
+      message: 'Content check failed. Please try again.',
     })
   }
 
@@ -364,10 +394,27 @@ async function handle(request: Request, mode: 'create' | 'update') {
   return NextResponse.json(data, { status: 200 })
 }
 
+/**
+ * Catch-all so an unexpected throw returns a structured body the client can
+ * render, rather than the framework's bare 500 whose cause is only visible in
+ * the server log.
+ */
+async function guarded(request: Request, mode: 'create' | 'update') {
+  try {
+    return await handle(request, mode)
+  } catch (error) {
+    console.error(`[custom-planes] unhandled ${mode} failure`, error)
+    return fail(500, {
+      error: 'server_error',
+      message: 'Something went wrong saving your plane. Please try again.',
+    })
+  }
+}
+
 export async function POST(request: Request) {
-  return handle(request, 'create')
+  return guarded(request, 'create')
 }
 
 export async function PATCH(request: Request) {
-  return handle(request, 'update')
+  return guarded(request, 'update')
 }

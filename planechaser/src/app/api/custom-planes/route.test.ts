@@ -142,7 +142,23 @@ function adminStub() {
   }
 }
 
-vi.mock('../../../lib/supabase/admin', () => ({ createAdminClient: () => adminStub() }))
+class FakeNotConfigured extends Error {
+  constructor(missing: string) {
+    super(`${missing} is not set. The custom plane moderation route cannot write without it.`)
+    this.name = 'AdminClientNotConfiguredError'
+  }
+}
+
+/** Set to throw, to simulate a deploy missing SUPABASE_SERVICE_ROLE_KEY. */
+let adminUnconfigured = false
+
+vi.mock('../../../lib/supabase/admin', () => ({
+  AdminClientNotConfiguredError: FakeNotConfigured,
+  createAdminClient: () => {
+    if (adminUnconfigured) throw new FakeNotConfigured('SUPABASE_SERVICE_ROLE_KEY')
+    return adminStub()
+  },
+}))
 
 const { POST } = await import('./route')
 
@@ -159,8 +175,49 @@ const VALID = { name: 'The Shattered Vale', oracle_text: 'Something happens.' }
 
 beforeEach(() => {
   resetFake()
+  adminUnconfigured = false
+  // Clear call history, not implementations — several tests assert that the
+  // scan was never reached, which leaks across tests without this.
+  vi.clearAllMocks()
   getUserMock.mockResolvedValue({ data: { user: { id: 'user-1' } } })
   moderateMock.mockResolvedValue({ imageFlagged: false, textFields: [], scores: null })
+})
+
+describe('POST /api/custom-planes — failure reporting', () => {
+  it('reports a missing service-role key as a diagnosable 503, not a bare 500', async () => {
+    adminUnconfigured = true
+
+    const res = await post(VALID)
+
+    expect(res.status).toBe(503)
+    expect(await res.json()).toMatchObject({ error: 'not_configured' })
+  })
+
+  it('does not leak the env var name to the caller', async () => {
+    adminUnconfigured = true
+
+    const body = JSON.stringify(await (await post(VALID)).json())
+
+    expect(body).not.toContain('SUPABASE_SERVICE_ROLE_KEY')
+  })
+
+  it('does not blame the image when a text-only submission fails the scan', async () => {
+    moderateMock.mockRejectedValue(new Error('matcher exploded'))
+
+    const res = await post(VALID)
+
+    expect(res.status).toBe(500)
+    expect(await res.json()).toMatchObject({ error: 'server_error' })
+  })
+
+  it('returns a structured body rather than a bare 500 on an unexpected throw', async () => {
+    getUserMock.mockRejectedValue(new Error('auth service down'))
+
+    const res = await post(VALID)
+
+    expect(res.status).toBe(500)
+    expect(await res.json()).toMatchObject({ error: 'server_error' })
+  })
 })
 
 describe('POST /api/custom-planes — auth and preconditions', () => {

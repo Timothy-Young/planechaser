@@ -187,6 +187,7 @@ Recent decisions affecting current work:
 | 260701-jyz | Split /rules into hub + dedicated /rules/planechase + /rules/archenemy pages (CP-03/CP-04), fixed achievement-name bug | 2026-07-01 | cdc4cca | [260701-jyz-split-rules-into-a-hub-plus-dedicated-ru](./quick/260701-jyz-split-rules-into-a-hub-plus-dedicated-ru/) |
 | 260702-xa8 | Pre-launch Supabase security hardening: dropped 7 foreign tiktok-dashboard tables, scoped conquered_planes writes to pod membership, security_invoker on admin_user_stats, locked card_cache writes, pinned function search_paths, revoked anon EXECUTE on SECURITY DEFINER fns, removed bucket-listing policy | 2026-07-03 | 6f520b8 | [260702-xa8-supabase-security-hardening](./quick/260702-xa8-supabase-security-hardening/) |
 | 260807-edv | Abuse limits: feedback 120s cooldown + 20/rolling-24h cap, custom planes capped at 25 (owner/admin/mod exempt), enforced by BEFORE INSERT triggers with tunable app_limits table; client preflight, countdown, and usage meter | 2026-08-07 | 912438c | [260807-edv-add-feedback-rate-limit-and-custom-plane](./quick/260807-edv-add-feedback-rate-limit-and-custom-plane/) |
+| 260809-tam | Design spec for targeted admin messages: per-user inbox with server-side read state, admin sends to specific users or a whole pod, one-way, feedback replies delivered into the same inbox, admin_messages + admin_message_recipients model. Spec only — no implementation | 2026-08-09 | pending | [260809-tam-targeted-admin-messages-design-spec](./quick/260809-tam-targeted-admin-messages-design-spec/) |
 
 ## Deferred Items
 

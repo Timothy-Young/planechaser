@@ -59,6 +59,7 @@ export type PlaneErrorCode =
   | 'invalid_request'
   | 'invalid_image'
   | 'not_found'
+  | 'not_configured'
   | 'server_error'
 
 export interface PlaneErrorResponse {

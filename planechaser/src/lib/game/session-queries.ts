@@ -24,6 +24,7 @@ export async function createGameSession(params: CreateSessionParams): Promise<Ga
       pod_id: params.podId ?? null,
       session_code: sessionCode,
       game_type: params.gameType ?? 'planechase',
+      scheme_deck_id: params.schemeDeckId ?? null,
       status: 'lobby',
     })
     .select()
@@ -143,6 +144,65 @@ export async function endSession(sessionId: string): Promise<void> {
     .from('active_game_sessions')
     .update({ status: 'ended', updated_at: new Date().toISOString() })
     .eq('id', sessionId)
+
+  if (error) throw error
+}
+
+export async function getSession(sessionId: string): Promise<GameSession | null> {
+  const { data, error } = await supabase()
+    .from('active_game_sessions')
+    .select()
+    .eq('id', sessionId)
+    .single()
+
+  if (error) return null
+  return data as GameSession
+}
+
+/**
+ * Records who the archenemy is. Host-only by RLS.
+ *
+ * Deliberately a lobby action rather than a setup one: designating an
+ * archenemy is meaningless until you know who is actually at the table.
+ */
+export async function setSessionArchenemy(
+  sessionId: string,
+  archenemyUserId: string | null,
+): Promise<void> {
+  const { error } = await supabase()
+    .from('active_game_sessions')
+    .update({ archenemy_user_id: archenemyUserId, updated_at: new Date().toISOString() })
+    .eq('id', sessionId)
+
+  if (error) throw error
+}
+
+/**
+ * Adds someone to the lobby directly — no pod, no join code.
+ *
+ * Permitted by the policy added in 033, which lets the host insert rows for
+ * other users while the session is still in `lobby` status.
+ */
+export async function addPlayerToSession(sessionId: string, userId: string): Promise<void> {
+  const { error } = await supabase()
+    .from('game_session_players')
+    .insert({ session_id: sessionId, user_id: userId })
+
+  if (error) {
+    if (error.code === '23505') throw new Error('That player is already in the game')
+    throw error
+  }
+}
+
+export async function removePlayerFromSession(
+  sessionId: string,
+  userId: string,
+): Promise<void> {
+  const { error } = await supabase()
+    .from('game_session_players')
+    .delete()
+    .eq('session_id', sessionId)
+    .eq('user_id', userId)
 
   if (error) throw error
 }

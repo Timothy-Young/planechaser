@@ -1,7 +1,8 @@
 import type { WireGameState } from './wire-state'
 
 export type SessionStatus = 'lobby' | 'active' | 'ended'
-export type GameType = 'planechase' | 'archenemy'
+/** Mirrors GameMode on the setup page and the CHECK constraint from 033. */
+export type GameType = 'planechase' | 'archenemy' | 'both'
 
 export interface GameSession {
   id: string
@@ -18,6 +19,13 @@ export interface GameSession {
   game_state: WireGameState | null
   turn_order: string[]
   current_turn_user_id: string | null
+  /** Scheme deck chosen at setup, carried through to the lobby. */
+  scheme_deck_id: string | null
+  /**
+   * Set in the lobby, not at setup. The archenemy can only be designated once
+   * real players have joined — at setup time the roster is still placeholders.
+   */
+  archenemy_user_id: string | null
   created_at: string
   updated_at: string
 }
@@ -37,6 +45,7 @@ export interface CreateSessionParams {
   hostUserId: string
   podId?: string
   gameType?: GameType
+  schemeDeckId?: string | null
 }
 
 export interface JoinSessionParams {

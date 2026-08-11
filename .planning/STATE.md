@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-05-13)
 
 Phase: 2-13 complete (per docs/superpowers/specs/2026-05-16-v2-campaign-mode-design.md + admin dashboard), only Phase 12 (Eternities Map Variant) not started. This "Phase: 7a complete, 8 next" line was stale — see memory/project_v2_status.md for the authoritative per-phase breakdown, not this file.
 Status: Pre-launch hardening. A full app review on 2026-07-31 produced a three-part hardening PR (error boundaries + PWA + CI, server-side achievements, slimmed sync payload) and four follow-up todos. Conquest/Dominion game-design layer still intentionally deferred per user decision.
-Last activity: 2026-08-07 — Completed quick task 260807-edv: abuse limits (feedback rate limit + custom plane cap) on branch `feat/abuse-limits`
+Last activity: 2026-08-11 — Completed quick task 260810-p18: made the custom-plane moderation scan failure observable and correctly attributed, on branch `fix/moderation-image-scan-diagnostics`
 
 Progress: Phases 2-7a COMPLETE, 7b deferred, 8-9 NOT STARTED
 
@@ -192,6 +192,7 @@ Recent decisions affecting current work:
 | 260810-pge | Fix PGRST201 on the admin Messages tab and the /messages inbox: `admin_messages` has two relationship paths to `profiles` (created_by FK and the many-to-many through `admin_message_recipients`), so the bare embed was ambiguous. Qualified both embeds with `profiles!admin_messages_created_by_fkey` | 2026-08-10 | 3a45234 | — (fast task, no directory) |
 | 260810-cpz | Click-to-view image on /custom-planes: extracted the admin preview into a shared `ImagePreviewModal`, thumbnails are now buttons with a zoom affordance, custom art keeps its natural aspect | 2026-08-10 | 5e14012 | — (fast task, no directory) |
 | 260810-evx | NSFW moderation for custom planes: server-authoritative scan (nsfwjs WASM + obscenity, no external services) on create and edit via `/api/custom-planes`, private quarantine bucket, sticky acknowledgment on first offence, then a strike plus 5h cooldown per violation with auto-ban at 3 active strikes. Migrations 030 + 031 written but **not applied**; needs `SUPABASE_SERVICE_ROLE_KEY` | 2026-08-10 | ba5ff17 | [20260810-nsfw-moderation](./quick/20260810-nsfw-moderation/) |
+| 260810-p18 | Custom-plane image moderation was crashing rather than flagging — every submission with art returned 400 `invalid_image` (jpg and png alike) and the catch logged nothing, so the cause was invisible. The scan failure is now logged under `[custom-planes] moderation scan failed`, attributed by stage instead of by "was there an image" (text-scan and model-init crashes return 500, not "bad file"), the model cache no longer retains a rejected promise, and a failed WASM init falls back to the CPU backend. No migration | 2026-08-11 | pending | [260810-p18-fix-custom-plane-image-moderation-crashi](./quick/260810-p18-fix-custom-plane-image-moderation-crashi/) |
 
 ## Deferred Items
 

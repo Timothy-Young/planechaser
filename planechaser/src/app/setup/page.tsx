@@ -14,19 +14,9 @@ import { useAppStore } from '@/store/app-store'
 import { useCreateSession, useStartSession, useSessionPlayers } from '@/hooks/useGameSession'
 import { useUserDecks, useCreateDefaultDeck } from '@/hooks/useDecks'
 import { shuffleDeck } from '@/lib/game/shuffle'
+import { buildArchenemyState, buildLifeTotals } from '@/lib/game/archenemy-setup'
 import { saveGameState, hasActiveGame } from '@/lib/game/session-storage'
-import type {
-  GameState,
-  SchemeCard,
-  ArchenemyState,
-  PlaneCard,
-  GameMode,
-  Player,
-} from '@/lib/game/types'
-
-/** Official Archenemy life totals. */
-const ARCHENEMY_LIFE = 40
-const HERO_LIFE = 20
+import type { GameState, PlaneCard, GameMode, Player } from '@/lib/game/types'
 
 const PLAYER_OPTIONS = [2, 3, 4, 5, 6]
 
@@ -237,48 +227,25 @@ function SetupPageInner() {
           .map((id) => basePlayers.find((p) => p.id === id)!)
       : basePlayers
 
-    let archenemyState: ArchenemyState | undefined
-    if (archenemyMode && designatedArchenemyId && schemes && schemes.length > 0) {
-      const designatedPlayer = players.find((p) => p.id === designatedArchenemyId)
-        ?? leaderboard?.find((e) => e.user_id === designatedArchenemyId)
-
-      let schemesToUse = schemes
-      if (selectedSchemeDeckId) {
-        const schemeDeck = schemeDecks?.find((d) => d.id === selectedSchemeDeckId)
-        if (schemeDeck) {
-          const deckSchemeSet = new Set(schemeDeck.scheme_ids)
-          schemesToUse = schemes.filter((s) => deckSchemeSet.has(s.id))
-        }
-      }
-
-      const schemeDeck = shuffleDeck(schemesToUse).map((s) => ({
-        ...s,
-        isOngoing: s.type_line.toLowerCase().includes('ongoing'),
-      })) as SchemeCard[]
-
-      archenemyState = {
-        archenemyId: designatedArchenemyId,
-        archenemyName: designatedPlayer?.display_name ?? 'Archenemy',
-        schemeDeck,
-        schemesInMotion: [],
-        schemesPlayed: 0,
-        // The archenemy always takes the first turn.
-        side: 'archenemy',
-        turnNumber: 1,
-      }
-    }
+    // Shared with the multiplayer lobby so the two cannot drift.
+    const archenemyState = archenemyMode
+      ? buildArchenemyState({
+          players,
+          designatedArchenemyId,
+          schemes,
+          schemeDecks,
+          selectedSchemeDeckId,
+          fallbackName: leaderboard?.find((e) => e.user_id === designatedArchenemyId)
+            ?.display_name,
+        }) ?? undefined
+      : undefined
 
     if (archenemyMode && !archenemyState) return
 
     const turnOrder = players.map((p) => p.id)
 
     const life = archenemyState
-      ? Object.fromEntries(
-          players.map((p) => [
-            p.id,
-            p.id === archenemyState.archenemyId ? ARCHENEMY_LIFE : HERO_LIFE,
-          ]),
-        )
+      ? buildLifeTotals(players, archenemyState.archenemyId)
       : undefined
 
     const state: GameState = {
@@ -330,8 +297,18 @@ function SetupPageInner() {
   }
 
   function handleCreateMultiplayerGame() {
+    // Carry the whole configuration onto the session. Previously only podId
+    // went across, so an Archenemy setup silently became a Planechase game the
+    // moment you chose to play with other people.
+    //
+    // The designated archenemy is deliberately not sent: it is chosen in the
+    // lobby, once the real roster exists.
     createSession.mutate(
-      { podId: activePodId ?? undefined },
+      {
+        podId: activePodId ?? undefined,
+        gameType: mode,
+        schemeDeckId: archenemyMode ? selectedSchemeDeckId : null,
+      },
       {
         onSuccess: (session) => {
           setActiveSessionId(session.id)

@@ -11,6 +11,10 @@ import {
   syncGameState,
   endSession,
   getActiveSessionForUser,
+  getSession,
+  setSessionArchenemy,
+  addPlayerToSession,
+  removePlayerFromSession,
 } from '@/lib/game/session-queries'
 import { subscribeToSession, subscribeToSessionPlayers } from '@/lib/game/session-sync'
 import { useAppStore } from '@/store/app-store'
@@ -41,12 +45,59 @@ export function useSessionPlayers(sessionId: string | undefined) {
 export function useCreateSession() {
   const user = useAppStore((s) => s.user)
   return useMutation({
-    mutationFn: (params: { podId?: string; gameType?: GameType }) =>
+    mutationFn: (params: {
+      podId?: string
+      gameType?: GameType
+      schemeDeckId?: string | null
+    }) =>
       createGameSession({
         hostUserId: user!.id,
         podId: params.podId,
         gameType: params.gameType,
+        schemeDeckId: params.schemeDeckId,
       }),
+  })
+}
+
+/** The session row itself — the lobby needs its game_type and scheme deck. */
+export function useSession(sessionId: string | undefined) {
+  return useQuery({
+    queryKey: ['session', sessionId],
+    queryFn: () => getSession(sessionId!),
+    enabled: !!sessionId,
+  })
+}
+
+export function useSetSessionArchenemy() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { sessionId: string; archenemyUserId: string | null }) =>
+      setSessionArchenemy(params.sessionId, params.archenemyUserId),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['session', vars.sessionId] })
+    },
+  })
+}
+
+export function useAddSessionPlayer() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { sessionId: string; userId: string }) =>
+      addPlayerToSession(params.sessionId, params.userId),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['session-players', vars.sessionId] })
+    },
+  })
+}
+
+export function useRemoveSessionPlayer() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { sessionId: string; userId: string }) =>
+      removePlayerFromSession(params.sessionId, params.userId),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['session-players', vars.sessionId] })
+    },
   })
 }
 

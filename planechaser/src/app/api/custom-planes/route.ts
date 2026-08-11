@@ -8,7 +8,11 @@ import {
   type ModeratorState,
 } from '@/lib/moderation/decide'
 import { moderate } from '@/lib/moderation'
-import { STRIKE_BAN_THRESHOLD, type ModerationVerdict } from '@/lib/moderation/types'
+import {
+  ModerationScanError,
+  STRIKE_BAN_THRESHOLD,
+  type ModerationVerdict,
+} from '@/lib/moderation/types'
 import type {
   CreatePlaneRequest,
   ModerationRejection,
@@ -272,19 +276,23 @@ async function handle(request: Request, mode: 'create' | 'update') {
   } catch (error) {
     await discardPending(admin, pendingPath)
 
+    // Log unconditionally. This branch used to return 400 silently, which is
+    // why a production outage here left no evidence at all. The error object
+    // only — never the submitted fields or image bytes.
+    console.error('[custom-planes] moderation scan failed', error)
+
     // A decode failure says nothing about content, so it is an invalid upload
     // rather than a violation — that keeps a truncated file from costing a
-    // strike. But only blame the image if there actually was one; a text-only
-    // submission that fails here is a server fault and must not be reported as
-    // a bad image.
-    if (imageBytes) {
+    // strike. Blame the image only when the image scan is what threw; a text
+    // scan or a model-init crash is a server fault, and reporting either as a
+    // bad file sends the user off replacing art that was never the problem.
+    if (error instanceof ModerationScanError && error.stage === 'image') {
       return fail(400, {
         error: 'invalid_image',
         message: 'That image could not be processed. Try a different file.',
       })
     }
 
-    console.error('[custom-planes] text scan failed', error)
     return fail(500, {
       error: 'server_error',
       message: 'Content check failed. Please try again.',

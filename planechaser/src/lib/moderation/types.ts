@@ -47,6 +47,29 @@ export interface ModerationVerdict {
   textFields: TextField[]
 }
 
+export type ModerationStage = 'text' | 'image'
+
+/**
+ * A scan that failed outright, as opposed to one that returned a verdict.
+ *
+ * The route's answer depends on which scan broke — a failed decode is a bad
+ * upload, anything else is a server fault — and it previously had no way to
+ * tell, so it blamed the image for every failure, model-init crashes included.
+ * `cause` carries the original error so nothing is lost on the way up.
+ *
+ * Lives here rather than beside `moderate` so importing it costs nothing: this
+ * module pulls in no TensorFlow, no sharp, and no model weights.
+ */
+export class ModerationScanError extends Error {
+  constructor(
+    readonly stage: ModerationStage,
+    cause: unknown,
+  ) {
+    super(`Moderation ${stage} scan failed.`, { cause })
+    this.name = 'ModerationScanError'
+  }
+}
+
 export function isFlagged(verdict: ModerationVerdict): boolean {
   return verdict.imageFlagged || verdict.textFields.length > 0
 }

@@ -28,21 +28,60 @@ async function initBackend(): Promise<void> {
   // The WASM backend loads the model in ~330ms and classifies in ~95ms, versus
   // ~1750ms and ~1400ms for the pure-JS CPU backend, with identical scores.
   // @tensorflow/tfjs-node would be faster still, but its native addon is ~150MB
-  // and competes with Vercel's 250MB unzipped function limit.
+  // and competes with Vercel's 250MB unzipped function limit. Those numbers are
+  // also why a CPU fallback is safe to take rather than failing the request:
+  // with `maxDuration = 30` on the route, ~1750ms load plus ~1400ms classify is
+  // a slow success, not a hard failure.
   const require = createRequire(import.meta.url)
   const wasmDir = path.join(
     path.dirname(require.resolve('@tensorflow/tfjs-backend-wasm/package.json')),
     'dist',
   )
   setWasmPaths(`${wasmDir}${path.sep}`)
-  await tf.setBackend('wasm')
+
+  // setBackend signals a failed WASM init two different ways depending on the
+  // cause — it rejects for some (a missing asset) and resolves false for
+  // others (no WASM support in the runtime) — so both are caught here and
+  // treated as the same "fall back to cpu" outcome. `@tensorflow/tfjs`
+  // registers the cpu backend by default in Node, so no extra dependency is
+  // needed for the fallback itself. A cpu failure is not swallowed: if it also
+  // fails, this throws, and the caller's cache reset plus the route's logging
+  // pick it up from there.
+  let wasmReady: boolean
+  let wasmError: unknown = null
+  try {
+    wasmReady = await tf.setBackend('wasm')
+  } catch (error) {
+    wasmReady = false
+    wasmError = error
+  }
+  if (!wasmReady) {
+    console.warn('[moderation] wasm backend unavailable, falling back to cpu', wasmError)
+    await tf.setBackend('cpu')
+  }
+
   await tf.ready()
 }
 
 function getModel(): Promise<NSFWJS> {
-  modelPromise ??= initBackend().then(() =>
+  if (modelPromise) return modelPromise
+
+  const attempt = initBackend().then(() =>
     load('MobileNetV2', { modelDefinitions: [MobileNetV2Model] }),
   )
+  // A rejected promise is otherwise cached for the life of the lambda
+  // instance, so one failed cold start would fail every later request it
+  // serves. Reset the cache on rejection so the next call gets a fresh
+  // attempt — guarded so a retry already in flight (a newer promise already
+  // stored in modelPromise) can't be clobbered by this handler firing late for
+  // a superseded attempt. This also attaches a handler to `attempt` itself, so
+  // it does not surface as an unhandled rejection; callers still observe the
+  // rejection through the promise returned below.
+  attempt.catch(() => {
+    if (modelPromise === attempt) modelPromise = null
+  })
+
+  modelPromise = attempt
   return modelPromise
 }
 

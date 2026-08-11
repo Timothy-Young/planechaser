@@ -1,4 +1,5 @@
 // @vitest-environment node
+import * as tf from '@tensorflow/tfjs'
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 
@@ -41,5 +42,23 @@ describe('scoreImage', () => {
 
   it('rejects bytes that are not a decodable image', async () => {
     await expect(scoreImage(Buffer.from('not an image'))).rejects.toThrow()
+  }, 60_000)
+
+  it('selects a usable backend', async () => {
+    await scoreImage(await syntheticJpeg())
+    // Proves backend selection landed somewhere usable, on whichever path this
+    // machine actually took — wasm when available, cpu when it falls back —
+    // without pinning the result to one backend.
+    expect(['wasm', 'cpu']).toContain(tf.getBackend())
+  }, 60_000)
+
+  it('recovers from a failed decode on the next call', async () => {
+    // Covers failure recovery at the classify stage: a rejection from one call
+    // must not poison later calls. The init-rejection reset in getModel can't
+    // be exercised without faking the backend, which this suite deliberately
+    // does not do.
+    await expect(scoreImage(Buffer.from('not an image'))).rejects.toThrow()
+    const scores = await scoreImage(await syntheticJpeg())
+    expect(Object.keys(scores)).toHaveLength(5)
   }, 60_000)
 })

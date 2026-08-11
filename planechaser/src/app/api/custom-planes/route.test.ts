@@ -1,6 +1,12 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// The real error class, not a stand-in: the route branches on `instanceof`, so
+// a fake would prove nothing about the attribution it actually performs. It
+// lives in types.ts, which pulls in no model or image dependencies, so
+// importing it here costs nothing and stays outside the mock below.
+import { ModerationScanError } from '../../../lib/moderation/types'
+
 const moderateMock = vi.fn()
 const getUserMock = vi.fn()
 
@@ -349,7 +355,9 @@ describe('POST /api/custom-planes — moderation outcomes', () => {
   })
 
   it('rejects an undecodable image as invalid rather than as a violation', async () => {
-    moderateMock.mockRejectedValue(new Error('unsupported image format'))
+    moderateMock.mockRejectedValue(
+      new ModerationScanError('image', new Error('unsupported image format')),
+    )
 
     const res = await post({ ...VALID, pending_image_path: 'user-1/art.png' })
 
@@ -357,6 +365,31 @@ describe('POST /api/custom-planes — moderation outcomes', () => {
     expect(await res.json()).toMatchObject({ error: 'invalid_image' })
     expect(calls.rpc).toHaveLength(0)
     expect(calls.profileUpdates).toHaveLength(0)
+    expect(calls.removedPending).toContain('user-1/art.png')
+  })
+
+  it('blames the server, not the image, when the text scan is what threw', async () => {
+    moderateMock.mockRejectedValue(new ModerationScanError('text', new Error('matcher blew up')))
+
+    const res = await post({ ...VALID, pending_image_path: 'user-1/art.png' })
+
+    expect(res.status).toBe(500)
+    expect(await res.json()).toMatchObject({ error: 'server_error' })
+    expect(calls.rpc).toHaveLength(0)
+    expect(calls.profileUpdates).toHaveLength(0)
+    expect(calls.removedPending).toContain('user-1/art.png')
+  })
+
+  it('treats an untagged scan failure as a server fault', async () => {
+    // Anything reaching the catch without a stage did not come from a decode,
+    // so it must not be reported to the user as a bad file.
+    moderateMock.mockRejectedValue(new Error('backend unavailable'))
+
+    const res = await post({ ...VALID, pending_image_path: 'user-1/art.png' })
+
+    expect(res.status).toBe(500)
+    expect(await res.json()).toMatchObject({ error: 'server_error' })
+    expect(calls.rpc).toHaveLength(0)
     expect(calls.removedPending).toContain('user-1/art.png')
   })
 

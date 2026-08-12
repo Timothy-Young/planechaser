@@ -6,19 +6,40 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { ArchenemyPicker } from '@/components/archenemy-picker'
 import { GameModeSelector } from '@/components/game/game-mode-selector'
-import { ArchenemyRoster } from '@/components/game/archenemy-roster'
+import { PlayerRoster } from '@/components/game/player-roster'
 import { useFullPlaneCorpus, useSchemeCorpus } from '@/hooks/useCardCorpus'
-import { useUserPods, usePodLeaderboard, useUserConquests, usePodMembers } from '@/hooks/usePods'
+import {
+  useUserPods,
+  usePodLeaderboard,
+  useUserConquests,
+  usePodMembers,
+  useFriends,
+} from '@/hooks/usePods'
 import { useUserSchemeDecks } from '@/hooks/useSchemeDecks'
 import { useAppStore } from '@/store/app-store'
 import { useCreateSession, useStartSession, useSessionPlayers } from '@/hooks/useGameSession'
 import { useUserDecks, useCreateDefaultDeck } from '@/hooks/useDecks'
 import { shuffleDeck } from '@/lib/game/shuffle'
 import { buildArchenemyState, buildLifeTotals } from '@/lib/game/archenemy-setup'
+import {
+  addSlot,
+  canStart,
+  fillSlot,
+  fromPodMembers,
+  guestSlot,
+  isRostered,
+  removeSlot,
+  renameSlot,
+  reorder,
+  seedSolo,
+  toPlayers,
+  type Roster,
+} from '@/lib/game/roster'
 import { saveGameState, hasActiveGame } from '@/lib/game/session-storage'
 import type { GameState, PlaneCard, GameMode, Player } from '@/lib/game/types'
 
-const PLAYER_OPTIONS = [2, 3, 4, 5, 6]
+/** Seats a table starts with when there is no pod to fill it. */
+const DEFAULT_TABLE_SIZE = 4
 
 type DeckMode = 'saved' | 'random'
 
@@ -33,7 +54,6 @@ export default function SetupPage() {
 function SetupPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const podStartMode = searchParams.get('podStart') === 'true'
   const podIdFromParam = searchParams.get('podId')
   const { data: corpus, isLoading, error } = useFullPlaneCorpus()
   const { data: schemes } = useSchemeCorpus()
@@ -52,9 +72,8 @@ function SetupPageInner() {
   const activePod = pods?.find((p) => p.id === activePodId)
   const { data: leaderboard } = usePodLeaderboard(activePodId ?? undefined, activePod?.archenemy_threshold ?? 5)
   const { data: conquests } = useUserConquests()
-  const podStartPodId = podIdFromParam ?? activePodId ?? undefined
-  const { data: podMembers } = usePodMembers(podStartMode ? podStartPodId : undefined)
-  const podStartPod = pods?.find((p) => p.id === podStartPodId)
+  const { data: podMembers } = usePodMembers(activePodId ?? undefined)
+  const { data: friends } = useFriends()
 
   const archenemy = leaderboard?.find((e) => e.is_archenemy)
 
@@ -62,8 +81,8 @@ function SetupPageInner() {
   const createDefaultDeck = useCreateDefaultDeck()
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null)
 
-  const [playerCount, setPlayerCount] = useState(4)
-  const [selectedPodPlayerIds, setSelectedPodPlayerIds] = useState<Set<string>>(new Set())
+  const [roster, setRoster] = useState<Roster>([])
+  const [seededFor, setSeededFor] = useState<string | null>(null)
   const [resumeAvailable, setResumeAvailable] = useState(false)
   const [deckMode, setDeckMode] = useState<DeckMode>('random')
   const [randomSize, setRandomSize] = useState(40)
@@ -72,48 +91,55 @@ function SetupPageInner() {
   const [designatedArchenemyId, setDesignatedArchenemyId] = useState<string | null>(null)
   const [showArchenemyPicker, setShowArchenemyPicker] = useState(false)
   const [selectedSchemeDeckId, setSelectedSchemeDeckId] = useState<string | null>(null)
-  const [localPlayerNames, setLocalPlayerNames] = useState<Record<string, string>>({})
-  const [playerOrder, setPlayerOrder] = useState<string[]>([])
-  const [hasCustomOrder, setHasCustomOrder] = useState(false)
   const { data: schemeDecks } = useUserSchemeDecks()
   const SNAP_POINTS = [10, 20, 30, 40]
 
   const archenemyMode = mode === 'archenemy' || mode === 'both'
   const isStandaloneArchenemy = mode === 'archenemy'
 
+  const selfPlayer: Player | null = user
+    ? {
+        id: user.id,
+        display_name:
+          user.user_metadata?.full_name || user.email?.split('@')[0] || 'You',
+      }
+    : null
+
   /**
-   * The table, however it is known.
+   * Seeds the roster for whichever table is in play, and reseeds when that
+   * changes: a pod fills it with its members, and no pod seeds the signed-in
+   * user plus empty seats.
    *
-   * A pod or a multiplayer lobby names the players. Without either, Archenemy
-   * still needs a roster — life is tracked per player — so one is synthesised
-   * from the player count with editable names.
+   * Adjusting state during render rather than in an effect — the documented
+   * React pattern for "derive from a prop that changed" — because an effect
+   * here would render the old pod's roster for a frame before correcting it.
    */
-  const localPlayers: Player[] = useMemo(
-    () =>
-      Array.from({ length: playerCount }, (_, i) => {
-        const id = `local-${i + 1}`
-        return { id, display_name: localPlayerNames[id] || `Player ${i + 1}` }
-      }),
-    [playerCount, localPlayerNames],
-  )
+  const seedKey = activePodId ?? (selfPlayer ? 'solo' : null)
+  const podReady = !activePodId || !!podMembers
+  if (seedKey && podReady && seedKey !== seededFor) {
+    setSeededFor(seedKey)
+    setRoster((prev) =>
+      activePodId
+        ? // Switching pods discards manual edits. Selecting a pod is an explicit
+          // act, and merging the old table into the new one is guesswork.
+          fromPodMembers(podMembers ?? [])
+        : // Leaving a pod keeps whoever was added by hand, and only falls back
+          // to a fresh table when that leaves nobody.
+          (() => {
+            const kept = prev.filter((slot) => slot.source !== 'pod')
+            return kept.length > 0 ? kept : seedSolo(selfPlayer, DEFAULT_TABLE_SIZE)
+          })(),
+    )
+    if (designatedArchenemyId) setDesignatedArchenemyId(null)
+  }
 
-  const hasNamedRoster =
-    (podStartMode && (podMembers?.length ?? 0) > 0) || (sessionPlayers?.length ?? 0) > 0
-
-  const archenemyRoster: Player[] = useMemo(() => {
-    if (podStartMode && podMembers && podMembers.length > 0) {
-      return podMembers
-        .filter((m) => selectedPodPlayerIds.has(m.user_id))
-        .map((m) => ({ id: m.user_id, display_name: m.profile?.display_name ?? 'Player' }))
+  /** Keeps a designation from surviving the player it points at. */
+  function applyRoster(next: Roster) {
+    setRoster(next)
+    if (designatedArchenemyId && !isRostered(next, designatedArchenemyId)) {
+      setDesignatedArchenemyId(null)
     }
-    if (sessionPlayers && sessionPlayers.length > 0) {
-      return sessionPlayers.map((sp) => ({
-        id: sp.user_id,
-        display_name: sp.profile?.display_name ?? 'Player',
-      }))
-    }
-    return localPlayers
-  }, [podStartMode, podMembers, selectedPodPlayerIds, sessionPlayers, localPlayers])
+  }
 
   const selectedDeck = decks?.find((d) => d.id === selectedDeckId) ?? decks?.[0]
 
@@ -128,30 +154,11 @@ function SetupPageInner() {
     return new Set(conquests.map((c) => c.plane_scryfall_id))
   }, [conquests])
 
+  // `?podId=` is how the pods page links straight into a game with that pod.
+  // It selects the pod and nothing else — the roster follows from that.
   useEffect(() => {
-    if (podStartMode && podMembers && podMembers.length > 0 && selectedPodPlayerIds.size === 0) {
-      setSelectedPodPlayerIds(new Set(podMembers.map((m) => m.user_id)))
-    }
-  }, [podMembers, podStartMode])
-
-  // Keep playerOrder in sync with selected players
-  useEffect(() => {
-    if (!podStartMode || !podMembers) return
-    const selectedIds = Array.from(selectedPodPlayerIds)
-    if (selectedIds.length < 2) {
-      setPlayerOrder([])
-      setHasCustomOrder(false)
-      return
-    }
-    // Preserve existing order for players still selected, append new ones at end
-    const kept = playerOrder.filter((id) => selectedPodPlayerIds.has(id))
-    const newIds = selectedIds.filter((id) => !kept.includes(id))
-    const merged = [...kept, ...newIds]
-    // Only update if different (avoid infinite loop)
-    if (merged.length !== playerOrder.length || merged.some((id, i) => playerOrder[i] !== id)) {
-      setPlayerOrder(merged)
-    }
-  }, [selectedPodPlayerIds, podMembers, podStartMode])
+    if (podIdFromParam && podIdFromParam !== activePodId) setActivePodId(podIdFromParam)
+  }, [podIdFromParam, activePodId, setActivePodId])
 
   useEffect(() => {
     setResumeAvailable(hasActiveGame())
@@ -203,29 +210,15 @@ function SetupPageInner() {
       deck = shuffleDeck(playableCards)
     }
 
-    const basePlayers = podStartMode && podMembers && podMembers.length > 0
-      ? podMembers
-          .filter((m) => selectedPodPlayerIds.has(m.user_id))
-          .map((m) => ({
-            id: m.user_id,
-            display_name: m.profile?.display_name ?? 'Player',
+    // A live multiplayer session has real joiners; they outrank the local
+    // roster, which was only ever a stand-in for people who are not here.
+    const players: Player[] =
+      sessionPlayers && sessionPlayers.length > 0
+        ? sessionPlayers.map((sp) => ({
+            id: sp.user_id,
+            display_name: sp.profile?.display_name ?? 'Player',
           }))
-      : sessionPlayers?.map((sp) => ({
-          id: sp.user_id,
-          display_name: sp.profile?.display_name ?? 'Player',
-        }))
-        // Archenemy tracks life per player, so it needs the whole table named
-        // even solo. Planechase keeps its single-host fallback.
-        ?? (archenemyMode
-          ? localPlayers
-          : [{ id: user?.id ?? 'host', display_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player' }])
-
-    // Apply custom player order if set
-    const players = playerOrder.length > 0
-      ? playerOrder
-          .filter((id) => basePlayers.some((p) => p.id === id))
-          .map((id) => basePlayers.find((p) => p.id === id)!)
-      : basePlayers
+        : toPlayers(roster)
 
     // Shared with the multiplayer lobby so the two cannot drift.
     const archenemyState = archenemyMode
@@ -251,7 +244,7 @@ function SetupPageInner() {
     const state: GameState = {
       id: crypto.randomUUID(),
       config: {
-        playerCount: podStartMode ? selectedPodPlayerIds.size : playerCount,
+        playerCount: players.length,
         deckSize: deck.length,
         mode,
       },
@@ -351,8 +344,8 @@ function SetupPageInner() {
             </p>
           </div>
 
-          {/* Active pod selector */}
-          {!podStartMode && pods && pods.length > 0 && (
+          {/* Active pod selector — this is what names the table */}
+          {pods && pods.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
@@ -382,23 +375,16 @@ function SetupPageInner() {
                 <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)] pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
               </div>
               {activePodId && activePod && (
-                <button
-                  onClick={() => router.push(`/setup?podStart=true&podId=${activePodId}`)}
-                  className="w-full text-[13px] text-[var(--color-accent)] hover:underline font-medium pt-1"
+                <p
+                  className="text-[12px] text-[var(--color-text-muted)] pt-1"
                   style={{ fontFamily: 'var(--font-body)' }}
                 >
-                  Start game with {activePod.name} →
-                </button>
+                  {podMembers
+                    ? `${activePod.name} fills the player list below.`
+                    : 'Loading pod members…'}
+                </p>
               )}
             </motion.div>
-          )}
-
-          {podStartMode && podStartPod && (
-            <div className="text-center">
-              <p className="text-[13px] text-[var(--color-accent)] font-medium" style={{ fontFamily: 'var(--font-body)' }}>
-                Starting with pod: {podStartPod.name} ({podMembers?.length ?? '…'} players)
-              </p>
-            </div>
           )}
 
           {/* Resume game */}
@@ -492,23 +478,6 @@ function SetupPageInner() {
                 />
               )}
 
-              {/* No pod, or a pod game where nobody has been designated yet:
-                  pick straight off the roster. Standalone games have no
-                  conquest threshold to nominate anyone. */}
-              {!(activePod && showArchenemyPicker && !designatedArchenemyId) && (
-                <ArchenemyRoster
-                  players={archenemyRoster}
-                  designatedArchenemyId={designatedArchenemyId}
-                  onDesignate={setDesignatedArchenemyId}
-                  onRename={
-                    hasNamedRoster
-                      ? undefined
-                      : (playerId, name) =>
-                          setLocalPlayerNames((prev) => ({ ...prev, [playerId]: name }))
-                  }
-                />
-              )}
-
               {/* Scheme deck selector */}
               <div className="space-y-2">
                 <label
@@ -549,182 +518,31 @@ function SetupPageInner() {
             className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm p-6 space-y-6"
           >
             {/* Players */}
-            {podStartMode && podMembers && podMembers.length > 0 ? (
-              <div className="space-y-3">
-                <p
-                  className="text-[13px] font-semibold text-[var(--color-text)]"
-                  style={{ fontFamily: 'var(--font-heading)' }}
-                >
-                  Players in this game
-                </p>
-                <div className="space-y-2">
-                  {podMembers.map((member) => {
-                    const memberId = member.user_id
-                    const displayName = member.profile?.display_name ?? 'Player'
-                    const isSelected = selectedPodPlayerIds.has(memberId)
-                    return (
-                      <button
-                        key={memberId}
-                        onClick={() => {
-                          setSelectedPodPlayerIds((prev) => {
-                            const next = new Set(prev)
-                            if (next.has(memberId)) {
-                              next.delete(memberId)
-                            } else {
-                              next.add(memberId)
-                            }
-                            return next
-                          })
-                        }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
-                          isSelected
-                            ? 'border-[var(--color-accent)]/60 bg-[var(--color-accent)]/10'
-                            : 'border-[var(--color-border)] bg-[var(--color-surface)]/50'
-                        }`}
-                      >
-                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
-                          isSelected
-                            ? 'border-[var(--color-accent)] bg-[var(--color-accent)]'
-                            : 'border-[var(--color-text-muted)]'
-                        }`}>
-                          {isSelected && (
-                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </div>
-                        <span
-                          className="text-[14px] text-[var(--color-text)]"
-                          style={{ fontFamily: 'var(--font-body)' }}
-                        >
-                          {displayName}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-                <p className="text-[11px] text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-body)' }}>
-                  {selectedPodPlayerIds.size} player{selectedPodPlayerIds.size !== 1 ? 's' : ''} selected
-                </p>
-
-                {/* Play order */}
-                {selectedPodPlayerIds.size >= 2 && (
-                  <div className="space-y-2 pt-2 border-t border-[var(--color-border)]">
-                    <div className="flex items-center justify-between">
-                      <label
-                        className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium"
-                        style={{ fontFamily: 'var(--font-heading)' }}
-                      >
-                        Play Order
-                      </label>
-                      <button
-                        onClick={() => {
-                          const ids = podMembers
-                            ?.filter((m) => selectedPodPlayerIds.has(m.user_id))
-                            .map((m) => m.user_id) ?? []
-                          setPlayerOrder(shuffleDeck(ids))
-                          setHasCustomOrder(true)
-                        }}
-                        className="text-[12px] text-[var(--color-accent)] hover:underline font-medium flex items-center gap-1"
-                        style={{ fontFamily: 'var(--font-body)' }}
-                      >
-                        🎲 Randomize
-                      </button>
-                    </div>
-                    <div className="space-y-1">
-                      {playerOrder
-                        .filter((id) => selectedPodPlayerIds.has(id))
-                        .map((id, i, arr) => {
-                          const member = podMembers?.find((m) => m.user_id === id)
-                          return (
-                            <div
-                              key={id}
-                              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border ${
-                                hasCustomOrder
-                                  ? 'bg-[var(--color-accent)]/5 border-[var(--color-accent)]/20'
-                                  : 'bg-[var(--color-surface)]/50 border-[var(--color-border)]'
-                              }`}
-                            >
-                              <span
-                                className="w-6 h-6 rounded-full bg-[var(--color-accent-deep)] text-white text-[12px] font-bold flex items-center justify-center shrink-0"
-                                style={{ fontFamily: 'var(--font-heading)' }}
-                              >
-                                {i + 1}
-                              </span>
-                              <span
-                                className="text-[13px] text-[var(--color-text)] flex-1"
-                                style={{ fontFamily: 'var(--font-body)' }}
-                              >
-                                {member?.profile?.display_name ?? 'Player'}
-                              </span>
-                              {i === 0 && hasCustomOrder && (
-                                <span className="text-[10px] text-[var(--color-accent)] font-semibold" style={{ fontFamily: 'var(--font-heading)' }}>
-                                  Goes first
-                                </span>
-                              )}
-                              <div className="flex flex-col gap-0.5 shrink-0">
-                                <button
-                                  disabled={i === 0}
-                                  onClick={() => {
-                                    const newOrder = [...playerOrder]
-                                    ;[newOrder[i - 1], newOrder[i]] = [newOrder[i], newOrder[i - 1]]
-                                    setPlayerOrder(newOrder)
-                                    setHasCustomOrder(true)
-                                  }}
-                                  className="w-6 h-5 flex items-center justify-center rounded text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-white/5 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
-                                  aria-label="Move up"
-                                >
-                                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 5L5 1L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                                </button>
-                                <button
-                                  disabled={i === arr.length - 1}
-                                  onClick={() => {
-                                    const newOrder = [...playerOrder]
-                                    ;[newOrder[i], newOrder[i + 1]] = [newOrder[i + 1], newOrder[i]]
-                                    setPlayerOrder(newOrder)
-                                    setHasCustomOrder(true)
-                                  }}
-                                  className="w-6 h-5 flex items-center justify-center rounded text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-white/5 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
-                                  aria-label="Move down"
-                                >
-                                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                                </button>
-                              </div>
-                            </div>
-                          )
-                        })}
-                    </div>
-                    {!hasCustomOrder && (
-                      <p className="text-[11px] text-[var(--color-text-muted)] italic" style={{ fontFamily: 'var(--font-body)' }}>
-                        Use arrows to set turn order, or tap Randomize
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <label className="text-[12px] uppercase tracking-widest text-[var(--color-text-muted)] font-medium" style={{ fontFamily: 'var(--font-heading)' }}>
-                  Players
-                </label>
-                <div className="flex gap-2">
-                  {PLAYER_OPTIONS.map((n) => (
-                    <button
-                      key={n}
-                      onClick={() => setPlayerCount(n)}
-                      className={`flex-1 h-11 rounded-xl text-[15px] font-semibold transition-all ${
-                        playerCount === n
-                          ? 'bg-[var(--color-accent-deep)] text-white glow-purple'
-                          : 'bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
-                      }`}
-                      style={{ fontFamily: 'var(--font-heading)' }}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <PlayerRoster
+              roster={roster}
+              archenemyMode={archenemyMode}
+              designatedArchenemyId={designatedArchenemyId}
+              friends={friends ?? []}
+              onDesignate={setDesignatedArchenemyId}
+              onPickFriend={(slotId, friend) =>
+                applyRoster(
+                  fillSlot(roster, slotId, {
+                    id: friend.user_id,
+                    display_name: friend.display_name,
+                    source: 'friend',
+                  }),
+                )
+              }
+              onRename={(slotId, name) => setRoster(renameSlot(roster, slotId, name))}
+              onRemove={(slotId) => applyRoster(removeSlot(roster, slotId))}
+              onMove={(from, to) => setRoster(reorder(roster, from, to))}
+              onAdd={() => {
+                const slot = guestSlot(roster)
+                setRoster(addSlot(roster, slot))
+                return slot.id
+              }}
+              onRandomize={() => setRoster(shuffleDeck(roster))}
+            />
 
             {/* Deck mode toggle */}
             <div className={`space-y-3 ${isStandaloneArchenemy ? 'hidden' : ''}`}>
@@ -863,9 +681,14 @@ function SetupPageInner() {
             </div>
 
             {/* Archenemy prerequisites */}
-            {archenemyMode && !designatedArchenemyId && (
+            {archenemyMode && roster.length < 2 && (
               <p className="text-[12px] text-[var(--color-text-muted)] text-center" style={{ fontFamily: 'var(--font-body)' }}>
-                Designate an archenemy above to start.
+                An Archenemy game needs at least two players.
+              </p>
+            )}
+            {archenemyMode && roster.length >= 2 && !designatedArchenemyId && (
+              <p className="text-[12px] text-[var(--color-text-muted)] text-center" style={{ fontFamily: 'var(--font-body)' }}>
+                Tap “Make archenemy” on a player above to start.
               </p>
             )}
             {archenemyMode && designatedArchenemyId && schemes && schemes.length === 0 && (
@@ -905,8 +728,8 @@ function SetupPageInner() {
             <Button
               onClick={startGame}
               disabled={
-                (podStartMode && selectedPodPlayerIds.size < 2)
-                || (archenemyMode && (!designatedArchenemyId || !schemes || schemes.length === 0))
+                !canStart(roster, mode, designatedArchenemyId)
+                || (archenemyMode && (!schemes || schemes.length === 0))
                 // A standalone game needs no planes, so the plane corpus never
                 // gates it.
                 || (!isStandaloneArchenemy && (
@@ -923,24 +746,22 @@ function SetupPageInner() {
             </Button>
           </motion.div>
 
-          {/* Multiplayer button - hidden when starting directly from pod */}
-          {!podStartMode && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={handleCreateMultiplayerGame}
-              disabled={createSession.isPending}
-              className="w-full rounded-2xl border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5 p-5 text-center transition-all hover:bg-[var(--color-accent)]/10 cursor-pointer"
-            >
-              <p className="text-[17px] font-semibold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
-                {createSession.isPending ? 'Creating...' : 'Create Multiplayer Game'}
-              </p>
-              <p className="text-[12px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
-                Get a code for friends to join
-              </p>
-            </motion.button>
-          )}
+          {/* Multiplayer — a pod game can still be played across devices */}
+          <motion.button
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleCreateMultiplayerGame}
+            disabled={createSession.isPending}
+            className="w-full rounded-2xl border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5 p-5 text-center transition-all hover:bg-[var(--color-accent)]/10 cursor-pointer"
+          >
+            <p className="text-[17px] font-semibold text-[var(--color-accent)]" style={{ fontFamily: 'var(--font-heading)' }}>
+              {createSession.isPending ? 'Creating...' : 'Create Multiplayer Game'}
+            </p>
+            <p className="text-[12px] text-[var(--color-text-muted)] mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+              Get a code for friends to join
+            </p>
+          </motion.button>
         </motion.div>
       </div>
     </main>

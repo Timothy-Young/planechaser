@@ -137,9 +137,19 @@ export default function EditCustomPlanePage() {
         if (err.rejection.image_flagged) clearImage()
         clearFlaggedFields(err.rejection.text_fields)
         setAcknowledged(false)
+        // Owner rejections are simulated — no penalty was recorded to mirror.
+        if (!err.rejection.simulated) {
+          moderation.applyPenalty({
+            ackRequired: true,
+            cooldownUntil: err.rejection.cooldown_until ?? null,
+          })
+        }
         moderation.refetch()
       } else if (err instanceof PlaneRequestError) {
         setFormError(err.message)
+        if (err.response.error === 'cooldown') {
+          moderation.applyPenalty({ cooldownUntil: err.response.cooldown_until ?? null })
+        }
         if (err.response.error === 'cooldown' || err.response.error === 'banned') {
           moderation.refetch()
         }

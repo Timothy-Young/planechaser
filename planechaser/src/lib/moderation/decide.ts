@@ -89,6 +89,47 @@ export function remainingCooldownMs(until: string, now: Date = new Date()): numb
   return Math.max(0, new Date(until).getTime() - now.getTime())
 }
 
+/** The penalty state the UI gates plane creation on. */
+export interface PenaltySnapshot {
+  ackRequired: boolean
+  /** ISO timestamp, or null when no cooldown is in effect. */
+  cooldownUntil: string | null
+}
+
+const NO_PENALTY: PenaltySnapshot = { ackRequired: false, cooldownUntil: null }
+
+function cooldownEpoch(until: string | null): number {
+  if (!until) return 0
+  const ms = new Date(until).getTime()
+  return Number.isFinite(ms) ? ms : 0
+}
+
+/**
+ * Combines the penalty read from the profile row with one observed locally —
+ * the cooldown a just-rejected submission reported back.
+ *
+ * Neither source is reliably the fresher one. The profile query can be disabled
+ * (no signed-in user in the client store yet) or still holding a row read before
+ * the violation, while the local value is gone on the next reload. Both fields
+ * only ever tighten, so take the stricter of the two: the acknowledgment is
+ * sticky once set, and the later expiry wins.
+ */
+export function mergePenalty(
+  a: PenaltySnapshot | null | undefined,
+  b: PenaltySnapshot | null | undefined,
+): PenaltySnapshot {
+  const left = a ?? NO_PENALTY
+  const right = b ?? NO_PENALTY
+
+  return {
+    ackRequired: left.ackRequired || right.ackRequired,
+    cooldownUntil:
+      cooldownEpoch(right.cooldownUntil) > cooldownEpoch(left.cooldownUntil)
+        ? right.cooldownUntil
+        : left.cooldownUntil,
+  }
+}
+
 /** "4h 12m", "12m", "under a minute" — for the cooldown banner and messages. */
 export function formatCooldown(until: string, now: Date = new Date()): string {
   const totalMinutes = Math.ceil(remainingCooldownMs(until, now) / 60_000)

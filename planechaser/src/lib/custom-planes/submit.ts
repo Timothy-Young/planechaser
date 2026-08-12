@@ -37,6 +37,30 @@ export class PlaneRequestError extends Error {
 }
 
 /**
+ * Resolves the id a submission belongs to.
+ *
+ * The client store's copy of the user is persisted in localStorage, so it is
+ * empty on the first render after that is cleared — and briefly on every cold
+ * load — while the session cookie is still perfectly valid. Ask Supabase before
+ * concluding the caller is signed out. Without this the upload dereferenced a
+ * null user and the form showed a raw
+ * "Cannot read properties of null (reading 'id')".
+ */
+export async function requireUserId(storeUserId: string | undefined): Promise<string> {
+  if (storeUserId) return storeUserId
+
+  const {
+    data: { user },
+  } = await createClient().auth.getUser()
+  if (user) return user.id
+
+  throw new PlaneRequestError(
+    { error: 'unauthenticated', message: 'You must be signed in to save a plane.' },
+    401,
+  )
+}
+
+/**
  * Uploads to the private quarantine bucket.
  *
  * The image goes to storage first and the route fetches it server-side, rather

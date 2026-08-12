@@ -1,13 +1,38 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { THEMES, THEME_IDS, DEFAULT_THEME, isUiTheme, getTheme } from './themes'
 
 const ROOT = join(__dirname, '..', '..', '..')
 const CSS = readFileSync(join(ROOT, 'src', 'app', 'globals.css'), 'utf8')
-const MIGRATION = readFileSync(
-  join(ROOT, 'supabase', 'migrations', '034_global_ui_theme.sql'),
-  'utf8'
+
+const MIGRATIONS_DIR = join(ROOT, 'supabase', 'migrations')
+const MIGRATION_FILES = readdirSync(MIGRATIONS_DIR)
+  .filter((f) => f.endsWith('.sql'))
+  .sort()
+
+/**
+ * The highest-numbered migration that redefines the function — i.e. the
+ * definition actually live in the database. Resolving it rather than naming a
+ * file means a later `CREATE OR REPLACE` is what gets checked, instead of the
+ * superseded original.
+ */
+const THEME_FN_MIGRATION = [...MIGRATION_FILES]
+  .reverse()
+  .find((f) =>
+    readFileSync(join(MIGRATIONS_DIR, f), 'utf8').includes('FUNCTION public.set_global_ui_theme')
+  )
+
+if (!THEME_FN_MIGRATION) throw new Error('No migration defines set_global_ui_theme')
+
+/**
+ * Comments stripped: 035's header quotes the broken `<>` comparison it exists
+ * to fix, and assertions about what the function *does* should not read prose
+ * about what it used to do.
+ */
+const MIGRATION = readFileSync(join(MIGRATIONS_DIR, THEME_FN_MIGRATION), 'utf8').replace(
+  /^[ \t]*--.*$/gm,
+  ''
 )
 
 /** Theme ids that ship a full palette of their own (Atlas lives on `:root`). */
@@ -92,13 +117,27 @@ describe('theme registry', () => {
 
 // ─── SQL / TS parity ─────────────────────────────────────────────────────────
 
-describe('migration 034 allowlist', () => {
-  it('matches the TypeScript registry exactly', () => {
+describe('set_global_ui_theme', () => {
+  it('has an allowlist matching the TypeScript registry exactly', () => {
     const clause = MIGRATION.match(/p_theme NOT IN \(([^)]*)\)/)
     expect(clause, 'set_global_ui_theme has no theme allowlist').not.toBeNull()
 
     const sqlIds = [...clause![1].matchAll(/'([a-z]+)'/g)].map((m) => m[1]).sort()
     expect(sqlIds).toEqual([...THEME_IDS].sort())
+  })
+
+  it('guards on the owner role with a NULL-safe comparison', () => {
+    // Regression: 034 shipped `get_my_role() <> 'owner'`. get_my_role() returns
+    // NULL for a caller with no profiles row, `NULL <> 'owner'` is NULL, and
+    // `IF NULL THEN` does not run — so the guard passed silently and any
+    // authenticated caller could restyle the app for every user. Fixed in 035.
+    expect(MIGRATION).toMatch(/get_my_role\(\)\s+IS DISTINCT FROM\s+'owner'/)
+    expect(MIGRATION).not.toMatch(/get_my_role\(\)\s*(<>|!=)/)
+  })
+
+  it('is executable by authenticated callers only', () => {
+    expect(MIGRATION).toMatch(/REVOKE ALL ON FUNCTION public\.set_global_ui_theme\(text\) FROM PUBLIC, anon/)
+    expect(MIGRATION).toMatch(/GRANT EXECUTE ON FUNCTION public\.set_global_ui_theme\(text\) TO authenticated/)
   })
 })
 

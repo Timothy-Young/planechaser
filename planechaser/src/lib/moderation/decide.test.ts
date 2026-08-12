@@ -5,6 +5,7 @@ import {
   checkPreconditions,
   decideOutcome,
   formatCooldown,
+  mergePenalty,
   thresholdsFromLimits,
   type ModeratorState,
 } from './decide'
@@ -164,6 +165,39 @@ describe('thresholdsFromLimits', () => {
     expect(
       thresholdsFromLimits({ nsfw_porn_threshold_bp: 0, nsfw_hentai_threshold_bp: 99_999 }),
     ).toEqual(DEFAULT_NSFW_THRESHOLDS)
+  })
+})
+
+describe('mergePenalty', () => {
+  it('keeps a sticky acknowledgment from either side', () => {
+    expect(
+      mergePenalty({ ackRequired: false, cooldownUntil: null }, { ackRequired: true, cooldownUntil: null }),
+    ).toEqual({ ackRequired: true, cooldownUntil: null })
+  })
+
+  it('keeps the later cooldown regardless of which side it came from', () => {
+    const early = { ackRequired: true, cooldownUntil: '2026-08-10T14:00:00.000Z' }
+    const late = { ackRequired: true, cooldownUntil: '2026-08-10T17:00:00.000Z' }
+
+    expect(mergePenalty(early, late).cooldownUntil).toBe(late.cooldownUntil)
+    expect(mergePenalty(late, early).cooldownUntil).toBe(late.cooldownUntil)
+  })
+
+  it('adopts a cooldown the other side does not have', () => {
+    const seeded = { ackRequired: true, cooldownUntil: '2026-08-10T17:00:00.000Z' }
+    expect(mergePenalty(null, seeded)).toEqual(seeded)
+    expect(mergePenalty(seeded, undefined)).toEqual(seeded)
+  })
+
+  it('ignores an unparseable timestamp rather than letting it win', () => {
+    const real = { ackRequired: true, cooldownUntil: '2026-08-10T17:00:00.000Z' }
+    expect(mergePenalty(real, { ackRequired: true, cooldownUntil: 'not-a-date' }).cooldownUntil).toBe(
+      real.cooldownUntil,
+    )
+  })
+
+  it('is empty when neither side has anything', () => {
+    expect(mergePenalty(null, null)).toEqual({ ackRequired: false, cooldownUntil: null })
   })
 })
 

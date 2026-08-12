@@ -9,6 +9,7 @@ import {
 } from '@/lib/custom-planes/queries'
 import { deletePlaneImage } from '@/lib/custom-planes/storage'
 import {
+  requireUserId,
   submitNewPlane,
   submitPlaneUpdate,
   uploadPendingImage,
@@ -55,7 +56,8 @@ export function useCreateCustomPlane() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ file, fields }: PlaneSubmission) => {
-      const pending = file ? await uploadPendingImage(user!.id, file) : null
+      const userId = await requireUserId(user?.id)
+      const pending = file ? await uploadPendingImage(userId, file) : null
       return submitNewPlane({ ...fields, pending_image_path: pending })
     },
     onSuccess: () => {
@@ -78,7 +80,8 @@ export function useUpdateCustomPlane() {
       file: File | null
       fields: Omit<UpdatePlaneRequest, 'pending_image_path'>
     }) => {
-      const pending = file ? await uploadPendingImage(user!.id, file) : null
+      const userId = await requireUserId(user?.id)
+      const pending = file ? await uploadPendingImage(userId, file) : null
       return submitPlaneUpdate({ ...fields, pending_image_path: pending })
     },
     onSuccess: (_data, vars) => {

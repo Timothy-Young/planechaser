@@ -87,6 +87,14 @@
   --gradient-cta-to: #c89638;
   --color-cta-text: #1a1208;
   --cta-border: #f0d490;
+  /* Ambient backdrop tokens — consumed by the landing page SVG so every theme
+     recolours the same geometry. These reproduce Atlas's original hardcoded
+     values exactly. */
+  --ambient-glow: #8a5a1f;
+  --ambient-mid: #3d2a4e;
+  --ambient-line: #d4a64a;
+  --ambient-shape: #d4a64a;
+  --ambient-dot: #e8c476;
 
   /* shadcn semantic vars — Atlas */
   --background: #0d0a10;
@@ -143,6 +151,12 @@ html[data-theme="eternities"] {
   --gradient-cta-to: #7a44e8;
   --color-cta-text: #ffffff;
   --cta-border: rgba(177, 138, 255, 0.4);
+  /* Ambient backdrop — reproduces Eternities's original hardcoded values. */
+  --ambient-glow: #3b1f8a;
+  --ambient-mid: #1d1145;
+  --ambient-line: #6f4fd8;
+  --ambient-shape: #b18aff;
+  --ambient-dot: #cbb8ff;
 
   /* shadcn semantic vars — Eternities */
   --background: #0a0813;
@@ -163,6 +177,286 @@ html[data-theme="eternities"] {
   --border: #675a99;
   --input: #675a99;
   --ring: #b18aff;
+}
+
+/* ═══════════════════════════════════════════════
+   MTG GUILD THEMES — the five allied colour pairs
+   Active on html[data-theme="<guild>"]
+
+   Unlike Atlas and Eternities, these declare --accent exactly once, with the
+   bright value. Those two themes declare it twice and the later (deeper) one
+   wins, which drops --color-accent as body text to ~2.6:1 on Eternities. Every
+   value below is verified: text ≥7:1 on --bg, accent/gold/cta/secondary/muted
+   text ≥4.5:1 on both --bg and --surface, borders ≥3:1. --accent-foreground is
+   a dark ink to stay legible on the now-bright shadcn accent surface.
+   theme-contrast.test.ts re-checks all of this against this file.
+   ═══════════════════════════════════════════════ */
+
+/* ─── Azorius (WU) — cold marble and open sky ─── */
+html[data-theme="azorius"] {
+  --bg: #070c15;
+  --bg-subtle: #0c1220;
+  --surface: #131b2c;
+  --surface-raised: #1b2540;
+  --accent: #7fb2ff;
+  --accent-deep: #3d6fd9;
+  --accent-muted: #b3d0ff;
+  --gold: #e6ecf5;
+  --gold-deep: #b6c3d6;
+  --gold-muted: #b6c3d6;
+  --purple: #7fb2ff;
+  --cta: #e2685a;
+  --cta-hover: #c9503f;
+  --text: #eef3fb;
+  --text-secondary: #b6c3d8;
+  --text-muted: #8b99b2;
+  --border: #6b7c9f;
+  --border-subtle: #3b4762;
+  --destructive: #e2685a;
+  --glow-purple: rgba(61, 111, 217, 0.4);
+  --glow-gold: rgba(230, 236, 245, 0.25);
+  --glow-red: rgba(226, 104, 90, 0.3);
+  --gradient-cta-from: #2a4d9e;
+  --gradient-cta-to: #3d6fd9;
+  --color-cta-text: #ffffff;
+  --cta-border: rgba(127, 178, 255, 0.4);
+  --ambient-glow: #1f3f8a;
+  --ambient-mid: #111d45;
+  --ambient-line: #4f7fd8;
+  --ambient-shape: #8ab5ff;
+  --ambient-dot: #b8d4ff;
+  --title-from: #dbe8ff;
+  --title-to: #3d6fd9;
+
+  --background: #070c15;
+  --foreground: #eef3fb;
+  --card: #131b2c;
+  --card-foreground: #eef3fb;
+  --popover: #131b2c;
+  --popover-foreground: #eef3fb;
+  --primary: #3d6fd9;
+  --primary-foreground: #ffffff;
+  --secondary: #131b2c;
+  --secondary-foreground: #eef3fb;
+  --muted: #131b2c;
+  --muted-foreground: #8b99b2;
+  --accent-foreground: #06101f;
+  --input: #6b7c9f;
+  --ring: #7fb2ff;
+}
+
+/* ─── Dimir (UB) — deep water and kept secrets ─── */
+html[data-theme="dimir"] {
+  --bg: #060810;
+  --bg-subtle: #0a0d18;
+  --surface: #101524;
+  --surface-raised: #171d33;
+  --accent: #79aade;
+  --accent-deep: #3a6c9e;
+  --accent-muted: #a6c6e4;
+  --gold: #c3ccdd;
+  --gold-deep: #8f9bb5;
+  --gold-muted: #8f9bb5;
+  --purple: #79aade;
+  --cta: #d9614f;
+  --cta-hover: #bd4a3a;
+  --text: #e8edf5;
+  --text-secondary: #adb8cc;
+  --text-muted: #828da4;
+  --border: #63708c;
+  --border-subtle: #353f56;
+  --destructive: #d9614f;
+  --glow-purple: rgba(58, 108, 158, 0.4);
+  --glow-gold: rgba(195, 204, 221, 0.2);
+  --glow-red: rgba(217, 97, 79, 0.3);
+  --gradient-cta-from: #24425f;
+  --gradient-cta-to: #3a6c9e;
+  --color-cta-text: #ffffff;
+  --cta-border: rgba(121, 170, 222, 0.4);
+  --ambient-glow: #172c5e;
+  --ambient-mid: #0e1730;
+  --ambient-line: #3f628f;
+  --ambient-shape: #79aade;
+  --ambient-dot: #a6c6e4;
+  --title-from: #d6e6f5;
+  --title-to: #3a6c9e;
+
+  --background: #060810;
+  --foreground: #e8edf5;
+  --card: #101524;
+  --card-foreground: #e8edf5;
+  --popover: #101524;
+  --popover-foreground: #e8edf5;
+  --primary: #3a6c9e;
+  --primary-foreground: #ffffff;
+  --secondary: #101524;
+  --secondary-foreground: #e8edf5;
+  --muted: #101524;
+  --muted-foreground: #828da4;
+  --accent-foreground: #05090f;
+  --input: #63708c;
+  --ring: #79aade;
+}
+
+/* ─── Rakdos (BR) — blood, ash and bad ideas ─── */
+html[data-theme="rakdos"] {
+  --bg: #100608;
+  --bg-subtle: #180a0d;
+  --surface: #241016;
+  --surface-raised: #31161e;
+  --accent: #f2686b;
+  --accent-deep: #b32c33;
+  --accent-muted: #ff9b9b;
+  --gold: #d8c9cc;
+  --gold-deep: #a8969a;
+  --gold-muted: #a8969a;
+  --purple: #f2686b;
+  /* Crimson is the accent here, so the destructive/CTA slot shifts to a hotter
+     orange — otherwise "delete" and "this is a heading" are the same colour. */
+  --cta: #ff8a3d;
+  --cta-hover: #e0702a;
+  --text: #f7ecee;
+  --text-secondary: #d0b8bd;
+  --text-muted: #a58a90;
+  --border: #9c6672;
+  --border-subtle: #55343c;
+  --destructive: #ff8a3d;
+  --glow-purple: rgba(179, 44, 51, 0.4);
+  --glow-gold: rgba(216, 201, 204, 0.2);
+  --glow-red: rgba(255, 138, 61, 0.3);
+  --gradient-cta-from: #8c1f26;
+  --gradient-cta-to: #c23b43;
+  --color-cta-text: #ffffff;
+  --cta-border: rgba(242, 104, 107, 0.4);
+  --ambient-glow: #8a1f2a;
+  --ambient-mid: #4e1a26;
+  --ambient-line: #f2686b;
+  --ambient-shape: #f2686b;
+  --ambient-dot: #ff9b9b;
+  --title-from: #ffd9db;
+  --title-to: #b32c33;
+
+  --background: #100608;
+  --foreground: #f7ecee;
+  --card: #241016;
+  --card-foreground: #f7ecee;
+  --popover: #241016;
+  --popover-foreground: #f7ecee;
+  --primary: #b32c33;
+  --primary-foreground: #ffffff;
+  --secondary: #241016;
+  --secondary-foreground: #f7ecee;
+  --muted: #241016;
+  --muted-foreground: #a58a90;
+  --accent-foreground: #14060a;
+  --input: #9c6672;
+  --ring: #f2686b;
+}
+
+/* ─── Gruul (RG) — ember and overgrowth ─── */
+html[data-theme="gruul"] {
+  --bg: #0d0c07;
+  --bg-subtle: #14120a;
+  --surface: #1e1b0f;
+  --surface-raised: #2a2515;
+  --accent: #e8763c;
+  --accent-deep: #b4501f;
+  --accent-muted: #f7a273;
+  --gold: #8fd45c;
+  --gold-deep: #5a9433;
+  --gold-muted: #5a9433;
+  --purple: #e8763c;
+  --cta: #e2544a;
+  --cta-hover: #c43f37;
+  --text: #f5f0e4;
+  --text-secondary: #cdc4ac;
+  --text-muted: #9c937b;
+  --border: #8a7a53;
+  --border-subtle: #4d442c;
+  --destructive: #e2544a;
+  --glow-purple: rgba(180, 80, 31, 0.4);
+  --glow-gold: rgba(143, 212, 92, 0.25);
+  --glow-red: rgba(226, 84, 74, 0.3);
+  --gradient-cta-from: #7d3610;
+  --gradient-cta-to: #b4501f;
+  --color-cta-text: #ffffff;
+  --cta-border: rgba(232, 118, 60, 0.4);
+  --ambient-glow: #8a4a1f;
+  --ambient-mid: #3d3a1a;
+  --ambient-line: #e8763c;
+  --ambient-shape: #e8763c;
+  --ambient-dot: #8fd45c;
+  --title-from: #ffe0c4;
+  --title-to: #b4501f;
+
+  --background: #0d0c07;
+  --foreground: #f5f0e4;
+  --card: #1e1b0f;
+  --card-foreground: #f5f0e4;
+  --popover: #1e1b0f;
+  --popover-foreground: #f5f0e4;
+  --primary: #b4501f;
+  --primary-foreground: #ffffff;
+  --secondary: #1e1b0f;
+  --secondary-foreground: #f5f0e4;
+  --muted: #1e1b0f;
+  --muted-foreground: #9c937b;
+  --accent-foreground: #120a04;
+  --input: #8a7a53;
+  --ring: #e8763c;
+}
+
+/* ─── Selesnya (GW) — sunlight through canopy ─── */
+html[data-theme="selesnya"] {
+  --bg: #070f0a;
+  --bg-subtle: #0c1610;
+  --surface: #121f18;
+  --surface-raised: #1a2c22;
+  --accent: #5cc47f;
+  --accent-deep: #2f8b52;
+  --accent-muted: #a5e3ba;
+  --gold: #eef2e6;
+  --gold-deep: #c0c8b2;
+  --gold-muted: #c0c8b2;
+  --purple: #5cc47f;
+  --cta: #e2685a;
+  --cta-hover: #c9503f;
+  --text: #eef6ef;
+  --text-secondary: #b6c8bb;
+  --text-muted: #879b8d;
+  --border: #65896f;
+  --border-subtle: #384f42;
+  --destructive: #e2685a;
+  --glow-purple: rgba(47, 139, 82, 0.4);
+  --glow-gold: rgba(238, 242, 230, 0.25);
+  --glow-red: rgba(226, 104, 90, 0.3);
+  --gradient-cta-from: #1b5730;
+  --gradient-cta-to: #27753f;
+  --color-cta-text: #ffffff;
+  --cta-border: rgba(92, 196, 127, 0.4);
+  --ambient-glow: #1f8a4a;
+  --ambient-mid: #1a3d2a;
+  --ambient-line: #5cc47f;
+  --ambient-shape: #5cc47f;
+  --ambient-dot: #d8eec2;
+  --title-from: #d8f5e2;
+  --title-to: #2f8b52;
+
+  --background: #070f0a;
+  --foreground: #eef6ef;
+  --card: #121f18;
+  --card-foreground: #eef6ef;
+  --popover: #121f18;
+  --popover-foreground: #eef6ef;
+  --primary: #2f8b52;
+  --primary-foreground: #ffffff;
+  --secondary: #121f18;
+  --secondary-foreground: #eef6ef;
+  --muted: #121f18;
+  --muted-foreground: #879b8d;
+  --accent-foreground: #05120a;
+  --input: #65896f;
+  --ring: #5cc47f;
 }
 
 /* ═══════════════════════════════════════════════
@@ -241,6 +535,104 @@ html.light[data-theme="eternities"] {
   --accent: #6d28d9;
   --accent-foreground: #ffffff;
   --ring: #7c3aed;
+}
+
+/* ═══════════════════════════════════════════════
+   LIGHT MODE — guild accents
+
+   The guild themes reuse the shared html.light surfaces above and only restate
+   their accent trio, their partner colour (the --gold slot), and the CTA
+   gradient. Every value here clears 4.5:1 against all three light surfaces
+   (#f5f0fa bg, #ffffff card, #f0ebf5 raised).
+   ═══════════════════════════════════════════════ */
+html.light[data-theme="azorius"] {
+  --accent: #2a55b8;
+  --accent-deep: #1e3f8c;
+  --accent-muted: #2d5cc0;
+  --purple: #2a55b8;
+  --gold: #5c6a80;
+  --gold-deep: #454f61;
+  --gold-muted: #454f61;
+  --gradient-cta-from: #1e3f8c;
+  --gradient-cta-to: #2a55b8;
+  --color-cta-text: #ffffff;
+  --cta-border: rgba(42, 85, 184, 0.4);
+  --primary: #2a55b8;
+  --primary-foreground: #ffffff;
+  --accent-foreground: #ffffff;
+  --ring: #2a55b8;
+}
+
+html.light[data-theme="dimir"] {
+  --accent: #2f5a86;
+  --accent-deep: #224364;
+  --accent-muted: #3a6c9e;
+  --purple: #2f5a86;
+  --gold: #4a5568;
+  --gold-deep: #374050;
+  --gold-muted: #374050;
+  --gradient-cta-from: #224364;
+  --gradient-cta-to: #2f5a86;
+  --color-cta-text: #ffffff;
+  --cta-border: rgba(47, 90, 134, 0.4);
+  --primary: #2f5a86;
+  --primary-foreground: #ffffff;
+  --accent-foreground: #ffffff;
+  --ring: #2f5a86;
+}
+
+html.light[data-theme="rakdos"] {
+  --accent: #b32c33;
+  --accent-deep: #8c2027;
+  --accent-muted: #bd333a;
+  --purple: #b32c33;
+  --gold: #6b4249;
+  --gold-deep: #523238;
+  --gold-muted: #523238;
+  --gradient-cta-from: #8c2027;
+  --gradient-cta-to: #b32c33;
+  --color-cta-text: #ffffff;
+  --cta-border: rgba(179, 44, 51, 0.4);
+  --primary: #b32c33;
+  --primary-foreground: #ffffff;
+  --accent-foreground: #ffffff;
+  --ring: #b32c33;
+}
+
+html.light[data-theme="gruul"] {
+  --accent: #a34715;
+  --accent-deep: #7d360f;
+  --accent-muted: #ab4c17;
+  --purple: #a34715;
+  --gold: #3a7020;
+  --gold-deep: #2f5c17;
+  --gold-muted: #2f5c17;
+  --gradient-cta-from: #7d360f;
+  --gradient-cta-to: #a34715;
+  --color-cta-text: #ffffff;
+  --cta-border: rgba(163, 71, 21, 0.4);
+  --primary: #a34715;
+  --primary-foreground: #ffffff;
+  --accent-foreground: #ffffff;
+  --ring: #a34715;
+}
+
+html.light[data-theme="selesnya"] {
+  --accent: #1f6b3d;
+  --accent-deep: #17522e;
+  --accent-muted: #237444;
+  --purple: #1f6b3d;
+  --gold: #5c6b52;
+  --gold-deep: #45513e;
+  --gold-muted: #45513e;
+  --gradient-cta-from: #17522e;
+  --gradient-cta-to: #1f6b3d;
+  --color-cta-text: #ffffff;
+  --cta-border: rgba(31, 107, 61, 0.4);
+  --primary: #1f6b3d;
+  --primary-foreground: #ffffff;
+  --accent-foreground: #ffffff;
+  --ring: #1f6b3d;
 }
 
 body {
@@ -365,6 +757,60 @@ html.light[data-theme="eternities"] .hero-h1-gradient, html.light[data-theme="et
   background-clip: text;
   color: transparent;
   filter: drop-shadow(0 1px 4px rgba(109, 40, 217, 0.2));
+}
+
+/* Hero H1 gradient — guild themes.
+   Atlas and Eternities keep their bespoke rules above; the guilds share one
+   shape driven by --title-from / --accent / --title-to so a new guild theme
+   needs two tokens rather than another rule. */
+html[data-theme="azorius"] .hero-h1-gradient, html[data-theme="azorius"] .title-gradient,
+html[data-theme="dimir"] .hero-h1-gradient, html[data-theme="dimir"] .title-gradient,
+html[data-theme="rakdos"] .hero-h1-gradient, html[data-theme="rakdos"] .title-gradient,
+html[data-theme="gruul"] .hero-h1-gradient, html[data-theme="gruul"] .title-gradient,
+html[data-theme="selesnya"] .hero-h1-gradient, html[data-theme="selesnya"] .title-gradient {
+  background: linear-gradient(175deg, var(--title-from) 20%, var(--accent) 55%, var(--title-to) 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 24px color-mix(in srgb, var(--accent) 35%, transparent));
+}
+
+html.light[data-theme="azorius"] .hero-h1-gradient, html.light[data-theme="azorius"] .title-gradient,
+html.light[data-theme="dimir"] .hero-h1-gradient, html.light[data-theme="dimir"] .title-gradient,
+html.light[data-theme="rakdos"] .hero-h1-gradient, html.light[data-theme="rakdos"] .title-gradient,
+html.light[data-theme="gruul"] .hero-h1-gradient, html.light[data-theme="gruul"] .title-gradient,
+html.light[data-theme="selesnya"] .hero-h1-gradient, html.light[data-theme="selesnya"] .title-gradient {
+  background: linear-gradient(175deg, var(--accent) 0%, var(--accent-deep) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 4px color-mix(in srgb, var(--accent) 20%, transparent));
+}
+
+/* ═══════════════════════════════════════════════
+   AMBIENT BACKDROP VISIBILITY
+
+   The landing page renders both ambient SVGs and lets CSS choose, so the
+   backdrop is correct in the server-rendered HTML with no hydration flash and
+   no theme branch in the component. Each theme's `ambient` field in
+   src/lib/theme/themes.ts must agree with the lists below.
+   ═══════════════════════════════════════════════ */
+.ambient-rings,
+.ambient-void {
+  display: none;
+}
+
+html[data-theme="atlas"] .ambient-rings,
+html[data-theme="rakdos"] .ambient-rings,
+html[data-theme="gruul"] .ambient-rings,
+html[data-theme="selesnya"] .ambient-rings {
+  display: block;
+}
+
+html[data-theme="eternities"] .ambient-void,
+html[data-theme="azorius"] .ambient-void,
+html[data-theme="dimir"] .ambient-void {
+  display: block;
 }
 
 /* Animated gradient border */

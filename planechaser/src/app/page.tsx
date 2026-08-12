@@ -69,7 +69,6 @@ const STATS = [
 export default function Home() {
   const router = useRouter()
   const user = useAppStore((s) => s.user)
-  const uiTheme = useAppStore((s) => s.uiTheme)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => setMounted(true), [])
@@ -78,20 +77,22 @@ export default function Home() {
 
   return (
     <main className="min-h-screen relative overflow-hidden">
-      {/* Ambient background — theme-conditional SVG geometry */}
+      {/* Ambient background — both backdrops render; globals.css shows the one
+          matching the active theme. Doing this in CSS rather than a JS branch
+          keeps the correct backdrop in the server-rendered HTML, and the colours
+          come from --ambient-* tokens so each theme recolours the same geometry. */}
       <div className="fixed inset-0 z-0">
-        {uiTheme === 'atlas' ? (
-          <svg className="absolute inset-0 w-full h-full opacity-50" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <svg className="ambient-rings absolute inset-0 w-full h-full opacity-50" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <radialGradient id="emberGlowHero" cx="50%" cy="45%" r="55%">
-                <stop offset="0%" stopColor="#8a5a1f" stopOpacity="0.25"/>
-                <stop offset="60%" stopColor="#3d2a4e" stopOpacity="0.12"/>
-                <stop offset="100%" stopColor="#0d0a10" stopOpacity="0"/>
+                <stop offset="0%" stopColor="var(--ambient-glow)" stopOpacity="0.25"/>
+                <stop offset="60%" stopColor="var(--ambient-mid)" stopOpacity="0.12"/>
+                <stop offset="100%" stopColor="var(--bg)" stopOpacity="0"/>
               </radialGradient>
             </defs>
             <rect width="1200" height="700" fill="url(#emberGlowHero)"/>
             {/* concentric portal rings */}
-            <g fill="none" stroke="#d4a64a" transform="translate(600 330)">
+            <g fill="none" stroke="var(--ambient-line)" transform="translate(600 330)">
               <circle r="160" strokeWidth="0.7" opacity="0.35"/>
               <circle r="220" strokeWidth="0.5" opacity="0.22" strokeDasharray="3 9"/>
               <circle r="290" strokeWidth="0.4" opacity="0.15"/>
@@ -102,28 +103,27 @@ export default function Home() {
                 <line x1="-172" y1="0" x2="-148" y2="0"/><line x1="148" y1="0" x2="172" y2="0"/>
               </g>
             </g>
-            <g fill="#e8c476">
+            <g fill="var(--ambient-dot)">
               <circle cx="600" cy="170" r="2" opacity="0.7"/><circle cx="600" cy="490" r="1.5" opacity="0.45"/>
               <circle cx="440" cy="330" r="1.5" opacity="0.5"/><circle cx="760" cy="330" r="1.8" opacity="0.55"/>
               <circle cx="280" cy="180" r="1" opacity="0.35"/><circle cx="930" cy="470" r="1.2" opacity="0.4"/>
             </g>
           </svg>
-        ) : (
-          <svg className="absolute inset-0 w-full h-full opacity-50" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <svg className="ambient-void absolute inset-0 w-full h-full opacity-50" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <radialGradient id="voidGlowHero" cx="50%" cy="40%" r="60%">
-                <stop offset="0%" stopColor="#3b1f8a" stopOpacity="0.35"/>
-                <stop offset="55%" stopColor="#1d1145" stopOpacity="0.15"/>
-                <stop offset="100%" stopColor="#0a0813" stopOpacity="0"/>
+                <stop offset="0%" stopColor="var(--ambient-glow)" stopOpacity="0.35"/>
+                <stop offset="55%" stopColor="var(--ambient-mid)" stopOpacity="0.15"/>
+                <stop offset="100%" stopColor="var(--bg)" stopOpacity="0"/>
               </radialGradient>
               <g id="hedronHero">
-                <polygon points="0,-22 9,-8 9,8 0,22 -9,8 -9,-8" fill="none" stroke="#b18aff" strokeWidth="1"/>
-                <line x1="0" y1="-22" x2="0" y2="22" stroke="#b18aff" strokeWidth="0.5" opacity="0.5"/>
+                <polygon points="0,-22 9,-8 9,8 0,22 -9,8 -9,-8" fill="none" stroke="var(--ambient-shape)" strokeWidth="1"/>
+                <line x1="0" y1="-22" x2="0" y2="22" stroke="var(--ambient-shape)" strokeWidth="0.5" opacity="0.5"/>
               </g>
             </defs>
             <rect width="1200" height="700" fill="url(#voidGlowHero)"/>
             {/* constellation lines */}
-            <g stroke="#6f4fd8" strokeWidth="0.6" opacity="0.3">
+            <g stroke="var(--ambient-line)" strokeWidth="0.6" opacity="0.3">
               <line x1="180" y1="160" x2="380" y2="90"/><line x1="380" y1="90" x2="590" y2="170"/>
               <line x1="900" y1="120" x2="1050" y2="230"/><line x1="760" y1="520" x2="950" y2="580"/>
               <line x1="150" y1="500" x2="320" y2="590"/><line x1="590" y1="170" x2="760" y2="80"/>
@@ -140,7 +140,7 @@ export default function Home() {
             <use href="#hedronHero" x="950" y="580" opacity="0.35" transform="rotate(-20 950 580) scale(0.65)"/>
             <use href="#hedronHero" x="760" y="80" opacity="0.3" transform="rotate(65 760 80) scale(0.5)"/>
             {/* stars */}
-            <g fill="#cbb8ff">
+            <g fill="var(--ambient-dot)">
               <circle cx="250" cy="300" r="1.2" opacity="0.6"/><circle cx="480" cy="240" r="0.8" opacity="0.4"/>
               <circle cx="680" cy="330" r="1" opacity="0.5"/><circle cx="850" cy="280" r="1.4" opacity="0.7"/>
               <circle cx="1000" cy="420" r="0.9" opacity="0.4"/><circle cx="120" cy="350" r="1.1" opacity="0.5"/>
@@ -148,7 +148,6 @@ export default function Home() {
               <circle cx="320" cy="180" r="0.9" opacity="0.5"/><circle cx="720" cy="210" r="0.8" opacity="0.4"/>
             </g>
           </svg>
-        )}
       </div>
 
       {/* Hero */}

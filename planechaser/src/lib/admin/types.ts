@@ -193,12 +193,13 @@ export type AuditAction =
   | 'message_deleted'
   | 'note_added'
   | 'note_deleted'
+  | 'global_theme_changed'
 
 export interface AuditLogEntry {
   id: string
   admin_id: string
   action: AuditAction
-  target_type: 'user' | 'custom_plane' | 'feedback' | 'strike' | 'announcement' | 'message'
+  target_type: 'user' | 'custom_plane' | 'feedback' | 'strike' | 'announcement' | 'message' | 'app_settings'
   target_id: string
   details: Record<string, unknown>
   created_at: string

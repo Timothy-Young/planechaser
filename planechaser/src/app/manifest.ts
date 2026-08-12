@@ -1,6 +1,12 @@
 import type { MetadataRoute } from 'next'
+import { getGlobalTheme } from '@/lib/theme/get-global-theme'
+import { getTheme } from '@/lib/theme/themes'
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  // Installed PWAs read these once at install time, so an existing install
+  // keeps the colours it was installed with until the OS refreshes it.
+  const chrome = getTheme(await getGlobalTheme()).chrome
+
   return {
     name: 'PlaneChaser — MTG Planechase Companion',
     short_name: 'PlaneChaser',
@@ -10,8 +16,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#0a0813',
-    theme_color: '#0a0813',
+    background_color: chrome,
+    theme_color: chrome,
     categories: ['games', 'entertainment', 'utilities'],
     icons: [
       {

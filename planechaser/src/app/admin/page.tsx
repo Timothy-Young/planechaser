@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useTransition, useSyncExternalStore } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Shield,
@@ -32,6 +33,8 @@ import {
   Image as ImageIcon,
 } from 'lucide-react'
 import { useAppStore } from '@/store/app-store'
+import { THEMES, MANA_PIP, DEFAULT_THEME } from '@/lib/theme/themes'
+import { setGlobalUiTheme } from './actions'
 import { MessagesTab } from '@/components/admin/messages-tab'
 import {
   useAppStats,
@@ -98,6 +101,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   announcement_deleted: 'Deleted Announcement',
   message_sent: 'Sent Message',
   message_deleted: 'Deleted Message',
+  global_theme_changed: 'Changed App Theme',
 }
 
 const AUDIT_ACTION_COLORS: Record<string, string> = {
@@ -116,6 +120,7 @@ const AUDIT_ACTION_COLORS: Record<string, string> = {
   announcement_deleted: 'var(--color-cta)',
   message_sent: 'var(--color-accent)',
   message_deleted: 'var(--color-cta)',
+  global_theme_changed: 'var(--color-gold)',
 }
 
 // ─── CSV Export ───────────────────────────────────────────────────────────────
@@ -2168,12 +2173,105 @@ function AnnouncementsTab() {
   )
 }
 
+// ─── Global theme picker (owner only) ─────────────────────────────────────────
+function subscribeToThemeAttribute(onChange: () => void) {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
+  })
+  return () => observer.disconnect()
+}
+
+const readThemeAttribute = () =>
+  document.documentElement.getAttribute('data-theme') ?? DEFAULT_THEME
+
+/**
+ * Changes the theme for every user of the app, not just this browser.
+ *
+ * `<html data-theme>` is the single source of truth here — the server stamped
+ * it during render, so subscribing to the attribute is cheaper and less
+ * error-prone than mirroring it into state and keeping the two in step.
+ * Selecting a theme writes the attribute (repainting instantly) and writes it
+ * back if the server rejects the change.
+ */
+function GlobalThemePicker() {
+  const userRole = useAppStore((s) => s.userRole)
+  const router = useRouter()
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const current = useSyncExternalStore(
+    subscribeToThemeAttribute,
+    readThemeAttribute,
+    () => DEFAULT_THEME
+  )
+
+  if (!isOwner(userRole ?? undefined)) return null
+
+  const active = THEMES.find((t) => t.id === current)
+
+  function handleChange(next: string) {
+    const previous = current
+    setError(null)
+    document.documentElement.setAttribute('data-theme', next)
+
+    startTransition(async () => {
+      const result = await setGlobalUiTheme(next)
+      if (!result.ok) {
+        document.documentElement.setAttribute('data-theme', previous)
+        setError(result.error)
+        return
+      }
+      router.refresh()
+    })
+  }
+
+  return (
+    <div className="ml-auto flex items-center gap-2">
+      {active && active.colors.length > 0 && (
+        <div className="flex items-center gap-1" aria-hidden="true">
+          {active.colors.map((c) => (
+            <span
+              key={c}
+              className="w-2.5 h-2.5 rounded-full border border-black/30"
+              style={{ background: MANA_PIP[c] }}
+            />
+          ))}
+        </div>
+      )}
+      <div className="relative">
+        <select
+          value={current}
+          disabled={pending}
+          onChange={(e) => handleChange(e.target.value)}
+          aria-label="Global app theme"
+          className="h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/60 text-[11px] text-[var(--color-text)] pl-2 pr-6 appearance-none focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors disabled:opacity-50"
+          style={{ fontFamily: 'var(--font-heading)' }}
+        >
+          {THEMES.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown
+          size={10}
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none"
+        />
+      </div>
+      {error && (
+        <span className="text-[10px] text-[var(--color-destructive)] max-w-[160px] truncate" title={error}>
+          {error}
+        </span>
+      )}
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('stats')
   const { data: stats } = useAppStats()
-  const uiTheme = useAppStore((s) => s.uiTheme)
-  const setUiTheme = useAppStore((s) => s.setUiTheme)
 
   const TABS: { key: AdminTab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { key: 'stats', label: 'Stats', icon: <BarChart3 size={14} /> },
@@ -2210,18 +2308,7 @@ export default function AdminPage() {
           >
             Admin Dashboard
           </h1>
-          <div className="relative ml-auto">
-            <select
-              value={uiTheme}
-              onChange={(e) => setUiTheme(e.target.value as 'atlas' | 'eternities')}
-              className="h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/60 text-[11px] text-[var(--color-text)] pl-2 pr-6 appearance-none focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
-              style={{ fontFamily: 'var(--font-heading)' }}
-            >
-              <option value="atlas">Planar Atlas</option>
-              <option value="eternities">Blind Eternities</option>
-            </select>
-            <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
-          </div>
+          <GlobalThemePicker />
         </div>
 
         {/* Tab bar — scrollable on mobile */}

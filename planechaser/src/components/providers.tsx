@@ -30,16 +30,19 @@ function AuthSync() {
   return null
 }
 
+/**
+ * Syncs the light/dark class only. `data-theme` is owned by the server render
+ * (see getGlobalTheme in the root layout) — writing it here too would flip the
+ * app to a stale localStorage value on every hydration.
+ */
 function ThemeSync() {
   const theme = useAppStore((s) => s.theme)
-  const uiTheme = useAppStore((s) => s.uiTheme)
 
   useEffect(() => {
     const root = document.documentElement
     root.classList.remove('dark', 'light')
     root.classList.add(theme)
-    root.setAttribute('data-theme', uiTheme)
-  }, [theme, uiTheme])
+  }, [theme])
 
   return null
 }

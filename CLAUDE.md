@@ -153,18 +153,20 @@ Architecture not yet mapped. Follow existing patterns found in the codebase.
 No project skills found. Add skills to any of: `.claude/skills/`, `.agents/skills/`, `.cursor/skills/`, `.github/skills/`, or `.codex/skills/` with a `SKILL.md` index file.
 <!-- GSD:skills-end -->
 
-<!-- GSD:workflow-start source:GSD defaults -->
-## GSD Workflow Enforcement
+## Workflow
 
-Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
+Do not use GSD. No `/gsd-*` command, no `.planning/` artifact, and no GSD subagent is required before editing this repo — edit directly. The `.planning/` directory is kept for its history; treat it as read-only reference, not as a gate.
 
-Use these entry points:
-- `/gsd-quick` for small fixes, doc updates, and ad-hoc tasks
-- `/gsd-debug` for investigation and bug fixing
-- `/gsd-execute-phase` for planned phase work
+When a task genuinely needs planning first, use the superpowers skills:
+- `superpowers:brainstorming` before creative work — new features, new components, behavior changes
+- `superpowers:writing-plans` when a multi-step task needs a written plan
+- `superpowers:systematic-debugging` for bugs, test failures, and unexpected behavior
+- `superpowers:test-driven-development` when implementing a feature or bugfix
+- `superpowers:verification-before-completion` before claiming anything works
 
-Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
-<!-- GSD:workflow-end -->
+Small, well-understood changes need none of that. Make the edit, verify it, commit it.
+
+The GSD marker comments are deliberately removed from this section so a GSD sync has no anchor to regenerate the old text over it.
 
 
 

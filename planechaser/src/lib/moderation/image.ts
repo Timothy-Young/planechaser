@@ -32,24 +32,29 @@ async function initBackend(): Promise<void> {
   // also why a CPU fallback is safe to take rather than failing the request:
   // with `maxDuration = 30` on the route, ~1750ms load plus ~1400ms classify is
   // a slow success, not a hard failure.
-  const require = createRequire(import.meta.url)
-  const wasmDir = path.join(
-    path.dirname(require.resolve('@tensorflow/tfjs-backend-wasm/package.json')),
-    'dist',
-  )
-  setWasmPaths(`${wasmDir}${path.sep}`)
 
   // setBackend signals a failed WASM init two different ways depending on the
   // cause — it rejects for some (a missing asset) and resolves false for
   // others (no WASM support in the runtime) — so both are caught here and
-  // treated as the same "fall back to cpu" outcome. `@tensorflow/tfjs`
-  // registers the cpu backend by default in Node, so no extra dependency is
-  // needed for the fallback itself. A cpu failure is not swallowed: if it also
-  // fails, this throws, and the caller's cache reset plus the route's logging
-  // pick it up from there.
+  // treated as the same "fall back to cpu" outcome. Locating the binaries sits
+  // inside the try for the same reason: `require.resolve` throws
+  // MODULE_NOT_FOUND when the bundler's file tracing misses tfjs-backend-wasm's
+  // package.json, and from out here that escaped initBackend entirely — past
+  // the fallback, out through getModel, and back to the user as "that image
+  // could not be processed" on an image that was never the problem.
+  // `@tensorflow/tfjs` registers the cpu backend by default in Node, so no
+  // extra dependency is needed for the fallback itself. A cpu failure is not
+  // swallowed: if it also fails, this throws, and the caller's cache reset plus
+  // the route's logging pick it up from there.
   let wasmReady: boolean
   let wasmError: unknown = null
   try {
+    const require = createRequire(import.meta.url)
+    const wasmDir = path.join(
+      path.dirname(require.resolve('@tensorflow/tfjs-backend-wasm/package.json')),
+      'dist',
+    )
+    setWasmPaths(`${wasmDir}${path.sep}`)
     wasmReady = await tf.setBackend('wasm')
   } catch (error) {
     wasmReady = false
